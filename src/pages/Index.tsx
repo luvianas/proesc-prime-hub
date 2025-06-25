@@ -77,7 +77,7 @@ const Index = () => {
       name: "WhatsApp Consultor",
       description: "Contato direto",
       icon: MessageCircle,
-      action: () => window.open("https://wa.me/5521982763635", "_blank")
+      action: () => window.open("https://wa.me/5596984130163", "_blank")
     },
     {
       name: "Agenda Consultor",

@@ -2,7 +2,8 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, MessageCircle, Calendar, Clock, User, Phone } from "lucide-react";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { ArrowLeft, MessageCircle, Calendar, Clock, Phone } from "lucide-react";
 
 interface ConsultantInfoProps {
   onBack: () => void;
@@ -10,11 +11,12 @@ interface ConsultantInfoProps {
 
 const ConsultantInfo = ({ onBack }: ConsultantInfoProps) => {
   const consultant = {
-    name: "Ana Silva",
-    role: "Consultora Prime",
-    phone: "+55 (21) 98276-3635",
-    email: "ana.silva@proesc.com.br",
-    availability: "Segunda a Sexta, 8h às 18h"
+    name: "Lucas Viana",
+    role: "Consultor Prime",
+    phone: "+55 (96) 98413-0163",
+    email: "lucas.viana@proesc.com.br",
+    availability: "Segunda a Sexta, 9h às 17h30",
+    photo: "/lovable-uploads/2d289e04-9c96-46d8-9efe-65c09617717d.png"
   };
 
   const upcomingMeetings = [
@@ -63,9 +65,12 @@ const ConsultantInfo = ({ onBack }: ConsultantInfoProps) => {
           <Card>
             <CardHeader>
               <div className="flex items-center space-x-4">
-                <div className="w-16 h-16 bg-gradient-to-r from-blue-500 to-blue-600 rounded-full flex items-center justify-center">
-                  <User className="h-8 w-8 text-white" />
-                </div>
+                <Avatar className="w-16 h-16">
+                  <AvatarImage src={consultant.photo} alt={consultant.name} />
+                  <AvatarFallback className="bg-gradient-to-r from-blue-500 to-blue-600 text-white text-lg">
+                    LV
+                  </AvatarFallback>
+                </Avatar>
                 <div>
                   <CardTitle>{consultant.name}</CardTitle>
                   <CardDescription>{consultant.role}</CardDescription>
@@ -84,12 +89,16 @@ const ConsultantInfo = ({ onBack }: ConsultantInfoProps) => {
               <div className="pt-4 space-y-2">
                 <Button 
                   className="w-full" 
-                  onClick={() => window.open(`https://wa.me/5521982763635`, "_blank")}
+                  onClick={() => window.open(`https://wa.me/5596984130163`, "_blank")}
                 >
                   <MessageCircle className="h-4 w-4 mr-2" />
                   WhatsApp
                 </Button>
-                <Button variant="outline" className="w-full">
+                <Button 
+                  variant="outline" 
+                  className="w-full"
+                  onClick={() => window.open("https://calendar.app.google/qNPTz6CcU7kuG2AP9", "_blank")}
+                >
                   <Calendar className="h-4 w-4 mr-2" />
                   Agendar Reunião
                 </Button>
