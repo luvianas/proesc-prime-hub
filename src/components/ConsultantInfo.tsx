@@ -3,6 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ArrowLeft, MessageCircle, Calendar, Clock, Phone } from "lucide-react";
 
 interface ConsultantInfoProps {
@@ -107,39 +108,60 @@ const ConsultantInfo = ({ onBack }: ConsultantInfoProps) => {
           </Card>
         </div>
 
-        {/* Upcoming Meetings */}
+        {/* Agenda Section */}
         <div className="lg:col-span-2">
           <Card>
             <CardHeader>
-              <CardTitle>Próximos Compromissos</CardTitle>
-              <CardDescription>Reuniões e eventos agendados</CardDescription>
+              <CardTitle>Agenda do Consultor</CardTitle>
+              <CardDescription>Visualize e agende seus compromissos</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                {upcomingMeetings.map((meeting) => (
-                  <div key={meeting.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 transition-colors">
-                    <div className="flex-1">
-                      <h4 className="font-medium text-gray-900">{meeting.title}</h4>
-                      <div className="flex items-center space-x-4 mt-2 text-sm text-gray-600">
-                        <div className="flex items-center space-x-1">
-                          <Calendar className="h-4 w-4" />
-                          <span>{new Date(meeting.date).toLocaleDateString('pt-BR')}</span>
+              <Tabs defaultValue="calendar" className="w-full">
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="calendar">Agenda Interativa</TabsTrigger>
+                  <TabsTrigger value="meetings">Próximos Compromissos</TabsTrigger>
+                </TabsList>
+                
+                <TabsContent value="calendar" className="mt-6">
+                  <div className="w-full">
+                    <iframe 
+                      src="https://calendar.google.com/calendar/appointments/schedules/AcZssZ1LTF6kdNuIZi_ekDi1xZ7QfLGJ4FhqnNSvaIkEBgzjDYcL46RKLYEY0nTY4j8WYo8ATmZYl18d?gv=true"
+                      className="w-full border-0 rounded-lg"
+                      width="100%" 
+                      height="600"
+                      title="Agenda do Consultor Lucas Viana"
+                    />
+                  </div>
+                </TabsContent>
+                
+                <TabsContent value="meetings" className="mt-6">
+                  <div className="space-y-4">
+                    {upcomingMeetings.map((meeting) => (
+                      <div key={meeting.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 transition-colors">
+                        <div className="flex-1">
+                          <h4 className="font-medium text-gray-900">{meeting.title}</h4>
+                          <div className="flex items-center space-x-4 mt-2 text-sm text-gray-600">
+                            <div className="flex items-center space-x-1">
+                              <Calendar className="h-4 w-4" />
+                              <span>{new Date(meeting.date).toLocaleDateString('pt-BR')}</span>
+                            </div>
+                            <div className="flex items-center space-x-1">
+                              <Clock className="h-4 w-4" />
+                              <span>{meeting.time} ({meeting.duration})</span>
+                            </div>
+                          </div>
                         </div>
-                        <div className="flex items-center space-x-1">
-                          <Clock className="h-4 w-4" />
-                          <span>{meeting.time} ({meeting.duration})</span>
+                        <div className="flex items-center space-x-2">
+                          <Badge variant="outline">{meeting.type}</Badge>
+                          <Button size="sm" variant="outline">
+                            Entrar
+                          </Button>
                         </div>
                       </div>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Badge variant="outline">{meeting.type}</Badge>
-                      <Button size="sm" variant="outline">
-                        Entrar
-                      </Button>
-                    </div>
+                    ))}
                   </div>
-                ))}
-              </div>
+                </TabsContent>
+              </Tabs>
             </CardContent>
           </Card>
         </div>
