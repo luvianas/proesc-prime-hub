@@ -12,7 +12,7 @@ const ConsultantInfo = ({ onBack }: ConsultantInfoProps) => {
   const consultant = {
     name: "Ana Silva",
     role: "Consultora Prime",
-    phone: "+55 11 99999-9999",
+    phone: "+55 (21) 98276-3635",
     email: "ana.silva@proesc.com.br",
     availability: "Segunda a Sexta, 8h às 18h"
   };
@@ -84,7 +84,7 @@ const ConsultantInfo = ({ onBack }: ConsultantInfoProps) => {
               <div className="pt-4 space-y-2">
                 <Button 
                   className="w-full" 
-                  onClick={() => window.open(`https://wa.me/5511999999999`, "_blank")}
+                  onClick={() => window.open(`https://wa.me/5521982763635`, "_blank")}
                 >
                   <MessageCircle className="h-4 w-4 mr-2" />
                   WhatsApp
