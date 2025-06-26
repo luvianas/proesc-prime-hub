@@ -88,25 +88,25 @@ const Index = () => {
     }
   ];
 
-  // Placeholder images for carousel - to be replaced with actual content
+  // Updated carousel images with the new Proesc images
   const carouselImages = [
     {
       id: 1,
-      title: "Novidades Proesc",
-      description: "Últimas atualizações e funcionalidades",
-      image: "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=2480&h=521&fit=crop&crop=center"
+      title: "Proesc indicado ao Top Educação 2025",
+      description: "A Proesc está entre os indicados ao Top Educação 2025!",
+      image: "/lovable-uploads/0b290d8d-f317-41df-82c2-bffa7d68beac.png"
     },
     {
       id: 2,
-      title: "Notícias da Região",
-      description: "Informações relevantes para sua escola",
-      image: "https://images.unsplash.com/photo-1523050854058-8df90110c9f1?w=2480&h=521&fit=crop&crop=center"
+      title: "Horários de Atendimento no Feriado",
+      description: "Informações sobre atendimento durante feriados",
+      image: "/lovable-uploads/930b35eb-0dec-4ae6-b035-c09aaa983262.png"
     },
     {
       id: 3,
-      title: "Mercado Educacional",
-      description: "Tendências e oportunidades",
-      image: "https://images.unsplash.com/photo-1497486751825-1233686d5d80?w=2480&h=521&fit=crop&crop=center"
+      title: "Boleto Escolar via PIX e QR Code",
+      description: "Mais facilidade para os pais - Compensação rápida, praticidade e segurança",
+      image: "/lovable-uploads/91ae59f5-1f79-4321-8f22-333ba8882338.png"
     }
   ];
 
@@ -130,12 +130,12 @@ const Index = () => {
                 </div>
               </div>
               
-              {/* Proesc Prime Logo */}
+              {/* Proesc Prime Logo - Increased size */}
               <div className="hidden md:flex items-center ml-8">
                 <img 
                   src="/lovable-uploads/87a7541c-22d3-4ff4-8b78-7b74c4f90f7e.png" 
                   alt="Proesc Prime" 
-                  className="h-8"
+                  className="h-12"
                 />
               </div>
             </div>
