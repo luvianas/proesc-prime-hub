@@ -92,21 +92,21 @@ const Index = () => {
   const carouselImages = [
     {
       id: 1,
-      title: "Proesc indicado ao Top Educação 2025",
-      description: "A Proesc está entre os indicados ao Top Educação 2025!",
-      image: "/lovable-uploads/0b290d8d-f317-41df-82c2-bffa7d68beac.png"
+      title: "A Proesc está entre os indicados ao Top Educação 2025!",
+      description: "Vote agora e ajude a Proesc a conquistar este reconhecimento",
+      image: "/lovable-uploads/e591c8ad-1800-4b34-afed-43510f6a8268.png"
     },
     {
       id: 2,
-      title: "Horários de Atendimento no Feriado",
-      description: "Informações sobre atendimento durante feriados",
-      image: "/lovable-uploads/930b35eb-0dec-4ae6-b035-c09aaa983262.png"
+      title: "Confira as demais programações em treinamentos",
+      description: "Acesse www.educacional.proesc.com/treinamentos para mais informações",
+      image: "/lovable-uploads/6674693d-4414-484d-bcda-91c0b0d108ac.png"
     },
     {
       id: 3,
       title: "Boleto Escolar via PIX e QR Code",
       description: "Mais facilidade para os pais - Compensação rápida, praticidade e segurança",
-      image: "/lovable-uploads/91ae59f5-1f79-4321-8f22-333ba8882338.png"
+      image: "/lovable-uploads/c38a6881-8d92-4f8a-a13d-b5e6099798f8.png"
     }
   ];
 
@@ -129,15 +129,15 @@ const Index = () => {
                   <Badge variant="secondary" className="text-xs">Portal Prime</Badge>
                 </div>
               </div>
-              
-              {/* Proesc Prime Logo - Increased size */}
-              <div className="hidden md:flex items-center ml-8">
-                <img 
-                  src="/lovable-uploads/87a7541c-22d3-4ff4-8b78-7b74c4f90f7e.png" 
-                  alt="Proesc Prime" 
-                  className="h-12"
-                />
-              </div>
+            </div>
+            
+            {/* Proesc Prime Logo - Increased size and centered */}
+            <div className="flex items-center justify-center flex-1">
+              <img 
+                src="/lovable-uploads/87a7541c-22d3-4ff4-8b78-7b74c4f90f7e.png" 
+                alt="Proesc Prime" 
+                className="h-16"
+              />
             </div>
             
             <div className="flex items-center space-x-4">
