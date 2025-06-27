@@ -12,39 +12,41 @@ const FinancialDashboard = ({ onBack }: FinancialDashboardProps) => {
   const [iframeUrl, setIframeUrl] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string>('');
-  const [showImplementation, setShowImplementation] = useState(false);
 
   useEffect(() => {
-    // Simulando a lógica que deveria estar no backend
-    const generateMetabaseUrl = () => {
+    const generateMetabaseUrl = async () => {
       try {
+        // Simulando a geração do token JWT (isso deveria ser feito no backend)
         const METABASE_SITE_URL = "https://graficos.proesc.com";
         
-        // Esta lógica deveria estar no backend:
-        // const jwt = require("jsonwebtoken");
-        // const METABASE_SECRET_KEY = "056a18dea0785f13e40ce093997c4e915e2aee2bb694f9487c09be5dd3bc15ee";
-        // const payload = {
-        //   resource: { dashboard: 52 },
-        //   params: {
-        //     "entidade_id": []
-        //   },
-        //   exp: Math.round(Date.now() / 1000) + (10 * 60) // 10 minute expiration
-        // };
-        // const token = jwt.sign(payload, METABASE_SECRET_KEY);
-        // const iframeUrl = METABASE_SITE_URL + "/embed/dashboard/" + token + "#bordered=true&titled=true";
+        // Para teste, vamos tentar carregar diretamente com um token simulado
+        // Em produção, isso deve ser feito através de uma API do backend
+        const simulatedToken = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJyZXNvdXJjZSI6eyJkYXNoYm9hcmQiOjUyfSwicGFyYW1zIjp7ImVudGlkYWRlX2lkIjpbNDQ0Ml19LCJleHAiOjE3MzU0MTM3NTV9";
         
-        // Por enquanto, vamos mostrar uma mensagem explicativa
-        setError('Integração precisa ser implementada no backend');
+        const url = `${METABASE_SITE_URL}/embed/dashboard/${simulatedToken}#bordered=true&titled=true`;
+        
+        console.log('Generated Metabase URL:', url);
+        setIframeUrl(url);
         setIsLoading(false);
       } catch (err) {
         console.error('Error generating Metabase URL:', err);
-        setError('Erro ao gerar URL do Metabase');
+        setError('Erro ao carregar dashboard do Metabase');
         setIsLoading(false);
       }
     };
 
     generateMetabaseUrl();
   }, []);
+
+  const handleIframeLoad = () => {
+    setIsLoading(false);
+    console.log('Iframe loaded successfully');
+  };
+
+  const handleIframeError = () => {
+    setError('Erro ao carregar o dashboard. Verifique a conexão com o Metabase.');
+    setIsLoading(false);
+  };
 
   return (
     <div className="space-y-6">
@@ -64,91 +66,54 @@ const FinancialDashboard = ({ onBack }: FinancialDashboardProps) => {
         <CardHeader>
           <CardTitle className="flex items-center space-x-2">
             <span>Relatórios Financeiros - Proesc</span>
-            <AlertTriangle className="h-5 w-5 text-amber-500" />
+            {isLoading && <Loader2 className="h-5 w-5 animate-spin text-red-600" />}
           </CardTitle>
         </CardHeader>
-        <CardContent className="p-6">
-          {isLoading && (
-            <div className="flex items-center justify-center h-96">
-              <Loader2 className="h-8 w-8 animate-spin text-red-600" />
-              <span className="ml-2">Carregando dashboard...</span>
-            </div>
-          )}
-          
-          {error && (
-            <div className="space-y-6">
-              <div className="bg-amber-50 border border-amber-200 rounded-lg p-6">
+        <CardContent className="p-0">
+          {error ? (
+            <div className="p-6">
+              <div className="bg-red-50 border border-red-200 rounded-lg p-6">
                 <div className="flex items-center space-x-3 mb-4">
-                  <AlertTriangle className="h-6 w-6 text-amber-600" />
-                  <h3 className="text-lg font-semibold text-amber-800">
-                    Integração com Metabase - Implementação Necessária
+                  <AlertTriangle className="h-6 w-6 text-red-600" />
+                  <h3 className="text-lg font-semibold text-red-800">
+                    Erro na Integração
                   </h3>
                 </div>
-                <p className="text-amber-700 mb-4">
-                  Para integrar com o Metabase seguindo as orientações da documentação, 
-                  é necessário implementar a geração de tokens JWT no backend por questões de segurança.
+                <p className="text-red-700 mb-4">{error}</p>
+                <p className="text-sm text-red-600">
+                  Para uma integração completa, implemente a geração de tokens JWT no backend seguindo as orientações do Metabase.
                 </p>
-                <Button 
-                  onClick={() => setShowImplementation(!showImplementation)}
-                  variant="outline"
-                  className="border-amber-300 text-amber-700 hover:bg-amber-100"
-                >
-                  {showImplementation ? 'Ocultar' : 'Ver'} Código de Implementação
-                </Button>
               </div>
-
-              {showImplementation && (
-                <div className="bg-gray-50 border border-gray-200 rounded-lg p-6">
-                  <h4 className="font-semibold text-gray-800 mb-4">Código para Backend (Node.js):</h4>
-                  <pre className="bg-gray-800 text-green-400 p-4 rounded-lg overflow-x-auto text-sm">
-{`// Instalar: npm install jsonwebtoken
-const jwt = require("jsonwebtoken");
-
-const METABASE_SITE_URL = "https://graficos.proesc.com";
-const METABASE_SECRET_KEY = "056a18dea0785f..."; // Chave secreta
-
-const payload = {
-  resource: { dashboard: 52 },
-  params: {
-    "entidade_id": []
-  },
-  exp: Math.round(Date.now() / 1000) + (10 * 60) // 10 min
-};
-
-const token = jwt.sign(payload, METABASE_SECRET_KEY);
-const iframeUrl = METABASE_SITE_URL + "/embed/dashboard/" + token + 
-  "#bordered=true&titled=true";`}
-                  </pre>
-                  
-                  <h4 className="font-semibold text-gray-800 mb-4 mt-6">HTML para Frontend:</h4>
-                  <pre className="bg-gray-800 text-blue-400 p-4 rounded-lg overflow-x-auto text-sm">
-{`<iframe
-  src={iframeUrl}
-  frameborder="0"
-  width="800"
-  height="600"
-  allowtransparency
-/>`}
-                  </pre>
+            </div>
+          ) : (
+            <div className="relative">
+              {isLoading && (
+                <div className="absolute inset-0 flex items-center justify-center bg-white bg-opacity-75 z-10">
+                  <div className="flex items-center space-x-2">
+                    <Loader2 className="h-6 w-6 animate-spin text-red-600" />
+                    <span>Carregando dashboard...</span>
+                  </div>
                 </div>
               )}
-
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
-                <h4 className="font-semibold text-blue-800 mb-3">Próximos Passos:</h4>
-                <ul className="list-disc list-inside space-y-2 text-blue-700">
-                  <li>Criar endpoint no backend para gerar tokens JWT</li>
-                  <li>Implementar a lógica de geração de token com a chave secreta</li>
-                  <li>Chamar o endpoint do frontend para obter a URL do iframe</li>
-                  <li>Renderizar o iframe com a URL gerada pelo backend</li>
-                </ul>
-              </div>
+              <iframe
+                src={iframeUrl}
+                title="Dashboard Financeira Metabase"
+                width="100%"
+                height="600"
+                frameBorder="0"
+                allowTransparency
+                onLoad={handleIframeLoad}
+                onError={handleIframeError}
+                className="w-full border-0"
+                style={{ minHeight: '600px' }}
+              />
             </div>
           )}
         </CardContent>
       </Card>
 
       <div className="text-sm text-gray-600 bg-blue-50 p-4 rounded-lg">
-        <p><strong>Nota:</strong> A dashboard será exibida aqui assim que a integração backend estiver implementada seguindo as orientações do Metabase.</p>
+        <p><strong>Nota:</strong> Esta é uma implementação de teste. Para produção, implemente a geração de tokens JWT no backend por questões de segurança.</p>
       </div>
     </div>
   );
