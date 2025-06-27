@@ -23,6 +23,7 @@ import AIAssistant from "@/components/AIAssistant";
 import TicketSystem from "@/components/TicketSystem";
 import ConsultantInfo from "@/components/ConsultantInfo";
 import FinancialDashboard from "@/components/FinancialDashboard";
+import SecretariaDashboard from "@/components/SecretariaDashboard";
 
 const Index = () => {
   const [showAI, setShowAI] = useState(false);
@@ -55,7 +56,7 @@ const Index = () => {
       description: "Gestão administrativa e documentos",
       icon: FileText,
       color: "bg-red-800",
-      url: "#"
+      action: () => setActiveSection("secretaria")
     },
     {
       name: "Pedagógico",
@@ -290,6 +291,10 @@ const Index = () => {
 
         {activeSection === "financial" && (
           <FinancialDashboard onBack={() => setActiveSection("dashboard")} />
+        )}
+
+        {activeSection === "secretaria" && (
+          <SecretariaDashboard onBack={() => setActiveSection("dashboard")} />
         )}
 
         {/* AI Assistant */}
