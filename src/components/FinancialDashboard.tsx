@@ -1,0 +1,102 @@
+
+import React, { useState, useEffect } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { ArrowLeft, Loader2 } from "lucide-react";
+import jwt from 'jsonwebtoken';
+
+interface FinancialDashboardProps {
+  onBack: () => void;
+}
+
+const FinancialDashboard = ({ onBack }: FinancialDashboardProps) => {
+  const [iframeUrl, setIframeUrl] = useState<string>('');
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string>('');
+
+  useEffect(() => {
+    try {
+      const METABASE_SITE_URL = "https://graficos.proesc.com";
+      const METABASE_SECRET_KEY = "056a18dea0785f13e40ce093997c4e915e2aee2bb694f9487c09be5dd3bc15ee";
+      
+      const payload = {
+        resource: { dashboard: 52 },
+        params: {
+          "entidade_id": []
+        },
+        exp: Math.round(Date.now() / 1000) + (10 * 60) // 10 minute expiration
+      };
+
+      const token = jwt.sign(payload, METABASE_SECRET_KEY);
+      const url = METABASE_SITE_URL + "/embed/dashboard/" + token + "#bordered=true&titled=true";
+      
+      setIframeUrl(url);
+      setIsLoading(false);
+    } catch (err) {
+      console.error('Error generating Metabase token:', err);
+      setError('Erro ao carregar dashboard financeira');
+      setIsLoading(false);
+    }
+  }, []);
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center space-x-4">
+        <Button 
+          variant="outline" 
+          onClick={onBack}
+          className="flex items-center space-x-2"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          <span>Voltar</span>
+        </Button>
+        <h2 className="text-3xl font-bold text-gray-900">Dashboard Financeira</h2>
+      </div>
+
+      <Card className="w-full">
+        <CardHeader>
+          <CardTitle className="flex items-center space-x-2">
+            <span>Relatórios Financeiros - Proesc</span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="p-0">
+          {isLoading && (
+            <div className="flex items-center justify-center h-96">
+              <Loader2 className="h-8 w-8 animate-spin text-red-600" />
+              <span className="ml-2">Carregando dashboard...</span>
+            </div>
+          )}
+          
+          {error && (
+            <div className="flex items-center justify-center h-96">
+              <div className="text-center">
+                <p className="text-red-600 mb-4">{error}</p>
+                <Button onClick={() => window.location.reload()}>
+                  Tentar Novamente
+                </Button>
+              </div>
+            </div>
+          )}
+          
+          {iframeUrl && !isLoading && !error && (
+            <iframe
+              src={iframeUrl}
+              frameBorder="0"
+              width="100%"
+              height="600"
+              allowTransparency
+              className="w-full rounded-lg"
+              title="Dashboard Financeira"
+            />
+          )}
+        </CardContent>
+      </Card>
+
+      <div className="text-sm text-gray-600 bg-blue-50 p-4 rounded-lg">
+        <p><strong>Nota:</strong> Esta dashboard é atualizada em tempo real e mostra dados financeiros consolidados do sistema Proesc.</p>
+      </div>
+    </div>
+  );
+};
+
+export default FinancialDashboard;

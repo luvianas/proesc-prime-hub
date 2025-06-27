@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -23,6 +22,7 @@ import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious
 import AIAssistant from "@/components/AIAssistant";
 import TicketSystem from "@/components/TicketSystem";
 import ConsultantInfo from "@/components/ConsultantInfo";
+import FinancialDashboard from "@/components/FinancialDashboard";
 
 const Index = () => {
   const [showAI, setShowAI] = useState(false);
@@ -41,7 +41,7 @@ const Index = () => {
       description: "Relatórios financeiros e receitas",
       icon: DollarSign,
       color: "bg-red-700",
-      url: "#"
+      action: () => setActiveSection("financial")
     },
     {
       name: "Proesc Agenda",
@@ -248,7 +248,7 @@ const Index = () => {
                   <Card 
                     key={index} 
                     className="hover:shadow-lg transition-all duration-200 cursor-pointer group"
-                    onClick={() => window.open(dashboard.url, "_blank")}
+                    onClick={() => dashboard.action ? dashboard.action() : window.open(dashboard.url, "_blank")}
                   >
                     <CardHeader>
                       <div className="flex items-center justify-between">
@@ -286,6 +286,10 @@ const Index = () => {
 
         {activeSection === "agenda" && (
           <ConsultantInfo onBack={() => setActiveSection("dashboard")} />
+        )}
+
+        {activeSection === "financial" && (
+          <FinancialDashboard onBack={() => setActiveSection("dashboard")} />
         )}
 
         {/* AI Assistant */}
