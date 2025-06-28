@@ -24,19 +24,14 @@ import TicketSystem from "@/components/TicketSystem";
 import ConsultantInfo from "@/components/ConsultantInfo";
 import FinancialDashboard from "@/components/FinancialDashboard";
 import SecretariaDashboard from "@/components/SecretariaDashboard";
+import AgendaDashboard from "@/components/AgendaDashboard";
+import PedagogicoDashboard from "@/components/PedagogicoDashboard";
 
 const Index = () => {
   const [showAI, setShowAI] = useState(false);
   const [activeSection, setActiveSection] = useState("dashboard");
 
   const dashboards = [
-    {
-      name: "Matrícula",
-      description: "Acompanhe matrículas e processos seletivos",
-      icon: Users,
-      color: "bg-red-600",
-      url: "#"
-    },
     {
       name: "Financeiro",
       description: "Relatórios financeiros e receitas",
@@ -49,7 +44,7 @@ const Index = () => {
       description: "Sistema de agendamentos integrado",
       icon: CalendarDays,
       color: "bg-red-500",
-      url: "#"
+      action: () => setActiveSection("agenda")
     },
     {
       name: "Secretaria",
@@ -63,7 +58,7 @@ const Index = () => {
       description: "Acompanhamento pedagógico e notas",
       icon: GraduationCap,
       color: "bg-red-900",
-      url: "#"
+      action: () => setActiveSection("pedagogico")
     }
   ];
 
@@ -285,8 +280,8 @@ const Index = () => {
           <TicketSystem onBack={() => setActiveSection("dashboard")} />
         )}
 
-        {activeSection === "agenda" && (
-          <ConsultantInfo onBack={() => setActiveSection("dashboard")} />
+        {activeSection === "agenda" && activeSection !== "dashboard" && (
+          <AgendaDashboard onBack={() => setActiveSection("dashboard")} />
         )}
 
         {activeSection === "financial" && (
@@ -295,6 +290,10 @@ const Index = () => {
 
         {activeSection === "secretaria" && (
           <SecretariaDashboard onBack={() => setActiveSection("dashboard")} />
+        )}
+
+        {activeSection === "pedagogico" && (
+          <PedagogicoDashboard onBack={() => setActiveSection("dashboard")} />
         )}
 
         {/* AI Assistant */}
