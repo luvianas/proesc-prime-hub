@@ -1,4 +1,5 @@
-import { useState } from "react";
+
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -16,9 +17,11 @@ import {
   ExternalLink,
   Clock,
   Users,
-  Bell
+  Bell,
+  ChevronDown,
+  ChevronUp
 } from "lucide-react";
-import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
+import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious, CarouselApi } from "@/components/ui/carousel";
 import AIAssistant from "@/components/AIAssistant";
 import TicketSystem from "@/components/TicketSystem";
 import ConsultantInfo from "@/components/ConsultantInfo";
@@ -30,35 +33,54 @@ import PedagogicoDashboard from "@/components/PedagogicoDashboard";
 const Index = () => {
   const [showAI, setShowAI] = useState(false);
   const [activeSection, setActiveSection] = useState("dashboard");
+  const [expandedDashboard, setExpandedDashboard] = useState<string | null>(null);
+  const [api, setApi] = useState<CarouselApi>();
+
+  // Auto-carousel functionality
+  useEffect(() => {
+    if (!api) {
+      return;
+    }
+
+    const intervalId = setInterval(() => {
+      api.scrollNext();
+    }, 5000); // 5 seconds
+
+    return () => clearInterval(intervalId);
+  }, [api]);
 
   const dashboards = [
     {
+      id: "financial",
       name: "Financeiro",
       description: "Relatórios financeiros e receitas",
       icon: DollarSign,
       color: "bg-red-700",
-      action: () => setActiveSection("financial")
+      component: <FinancialDashboard onBack={() => setExpandedDashboard(null)} />
     },
     {
+      id: "agenda",
       name: "Proesc Agenda",
       description: "Sistema de agendamentos integrado",
       icon: CalendarDays,
       color: "bg-red-500",
-      action: () => setActiveSection("agenda")
+      component: <AgendaDashboard onBack={() => setExpandedDashboard(null)} />
     },
     {
+      id: "secretaria",
       name: "Secretaria",
       description: "Gestão administrativa e documentos",
       icon: FileText,
       color: "bg-red-800",
-      action: () => setActiveSection("secretaria")
+      component: <SecretariaDashboard onBack={() => setExpandedDashboard(null)} />
     },
     {
+      id: "pedagogico",
       name: "Pedagógico",
       description: "Acompanhamento pedagógico e notas",
       icon: GraduationCap,
       color: "bg-red-900",
-      action: () => setActiveSection("pedagogico")
+      component: <PedagogicoDashboard onBack={() => setExpandedDashboard(null)} />
     }
   ];
 
@@ -105,6 +127,12 @@ const Index = () => {
       image: "/lovable-uploads/c38a6881-8d92-4f8a-a13d-b5e6099798f8.png"
     }
   ];
+
+  // Handle expanded dashboard display
+  if (expandedDashboard) {
+    const dashboard = dashboards.find(d => d.id === expandedDashboard);
+    return dashboard ? dashboard.component : null;
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-white to-red-50">
@@ -175,7 +203,7 @@ const Index = () => {
             <div className="mb-8">
               <Card className="overflow-hidden border-red-100">
                 <CardContent className="p-0">
-                  <Carousel className="w-full">
+                  <Carousel className="w-full" setApi={setApi}>
                     <CarouselContent>
                       {carouselImages.map((item) => (
                         <CarouselItem key={item.id}>
@@ -244,7 +272,7 @@ const Index = () => {
                   <Card 
                     key={index} 
                     className="hover:shadow-lg transition-all duration-200 cursor-pointer group"
-                    onClick={() => dashboard.action ? dashboard.action() : window.open(dashboard.url, "_blank")}
+                    onClick={() => setExpandedDashboard(dashboard.id)}
                   >
                     <CardHeader>
                       <div className="flex items-center justify-between">
@@ -259,7 +287,7 @@ const Index = () => {
                             <CardDescription>{dashboard.description}</CardDescription>
                           </div>
                         </div>
-                        <ExternalLink className="h-4 w-4 text-gray-400 group-hover:text-red-600 transition-colors" />
+                        <ChevronDown className="h-4 w-4 text-gray-400 group-hover:text-red-600 transition-colors" />
                       </div>
                     </CardHeader>
                   </Card>
@@ -268,8 +296,8 @@ const Index = () => {
               
               <div className="mt-6 p-4 bg-red-50 border border-red-100 rounded-lg">
                 <p className="text-sm text-red-800">
-                  <strong>Nota:</strong> Os dashboards serão incorporados diretamente do Metabase em breve. 
-                  Aguarde as próximas atualizações para visualização completa dos dados.
+                  <strong>Nota:</strong> Clique em qualquer dashboard para expandi-la e visualizar os dados completos. 
+                  Use o botão "Voltar" para recolher a visualização.
                 </p>
               </div>
             </div>
@@ -280,20 +308,8 @@ const Index = () => {
           <TicketSystem onBack={() => setActiveSection("dashboard")} />
         )}
 
-        {activeSection === "agenda" && activeSection !== "dashboard" && (
+        {activeSection === "agenda" && (
           <AgendaDashboard onBack={() => setActiveSection("dashboard")} />
-        )}
-
-        {activeSection === "financial" && (
-          <FinancialDashboard onBack={() => setActiveSection("dashboard")} />
-        )}
-
-        {activeSection === "secretaria" && (
-          <SecretariaDashboard onBack={() => setActiveSection("dashboard")} />
-        )}
-
-        {activeSection === "pedagogico" && (
-          <PedagogicoDashboard onBack={() => setActiveSection("dashboard")} />
         )}
 
         {/* AI Assistant */}
