@@ -7,6 +7,7 @@ import FinancialDashboard from "@/components/FinancialDashboard";
 import SecretariaDashboard from "@/components/SecretariaDashboard";
 import AgendaDashboard from "@/components/AgendaDashboard";
 import PedagogicoDashboard from "@/components/PedagogicoDashboard";
+import ConsultantInfo from "@/components/ConsultantInfo";
 import Header from "@/components/Header";
 import WelcomeSection from "@/components/WelcomeSection";
 import CarouselSection from "@/components/CarouselSection";
@@ -63,7 +64,7 @@ const Index = () => {
         )}
 
         {activeSection === "agenda" && (
-          <AgendaDashboard onBack={() => setActiveSection("dashboard")} />
+          <ConsultantInfo onBack={() => setActiveSection("dashboard")} />
         )}
 
         {/* AI Assistant */}
