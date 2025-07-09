@@ -8,6 +8,7 @@ import SecretariaDashboard from "@/components/SecretariaDashboard";
 import AgendaDashboard from "@/components/AgendaDashboard";
 import PedagogicoDashboard from "@/components/PedagogicoDashboard";
 import ConsultantInfo from "@/components/ConsultantInfo";
+import ProjectPlan from "@/components/ProjectPlan";
 import Header from "@/components/Header";
 import WelcomeSection from "@/components/WelcomeSection";
 import CarouselSection from "@/components/CarouselSection";
@@ -65,6 +66,10 @@ const Index = () => {
 
         {activeSection === "agenda" && (
           <ConsultantInfo onBack={() => setActiveSection("dashboard")} />
+        )}
+
+        {activeSection === "plan" && (
+          <ProjectPlan onBack={() => setActiveSection("dashboard")} />
         )}
 
         {/* AI Assistant */}

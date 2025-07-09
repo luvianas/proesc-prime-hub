@@ -1,7 +1,7 @@
 
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Ticket, MessageCircle, Calendar } from "lucide-react";
+import { Ticket, MessageCircle, Calendar, FileText } from "lucide-react";
 
 interface QuickActionsProps {
   setActiveSection: (section: string) => void;
@@ -27,6 +27,12 @@ const QuickActions = ({ setActiveSection }: QuickActionsProps) => {
       description: "Próximos compromissos",
       icon: Calendar,
       action: () => setActiveSection("agenda")
+    },
+    {
+      name: "Plano v1.2",
+      description: "Roadmap técnico",
+      icon: FileText,
+      action: () => setActiveSection("plan")
     }
   ];
 
