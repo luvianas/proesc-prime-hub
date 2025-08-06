@@ -41,6 +41,7 @@ const AdminDashboard = () => {
     email: '',
     password: '',
     name: '',
+    role: 'user' as 'admin' | 'user',
     environmentName: '',
     themeColor: '#3b82f6'
   });
@@ -76,13 +77,14 @@ const AdminDashboard = () => {
       setLoading(true);
       
       // Create user in Supabase Auth
-      const { data: authData, error: authError } = await supabase.auth.admin.createUser({
+      const { data: authData, error: authError } = await supabase.auth.signUp({
         email: newUser.email,
         password: newUser.password,
-        email_confirm: true,
-        user_metadata: {
-          name: newUser.name,
-          role: 'user'
+        options: {
+          data: {
+            name: newUser.name,
+            role: newUser.role || 'user'
+          }
         }
       });
 
@@ -109,6 +111,7 @@ const AdminDashboard = () => {
         email: '',
         password: '',
         name: '',
+        role: 'user' as 'admin' | 'user',
         environmentName: '',
         themeColor: '#3b82f6'
       });
@@ -239,6 +242,18 @@ const AdminDashboard = () => {
                   onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
                   placeholder="Senha"
                 />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="role">Tipo de Usuário</Label>
+                <Select value={newUser.role} onValueChange={(value: 'admin' | 'user') => setNewUser({ ...newUser, role: value })}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione o tipo" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="user">Usuário</SelectItem>
+                    <SelectItem value="admin">Admin</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="environmentName">Nome do Ambiente</Label>
