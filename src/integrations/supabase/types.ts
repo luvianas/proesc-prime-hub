@@ -61,6 +61,7 @@ export type Database = {
           is_active: boolean
           name: string
           role: Database["public"]["Enums"]["user_role"]
+          school_id: string | null
           updated_at: string
           user_id: string
         }
@@ -71,6 +72,7 @@ export type Database = {
           is_active?: boolean
           name: string
           role?: Database["public"]["Enums"]["user_role"]
+          school_id?: string | null
           updated_at?: string
           user_id: string
         }
@@ -81,10 +83,69 @@ export type Database = {
           is_active?: boolean
           name?: string
           role?: Database["public"]["Enums"]["user_role"]
+          school_id?: string | null
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "school_customizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      school_customizations: {
+        Row: {
+          consultant_name: string | null
+          consultant_photo_url: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          logo_url: string | null
+          metabase_integration_url: string | null
+          school_name: string
+          theme_color: string | null
+          updated_at: string
+          zendesk_integration_url: string | null
+        }
+        Insert: {
+          consultant_name?: string | null
+          consultant_photo_url?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          logo_url?: string | null
+          metabase_integration_url?: string | null
+          school_name: string
+          theme_color?: string | null
+          updated_at?: string
+          zendesk_integration_url?: string | null
+        }
+        Update: {
+          consultant_name?: string | null
+          consultant_photo_url?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          logo_url?: string | null
+          metabase_integration_url?: string | null
+          school_name?: string
+          theme_color?: string | null
+          updated_at?: string
+          zendesk_integration_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "school_customizations_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+        ]
       }
     }
     Views: {

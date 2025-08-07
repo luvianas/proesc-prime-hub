@@ -6,6 +6,7 @@ import { Separator } from "@/components/ui/separator";
 import { useAuth } from "@/hooks/useAuth";
 import AdminDashboard from "@/components/AdminDashboard";
 import UserDashboard from "@/components/UserDashboard";
+import GestorDashboard from "@/components/GestorDashboard";
 import AIAssistant from "@/components/AIAssistant";
 import TicketSystem from "@/components/TicketSystem";
 import FinancialDashboard from "@/components/FinancialDashboard";
@@ -52,6 +53,22 @@ const Index = () => {
           </Button>
         </div>
         <AdminDashboard />
+      </div>
+    );
+  }
+
+  // Render gestor dashboard for gestor users
+  if (userRole === 'gestor') {
+    return (
+      <div className="min-h-screen">
+        <div className="flex items-center justify-between p-4 border-b bg-card/50 backdrop-blur">
+          <h1 className="text-xl font-semibold">Sistema de Gestão - Red House</h1>
+          <Button variant="outline" onClick={signOut}>
+            <LogOut className="w-4 h-4 mr-2" />
+            Sair
+          </Button>
+        </div>
+        <GestorDashboard />
       </div>
     );
   }
