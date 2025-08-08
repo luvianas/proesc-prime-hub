@@ -57,6 +57,10 @@ const AdminDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [schoolDialogOpen, setSchoolDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [editSchoolDialogOpen, setEditSchoolDialogOpen] = useState(false);
+  const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [editingSchool, setEditingSchool] = useState<SchoolCustomization | null>(null);
   
   const [newUser, setNewUser] = useState({
     email: '',
@@ -271,6 +275,85 @@ const AdminDashboard = () => {
     return school?.school_name || '';
   };
 
+  const editUser = (user: User) => {
+    setEditingUser(user);
+    setEditDialogOpen(true);
+  };
+
+  const editSchool = (school: SchoolCustomization) => {
+    setEditingSchool(school);
+    setEditSchoolDialogOpen(true);
+  };
+
+  const updateUser = async () => {
+    if (!editingUser) return;
+
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          name: editingUser.name,
+          email: editingUser.email,
+          role: editingUser.role,
+          school_id: editingUser.role === 'gestor' ? editingUser.school_id : null
+        })
+        .eq('user_id', editingUser.user_id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Sucesso",
+        description: "Usuário atualizado com sucesso!",
+      });
+
+      setEditDialogOpen(false);
+      setEditingUser(null);
+      fetchData();
+    } catch (error: any) {
+      toast({
+        title: "Erro",
+        description: error.message || "Erro ao atualizar usuário",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const updateSchool = async () => {
+    if (!editingSchool) return;
+
+    try {
+      const { error } = await supabase
+        .from('school_customizations')
+        .update({
+          school_name: editingSchool.school_name,
+          theme_color: editingSchool.theme_color,
+          logo_url: editingSchool.logo_url,
+          consultant_name: editingSchool.consultant_name,
+          consultant_photo_url: editingSchool.consultant_photo_url,
+          zendesk_integration_url: editingSchool.zendesk_integration_url,
+          metabase_integration_url: editingSchool.metabase_integration_url
+        })
+        .eq('id', editingSchool.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Sucesso",
+        description: "Escola atualizada com sucesso!",
+      });
+
+      setEditSchoolDialogOpen(false);
+      setEditingSchool(null);
+      fetchData();
+    } catch (error: any) {
+      toast({
+        title: "Erro",
+        description: error.message || "Erro ao atualizar escola",
+        variant: "destructive",
+      });
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -447,6 +530,13 @@ const AdminDashboard = () => {
                       </div>
                       
                       <div className="flex items-center space-x-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => editUser(user)}
+                        >
+                          <Edit3 className="w-4 h-4" />
+                        </Button>
                         <Switch
                           checked={user.is_active}
                           onCheckedChange={() => toggleUserStatus(user.user_id, user.is_active)}
@@ -598,7 +688,11 @@ const AdminDashboard = () => {
                           </div>
                         </div>
                       </div>
-                      <Button variant="outline" size="sm">
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => editSchool(school)}
+                      >
                         <Edit3 className="w-4 h-4 mr-2" />
                         Editar
                       </Button>
@@ -610,6 +704,166 @@ const AdminDashboard = () => {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Edit User Dialog */}
+      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <DialogContent className="sm:max-w-md max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Editar Usuário</DialogTitle>
+            <DialogDescription>
+              Edite as informações do usuário
+            </DialogDescription>
+          </DialogHeader>
+          {editingUser && (
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-name">Nome</Label>
+                <Input
+                  id="edit-name"
+                  value={editingUser.name}
+                  onChange={(e) => setEditingUser({ ...editingUser, name: e.target.value })}
+                  placeholder="Nome do usuário"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-email">Email</Label>
+                <Input
+                  id="edit-email"
+                  type="email"
+                  value={editingUser.email}
+                  onChange={(e) => setEditingUser({ ...editingUser, email: e.target.value })}
+                  placeholder="email@exemplo.com"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-role">Tipo de Usuário</Label>
+                <Select 
+                  value={editingUser.role} 
+                  onValueChange={(value: 'admin' | 'user' | 'gestor') => 
+                    setEditingUser({ ...editingUser, role: value })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione o tipo" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="user">Usuário</SelectItem>
+                    <SelectItem value="gestor">Gestor</SelectItem>
+                    <SelectItem value="admin">Admin</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              {editingUser.role === 'gestor' && (
+                <div className="space-y-2">
+                  <Label htmlFor="edit-school">Escola</Label>
+                  <Select 
+                    value={editingUser.school_id || ''} 
+                    onValueChange={(value) => setEditingUser({ ...editingUser, school_id: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione a escola" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {schools.map(school => (
+                        <SelectItem key={school.id} value={school.id}>
+                          {school.school_name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+              
+              <Button onClick={updateUser} className="w-full">
+                Atualizar Usuário
+              </Button>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit School Dialog */}
+      <Dialog open={editSchoolDialogOpen} onOpenChange={setEditSchoolDialogOpen}>
+        <DialogContent className="sm:max-w-lg max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Editar Escola</DialogTitle>
+            <DialogDescription>
+              Edite as configurações da escola
+            </DialogDescription>
+          </DialogHeader>
+          {editingSchool && (
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-school-name">Nome da Escola</Label>
+                <Input
+                  id="edit-school-name"
+                  value={editingSchool.school_name}
+                  onChange={(e) => setEditingSchool({ ...editingSchool, school_name: e.target.value })}
+                  placeholder="Nome da escola"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-school-theme">Cor do Tema</Label>
+                <Input
+                  id="edit-school-theme"
+                  type="color"
+                  value={editingSchool.theme_color}
+                  onChange={(e) => setEditingSchool({ ...editingSchool, theme_color: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-logo-url">URL do Logo</Label>
+                <Input
+                  id="edit-logo-url"
+                  value={editingSchool.logo_url || ''}
+                  onChange={(e) => setEditingSchool({ ...editingSchool, logo_url: e.target.value })}
+                  placeholder="https://exemplo.com/logo.png"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-consultant-name">Nome do Consultor</Label>
+                <Input
+                  id="edit-consultant-name"
+                  value={editingSchool.consultant_name || ''}
+                  onChange={(e) => setEditingSchool({ ...editingSchool, consultant_name: e.target.value })}
+                  placeholder="Nome do consultor"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-consultant-photo">Foto do Consultor</Label>
+                <Input
+                  id="edit-consultant-photo"
+                  value={editingSchool.consultant_photo_url || ''}
+                  onChange={(e) => setEditingSchool({ ...editingSchool, consultant_photo_url: e.target.value })}
+                  placeholder="https://exemplo.com/foto.jpg"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-zendesk-url">URL Integração Zendesk</Label>
+                <Input
+                  id="edit-zendesk-url"
+                  value={editingSchool.zendesk_integration_url || ''}
+                  onChange={(e) => setEditingSchool({ ...editingSchool, zendesk_integration_url: e.target.value })}
+                  placeholder="https://escola.zendesk.com"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-metabase-url">URL Integração Metabase</Label>
+                <Input
+                  id="edit-metabase-url"
+                  value={editingSchool.metabase_integration_url || ''}
+                  onChange={(e) => setEditingSchool({ ...editingSchool, metabase_integration_url: e.target.value })}
+                  placeholder="https://metabase.escola.com"
+                />
+              </div>
+              <Button onClick={updateSchool} className="w-full">
+                Atualizar Escola
+              </Button>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
