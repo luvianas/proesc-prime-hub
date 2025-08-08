@@ -246,15 +246,17 @@ const AdminDashboard = () => {
     if (!confirm('Tem certeza que deseja excluir este usuário?')) return;
 
     try {
-      const { error } = await supabase.auth.admin.deleteUser(userId);
-      
+      const { data, error } = await supabase.functions.invoke('delete-auth-user', {
+        body: { user_id: userId },
+      });
+
       if (error) throw error;
 
       toast({
         title: "Sucesso",
         description: "Usuário excluído com sucesso!",
       });
-      
+
       fetchData();
     } catch (error: any) {
       toast({
