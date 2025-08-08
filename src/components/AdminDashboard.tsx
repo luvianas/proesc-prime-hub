@@ -94,6 +94,9 @@ const AdminDashboard = () => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [deletingSchool, setDeletingSchool] = useState(false);
 
+  const [userSearch, setUserSearch] = useState('');
+  const [schoolSearch, setSchoolSearch] = useState('');
+
   const TEMP_SUPABASE_URL = "https://yzlbtfhjohjhnqjbtmjn.supabase.co";
   const TEMP_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl6bGJ0Zmhqb2hqaG5xamJ0bWpuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQ0MjI4MzgsImV4cCI6MjA2OTk5ODgzOH0.wfdPLyebymkk34wW6GVm-fzq9zLO9-4xJQDSf3zEnTY";
   useEffect(() => {
@@ -566,68 +569,91 @@ const AdminDashboard = () => {
                 </CardDescription>
               </CardHeader>
               <CardContent>
+                {/* Busca de Usuários */}
+                <div className="flex gap-2 items-center mb-4">
+                  <Input
+                    placeholder="Procurar usuários (nome, email, função, escola)"
+                    value={userSearch}
+                    onChange={(e) => setUserSearch(e.target.value)}
+                  />
+                  <Button type="button">Procurar</Button>
+                </div>
+
                 <div className="space-y-4">
-                  {users.map((user) => {
-                    const environment = getUserEnvironment(user.user_id);
-                    return (
-                      <div key={user.id} className="flex items-center justify-between p-4 border rounded-lg">
-                        <div className="flex items-center space-x-4">
-                          <div 
-                            className="w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold"
-                            style={{ backgroundColor: environment?.theme_color || '#3b82f6' }}
-                          >
-                            {user.name.charAt(0).toUpperCase()}
-                          </div>
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <p className="font-medium">{user.name}</p>
-                              <Badge variant={user.role === 'admin' ? 'default' : user.role === 'gestor' ? 'secondary' : 'outline'}>
-                                {user.role === 'admin' ? 'Admin' : user.role === 'gestor' ? 'Gestor' : 'Usuário'}
-                              </Badge>
-                              <Badge variant={user.is_active ? 'default' : 'destructive'}>
-                                {user.is_active ? 'Ativo' : 'Inativo'}
-                              </Badge>
-                            </div>
-                            <p className="text-sm text-muted-foreground">{user.email}</p>
-                            {user.role === 'gestor' && user.school_id && (
-                              <p className="text-xs text-muted-foreground">
-                                Escola: {getSchoolName(user.school_id)}
-                              </p>
-                            )}
-                            {environment && (
-                              <p className="text-xs text-muted-foreground">
-                                Ambiente: {environment.name}
-                              </p>
-                            )}
-                          </div>
-                        </div>
-                        
-                        <div className="flex items-center space-x-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => editUser(user)}
-                          >
-                            <Edit3 className="w-4 h-4" />
-                          </Button>
-                          <Switch
-                            checked={user.is_active}
-                            onCheckedChange={() => toggleUserStatus(user.user_id, user.is_active)}
-                            disabled={user.role === 'admin'}
-                          />
-                          {user.role !== 'admin' && (
-                            <Button
-                              variant="destructive"
-                              size="sm"
-                              onClick={() => deleteUser(user.user_id)}
+                  {users
+                    .filter((u) => {
+                      const q = userSearch.trim().toLowerCase();
+                      if (!q) return true;
+                      const roleLabel = u.role;
+                      const schoolName = u.role === 'gestor' && u.school_id ? getSchoolName(u.school_id).toLowerCase() : '';
+                      return (
+                        u.name.toLowerCase().includes(q) ||
+                        u.email.toLowerCase().includes(q) ||
+                        roleLabel.toLowerCase().includes(q) ||
+                        schoolName.includes(q)
+                      );
+                    })
+                    .map((user) => {
+                      const environment = getUserEnvironment(user.user_id);
+                      return (
+                        <div key={user.id} className="flex items-center justify-between p-4 border rounded-lg">
+                          <div className="flex items-center space-x-4">
+                            <div 
+                              className="w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold"
+                              style={{ backgroundColor: environment?.theme_color || '#3b82f6' }}
                             >
-                              <Trash2 className="w-4 h-4" />
+                              {user.name.charAt(0).toUpperCase()}
+                            </div>
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <p className="font-medium">{user.name}</p>
+                                <Badge variant={user.role === 'admin' ? 'default' : user.role === 'gestor' ? 'secondary' : 'outline'}>
+                                  {user.role === 'admin' ? 'Admin' : user.role === 'gestor' ? 'Gestor' : 'Usuário'}
+                                </Badge>
+                                <Badge variant={user.is_active ? 'default' : 'destructive'}>
+                                  {user.is_active ? 'Ativo' : 'Inativo'}
+                                </Badge>
+                              </div>
+                              <p className="text-sm text-muted-foreground">{user.email}</p>
+                              {user.role === 'gestor' && user.school_id && (
+                                <p className="text-xs text-muted-foreground">
+                                  Escola: {getSchoolName(user.school_id)}
+                                </p>
+                              )}
+                              {environment && (
+                                <p className="text-xs text-muted-foreground">
+                                  Ambiente: {environment.name}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                          
+                          <div className="flex items-center space-x-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => editUser(user)}
+                            >
+                              <Edit3 className="w-4 h-4" />
                             </Button>
-                          )}
+                            <Switch
+                              checked={user.is_active}
+                              onCheckedChange={() => toggleUserStatus(user.user_id, user.is_active)}
+                              disabled={user.role === 'admin'}
+                            />
+                            {user.role !== 'admin' && (
+                              <Button
+                                variant="destructive"
+                                size="sm"
+                                onClick={() => deleteUser(user.user_id)}
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    );
-                  })}
+                      );
+                    })}
                 </div>
               </CardContent>
             </Card>
@@ -733,55 +759,76 @@ const AdminDashboard = () => {
                 </CardDescription>
               </CardHeader>
               <CardContent>
+                {/* Busca de Escolas */}
+                <div className="flex gap-2 items-center mb-4">
+                  <Input
+                    placeholder="Procurar escolas (nome, consultor, integrações)"
+                    value={schoolSearch}
+                    onChange={(e) => setSchoolSearch(e.target.value)}
+                  />
+                  <Button type="button">Procurar</Button>
+                </div>
+
                 <div className="grid gap-4">
-                  {schools.map((school) => (
-                    <div key={school.id} className="p-4 border rounded-lg">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-4">
-                          <div 
-                            className="w-12 h-12 rounded-lg flex items-center justify-center text-white font-bold"
-                            style={{ backgroundColor: school.theme_color }}
-                          >
-                            {school.school_name.charAt(0).toUpperCase()}
-                          </div>
-                          <div>
-                            <h3 className="font-semibold">{school.school_name}</h3>
-                            {school.consultant_name && (
-                              <p className="text-sm text-muted-foreground">
-                                Consultor: {school.consultant_name}
-                              </p>
-                            )}
-                            <div className="flex gap-2 mt-2">
-                              {school.zendesk_integration_url && (
-                                <Badge variant="outline">Zendesk</Badge>
+                  {schools
+                    .filter((s) => {
+                      const q = schoolSearch.trim().toLowerCase();
+                      if (!q) return true;
+                      const integrations = `${s.zendesk_integration_url ? 'zendesk' : ''} ${s.metabase_integration_url ? 'metabase' : ''}`;
+                      return (
+                        s.school_name.toLowerCase().includes(q) ||
+                        (s.consultant_name || '').toLowerCase().includes(q) ||
+                        integrations.includes(q)
+                      );
+                    })
+                    .map((school) => (
+                      <div key={school.id} className="p-4 border rounded-lg">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center space-x-4">
+                            <div 
+                              className="w-12 h-12 rounded-lg flex items-center justify-center text-white font-bold"
+                              style={{ backgroundColor: school.theme_color }}
+                            >
+                              {school.school_name.charAt(0).toUpperCase()}
+                            </div>
+                            <div>
+                              <h3 className="font-semibold">{school.school_name}</h3>
+                              {school.consultant_name && (
+                                <p className="text-sm text-muted-foreground">
+                                  Consultor: {school.consultant_name}
+                                </p>
                               )}
-                              {school.metabase_integration_url && (
-                                <Badge variant="outline">Metabase</Badge>
-                              )}
+                              <div className="flex gap-2 mt-2">
+                                {school.zendesk_integration_url && (
+                                  <Badge variant="outline">Zendesk</Badge>
+                                )}
+                                {school.metabase_integration_url && (
+                                  <Badge variant="outline">Metabase</Badge>
+                                )}
+                              </div>
                             </div>
                           </div>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Button 
-                            variant="outline" 
-                            size="sm"
-                            onClick={() => editSchool(school)}
-                          >
-                            <Edit3 className="w-4 h-4 mr-2" />
-                            Editar
-                          </Button>
-                          <Button
-                            variant="destructive"
-                            size="sm"
-                            onClick={() => openDeleteSchoolDialog(school)}
-                          >
-                            <Trash2 className="w-4 h-4 mr-2" />
-                            Excluir
-                          </Button>
+                          <div className="flex items-center gap-2">
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => editSchool(school)}
+                            >
+                              <Edit3 className="w-4 h-4 mr-2" />
+                              Editar
+                            </Button>
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              onClick={() => openDeleteSchoolDialog(school)}
+                            >
+                              <Trash2 className="w-4 h-4 mr-2" />
+                              Excluir
+                            </Button>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    ))}
                 </div>
               </CardContent>
             </Card>
