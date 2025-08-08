@@ -95,6 +95,28 @@ const AdminDashboard = () => {
   const [schoolSearch, setSchoolSearch] = useState('');
   const TEMP_SUPABASE_URL = "https://yzlbtfhjohjhnqjbtmjn.supabase.co";
   const TEMP_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl6bGJ0Zmhqb2hqaG5xamJ0bWpuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQ0MjI4MzgsImV4cCI6MjA2OTk5ODgzOH0.wfdPLyebymkk34wW6GVm-fzq9zLO9-4xJQDSf3zEnTY";
+  // Upload states for images
+  const [uploadingLogoNew, setUploadingLogoNew] = useState(false);
+  const [uploadingConsultantNew, setUploadingConsultantNew] = useState(false);
+  const [uploadingLogoEdit, setUploadingLogoEdit] = useState(false);
+  const [uploadingConsultantEdit, setUploadingConsultantEdit] = useState(false);
+
+  const uploadImage = async (file: File, folder: string) => {
+    try {
+      const ext = file.name.split('.').pop() || 'png';
+      const fileName = `${folder}/${Date.now()}.${ext}`;
+      const { error: uploadError } = await supabase.storage
+        .from('school-assets')
+        .upload(fileName, file, { upsert: true, contentType: file.type, cacheControl: '3600' });
+      if (uploadError) throw uploadError;
+      const { data } = supabase.storage.from('school-assets').getPublicUrl(fileName);
+      return data.publicUrl;
+    } catch (e: any) {
+      toast({ title: 'Erro', description: e.message || 'Falha no upload da imagem', variant: 'destructive' });
+      return null;
+    }
+  };
+
   useEffect(() => {
     fetchData();
   }, []);
@@ -599,11 +621,22 @@ const AdminDashboard = () => {
                   })} />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="logoUrl">URL do Logo</Label>
-                      <Input id="logoUrl" value={newSchool.logo_url} onChange={e => setNewSchool({
-                    ...newSchool,
-                    logo_url: e.target.value
-                  })} placeholder="https://exemplo.com/logo.png" />
+                      <Label htmlFor="logoFile">Logo da Escola</Label>
+                      <Input
+                        id="logoFile"
+                        type="file"
+                        accept="image/*"
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0];
+                          if (!file) return;
+                          setUploadingLogoNew(true);
+                          const url = await uploadImage(file, 'logos');
+                          setUploadingLogoNew(false);
+                          if (url) setNewSchool({ ...newSchool, logo_url: url });
+                        }}
+                      />
+                      {uploadingLogoNew && <p className="text-sm text-muted-foreground">Enviando...</p>}
+                      {newSchool.logo_url && <img src={newSchool.logo_url} alt="Logo da escola" className="h-12 rounded" />}
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="consultantName">Nome do Consultor</Label>
@@ -613,11 +646,22 @@ const AdminDashboard = () => {
                   })} placeholder="Nome do consultor" />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="consultantPhoto">Foto do Consultor</Label>
-                      <Input id="consultantPhoto" value={newSchool.consultant_photo_url} onChange={e => setNewSchool({
-                    ...newSchool,
-                    consultant_photo_url: e.target.value
-                  })} placeholder="https://exemplo.com/foto.jpg" />
+                      <Label htmlFor="consultantPhotoFile">Foto do Consultor</Label>
+                      <Input
+                        id="consultantPhotoFile"
+                        type="file"
+                        accept="image/*"
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0];
+                          if (!file) return;
+                          setUploadingConsultantNew(true);
+                          const url = await uploadImage(file, 'consultants');
+                          setUploadingConsultantNew(false);
+                          if (url) setNewSchool({ ...newSchool, consultant_photo_url: url });
+                        }}
+                      />
+                      {uploadingConsultantNew && <p className="text-sm text-muted-foreground">Enviando...</p>}
+                      {newSchool.consultant_photo_url && <img src={newSchool.consultant_photo_url} alt="Foto do consultor" className="h-12 rounded" />}
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="zendeskUrl">URL Integração Zendesk</Label>
@@ -792,11 +836,22 @@ const AdminDashboard = () => {
             })} />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="edit-logo-url">URL do Logo</Label>
-                <Input id="edit-logo-url" value={editingSchool.logo_url || ''} onChange={e => setEditingSchool({
-              ...editingSchool,
-              logo_url: e.target.value
-            })} placeholder="https://exemplo.com/logo.png" />
+                <Label htmlFor="edit-logo-file">Logo da Escola</Label>
+                <Input
+                  id="edit-logo-file"
+                  type="file"
+                  accept="image/*"
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    setUploadingLogoEdit(true);
+                    const url = await uploadImage(file, 'logos');
+                    setUploadingLogoEdit(false);
+                    if (url && editingSchool) setEditingSchool({ ...editingSchool, logo_url: url });
+                  }}
+                />
+                {uploadingLogoEdit && <p className="text-sm text-muted-foreground">Enviando...</p>}
+                {editingSchool.logo_url && <img src={editingSchool.logo_url} alt="Logo da escola" className="h-12 rounded" />}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="edit-consultant-name">Nome do Consultor</Label>
@@ -806,11 +861,22 @@ const AdminDashboard = () => {
             })} placeholder="Nome do consultor" />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="edit-consultant-photo">Foto do Consultor</Label>
-                <Input id="edit-consultant-photo" value={editingSchool.consultant_photo_url || ''} onChange={e => setEditingSchool({
-              ...editingSchool,
-              consultant_photo_url: e.target.value
-            })} placeholder="https://exemplo.com/foto.jpg" />
+                <Label htmlFor="edit-consultant-photo-file">Foto do Consultor</Label>
+                <Input
+                  id="edit-consultant-photo-file"
+                  type="file"
+                  accept="image/*"
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    setUploadingConsultantEdit(true);
+                    const url = await uploadImage(file, 'consultants');
+                    setUploadingConsultantEdit(false);
+                    if (url && editingSchool) setEditingSchool({ ...editingSchool, consultant_photo_url: url });
+                  }}
+                />
+                {uploadingConsultantEdit && <p className="text-sm text-muted-foreground">Enviando...</p>}
+                {editingSchool.consultant_photo_url && <img src={editingSchool.consultant_photo_url} alt="Foto do consultor" className="h-12 rounded" />}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="edit-zendesk-url">URL Integração Zendesk</Label>
