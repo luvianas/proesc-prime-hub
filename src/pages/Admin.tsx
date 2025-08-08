@@ -69,7 +69,7 @@ const Admin = () => {
   }, [isAdmin, selectedId]);
 
   useEffect(() => {
-    if (!isAdmin || !selected) return;
+    if (!isAdmin || !selected || !selected.school_id) return;
     (async () => {
       const { data, error } = await supabase
         .from("school_banners")
