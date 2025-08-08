@@ -97,12 +97,51 @@ export type Database = {
           },
         ]
       }
-      school_customizations: {
+      school_banners: {
         Row: {
-          consultant_name: string | null
-          consultant_photo_url: string | null
           created_at: string
           created_by: string | null
+          id: string
+          image_url: string
+          link_url: string | null
+          order_index: number | null
+          school_id: string | null
+          title: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          image_url: string
+          link_url?: string | null
+          order_index?: number | null
+          school_id?: string | null
+          title?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          image_url?: string
+          link_url?: string | null
+          order_index?: number | null
+          school_id?: string | null
+          title?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      school_customizations: {
+        Row: {
+          consultant_calendar_url: string | null
+          consultant_name: string | null
+          consultant_photo_url: string | null
+          consultant_whatsapp: string | null
+          created_at: string
+          created_by: string | null
+          dashboard_links: Json | null
           id: string
           logo_url: string | null
           metabase_integration_url: string | null
@@ -113,10 +152,13 @@ export type Database = {
           zendesk_integration_url: string | null
         }
         Insert: {
+          consultant_calendar_url?: string | null
           consultant_name?: string | null
           consultant_photo_url?: string | null
+          consultant_whatsapp?: string | null
           created_at?: string
           created_by?: string | null
+          dashboard_links?: Json | null
           id?: string
           logo_url?: string | null
           metabase_integration_url?: string | null
@@ -127,10 +169,13 @@ export type Database = {
           zendesk_integration_url?: string | null
         }
         Update: {
+          consultant_calendar_url?: string | null
           consultant_name?: string | null
           consultant_photo_url?: string | null
+          consultant_whatsapp?: string | null
           created_at?: string
           created_by?: string | null
+          dashboard_links?: Json | null
           id?: string
           logo_url?: string | null
           metabase_integration_url?: string | null
