@@ -1,4 +1,7 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { Link } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -27,6 +30,33 @@ import FinancialDashboard from "@/components/FinancialDashboard";
 const Index = () => {
   const [showAI, setShowAI] = useState(false);
   const [activeSection, setActiveSection] = useState("dashboard");
+  const { session, profile, loading, signOut } = useAuth();
+  const [brandingName, setBrandingName] = useState("Red House Internacional School");
+  const [brandingLogo, setBrandingLogo] = useState("/lovable-uploads/e2e0ce0d-c100-4d48-8073-8635cab3c459.png");
+  const [consultantWhatsapp, setConsultantWhatsapp] = useState("5596984130163");
+
+  useEffect(() => {
+    document.title = "Portal Prime - Proesc";
+    const meta = document.querySelector("meta[name='description']");
+    if (meta) meta.setAttribute("content", "Portal Prime para gestores e admins das escolas Proesc.");
+  }, []);
+
+  useEffect(() => {
+    const loadCustomization = async () => {
+      if (!profile?.school_id) return;
+      const { data } = await supabase
+        .from("school_customizations")
+        .select("school_name, logo_url, consultant_whatsapp")
+        .eq("school_id", profile.school_id)
+        .maybeSingle();
+      if (data) {
+        if ((data as any).school_name) setBrandingName((data as any).school_name);
+        if ((data as any).logo_url) setBrandingLogo((data as any).logo_url);
+        if ((data as any).consultant_whatsapp) setConsultantWhatsapp((data as any).consultant_whatsapp);
+      }
+    };
+    loadCustomization();
+  }, [profile?.school_id]);
 
   const dashboards = [
     {
@@ -78,7 +108,7 @@ const Index = () => {
       name: "WhatsApp Consultor",
       description: "Contato direto",
       icon: MessageCircle,
-      action: () => window.open("https://wa.me/5596984130163", "_blank")
+      action: () => window.open(`https://wa.me/${consultantWhatsapp}`, "_blank")
     },
     {
       name: "Agenda Consultor",
@@ -120,12 +150,12 @@ const Index = () => {
               {/* Red House Logo */}
               <div className="flex items-center">
                 <img 
-                  src="/lovable-uploads/e2e0ce0d-c100-4d48-8073-8635cab3c459.png" 
-                  alt="Red House Internacional School" 
+                  src={brandingLogo}
+                  alt={brandingName}
                   className="h-12 w-12"
                 />
                 <div className="ml-3">
-                  <h1 className="text-xl font-bold" style={{ color: '#c41133' }}>Red House Internacional School</h1>
+                  <h1 className="text-xl font-bold" style={{ color: '#c41133' }}>{brandingName}</h1>
                   <Badge variant="secondary" className="text-xs">Portal Prime</Badge>
                 </div>
               </div>
@@ -151,12 +181,26 @@ const Index = () => {
                 <Bot className="h-4 w-4" />
                 <span>IA Assistente</span>
               </Button>
-              <div className="flex items-center space-x-2">
-                <Bell className="h-5 w-5 text-gray-500" />
-                <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ backgroundColor: '#c41133' }}>
-                  <span className="text-white font-medium text-sm">R</span>
+              {session ? (
+                <div className="flex items-center space-x-2">
+                  {profile?.role === 'admin' && (
+                    <Link to="/admin">
+                      <Button variant="secondary" size="sm">Painel Admin</Button>
+                    </Link>
+                  )}
+                  <Button variant="outline" size="sm" onClick={signOut}>Sair</Button>
                 </div>
-              </div>
+              ) : (
+                <Button
+                  size="sm"
+                  onClick={async () => {
+                    const redirectTo = `${window.location.origin}/`;
+                    await supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo } });
+                  }}
+                >
+                  Entrar com Google
+                </Button>
+              )}
             </div>
           </div>
         </div>
