@@ -13,7 +13,7 @@ import { Plus, Users, Settings, Trash2, School, Edit3, Minimize2, Maximize2 } fr
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
-
+import { createClient } from '@supabase/supabase-js';
 interface User {
   id: string;
   user_id: string;
@@ -87,6 +87,15 @@ const AdminDashboard = () => {
   const { userRole } = useAuth();
   const [minimized, setMinimized] = useState(false);
 
+  // Reautenticação para exclusão de escola (sem trocar a sessão atual)
+  const [deleteSchoolDialogOpen, setDeleteSchoolDialogOpen] = useState(false);
+  const [schoolToDelete, setSchoolToDelete] = useState<SchoolCustomization | null>(null);
+  const [confirmEmail, setConfirmEmail] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [deletingSchool, setDeletingSchool] = useState(false);
+
+  const TEMP_SUPABASE_URL = "https://yzlbtfhjohjhnqjbtmjn.supabase.co";
+  const TEMP_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl6bGJ0Zmhqb2hqaG5xamJ0bWpuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQ0MjI4MzgsImV4cCI6MjA2OTk5ODgzOH0.wfdPLyebymkk34wW6GVm-fzq9zLO9-4xJQDSf3zEnTY";
   useEffect(() => {
     fetchData();
   }, []);
@@ -267,6 +276,49 @@ const AdminDashboard = () => {
         description: error.message || "Erro ao excluir usuário",
         variant: "destructive",
       });
+    }
+  };
+
+  const openDeleteSchoolDialog = (school: SchoolCustomization) => {
+    setSchoolToDelete(school);
+    setConfirmEmail('');
+    setConfirmPassword('');
+    setDeleteSchoolDialogOpen(true);
+  };
+
+  const confirmDeleteSchool = async () => {
+    if (!schoolToDelete) return;
+    try {
+      setDeletingSchool(true);
+      const tempClient = createClient(TEMP_SUPABASE_URL, TEMP_SUPABASE_ANON_KEY, {
+        auth: { persistSession: false, autoRefreshToken: false },
+      });
+
+      const { data: signInData, error: signInError } = await tempClient.auth.signInWithPassword({
+        email: confirmEmail,
+        password: confirmPassword,
+      });
+      if (signInError || !signInData?.user) throw new Error('Credenciais inválidas');
+
+      const { error: delError } = await tempClient
+        .from('school_customizations')
+        .delete()
+        .eq('id', schoolToDelete.id);
+
+      if (delError) throw delError;
+
+      toast({ title: 'Sucesso', description: 'Escola excluída com sucesso!' });
+      setSchools(schools.filter((s) => s.id !== schoolToDelete.id));
+      setDeleteSchoolDialogOpen(false);
+      setSchoolToDelete(null);
+    } catch (error: any) {
+      toast({
+        title: 'Erro',
+        description: error.message || 'Falha ao excluir escola (verifique permissões).',
+        variant: 'destructive',
+      });
+    } finally {
+      setDeletingSchool(false);
     }
   };
 
@@ -709,14 +761,24 @@ const AdminDashboard = () => {
                             </div>
                           </div>
                         </div>
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => editSchool(school)}
-                        >
-                          <Edit3 className="w-4 h-4 mr-2" />
-                          Editar
-                        </Button>
+                        <div className="flex items-center gap-2">
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => editSchool(school)}
+                          >
+                            <Edit3 className="w-4 h-4 mr-2" />
+                            Editar
+                          </Button>
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={() => openDeleteSchoolDialog(school)}
+                          >
+                            <Trash2 className="w-4 h-4 mr-2" />
+                            Excluir
+                          </Button>
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -887,6 +949,30 @@ const AdminDashboard = () => {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Delete School Dialog */}
+      <Dialog open={deleteSchoolDialogOpen} onOpenChange={setDeleteSchoolDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Confirmar Exclusão</DialogTitle>
+            <DialogDescription>Para excluir a escola, autentique-se novamente.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="confirm-email">Email</Label>
+              <Input id="confirm-email" type="email" value={confirmEmail} onChange={(e) => setConfirmEmail(e.target.value)} placeholder="email@exemplo.com" />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="confirm-password">Senha</Label>
+              <Input id="confirm-password" type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} placeholder="Sua senha" />
+            </div>
+            <Button onClick={confirmDeleteSchool} disabled={deletingSchool} variant="destructive" className="w-full">
+              {deletingSchool ? 'Excluindo...' : 'Confirmar Exclusão'}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
     </div>
   );
 };
