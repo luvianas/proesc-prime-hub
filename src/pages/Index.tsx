@@ -13,6 +13,8 @@ import FinancialDashboard from "@/components/FinancialDashboard";
 import SecretariaDashboard from "@/components/SecretariaDashboard";
 import AgendaDashboard from "@/components/AgendaDashboard";
 import PedagogicoDashboard from "@/components/PedagogicoDashboard";
+import MatriculaDashboard from "@/components/MatriculaDashboard";
+import ConsultorAgenda from "@/components/ConsultorAgenda";
 import ConsultantInfo from "@/components/ConsultantInfo";
 import ProjectPlan from "@/components/ProjectPlan";
 import Header from "@/components/Header";
@@ -91,20 +93,20 @@ const Index = () => {
   // Fallback - show original dashboard for users without specific roles
   const dashboards = [
     {
-      id: "financial",
-      component: <FinancialDashboard onBack={() => setExpandedDashboard(null)} />
+      id: "matricula",
+      component: <MatriculaDashboard onBack={() => setExpandedDashboard(null)} />
     },
     {
-      id: "agenda",
-      component: <AgendaDashboard onBack={() => setExpandedDashboard(null)} />
+      id: "pedagogico",
+      component: <PedagogicoDashboard onBack={() => setExpandedDashboard(null)} />
     },
     {
       id: "secretaria",
       component: <SecretariaDashboard onBack={() => setExpandedDashboard(null)} />
     },
     {
-      id: "pedagogico",
-      component: <PedagogicoDashboard onBack={() => setExpandedDashboard(null)} />
+      id: "agenda",
+      component: <ConsultorAgenda onBack={() => setExpandedDashboard(null)} />
     }
   ];
 

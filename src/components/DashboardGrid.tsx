@@ -9,31 +9,31 @@ interface DashboardGridProps {
 const DashboardGrid = ({ setExpandedDashboard }: DashboardGridProps) => {
   const dashboards = [
     {
-      id: "financial",
-      name: "Financeiro",
-      description: "Relatórios financeiros e receitas",
-      icon: DollarSign,
+      id: "matricula",
+      name: "Dashboard de Matrícula",
+      description: "Gestão de matrículas e novos alunos",
+      icon: GraduationCap,
       color: "bg-red-700"
     },
     {
-      id: "agenda",
-      name: "Proesc Agenda",
-      description: "Sistema de agendamentos integrado",
-      icon: CalendarDays,
+      id: "pedagogico",
+      name: "Dashboard Pedagógico",
+      description: "Acompanhamento pedagógico e notas",
+      icon: FileText,
       color: "bg-red-500"
     },
     {
       id: "secretaria",
-      name: "Secretaria",
+      name: "Dashboard da Secretaria",
       description: "Gestão administrativa e documentos",
       icon: FileText,
       color: "bg-red-800"
     },
     {
-      id: "pedagogico",
-      name: "Pedagógico",
-      description: "Acompanhamento pedagógico e notas",
-      icon: GraduationCap,
+      id: "agenda",
+      name: "Agenda com Consultor",
+      description: "Agendamentos e comunicação",
+      icon: CalendarDays,
       color: "bg-red-900"
     }
   ];

@@ -57,6 +57,42 @@ const Auth = () => {
     }
   };
 
+  const handleForgotPassword = async () => {
+    if (!loginData.email) {
+      toast({
+        title: "Email necessário",
+        description: "Digite seu email para recuperar a senha",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const { error } = await supabase.auth.resetPasswordForEmail(
+        loginData.email,
+        {
+          redirectTo: `${window.location.origin}/auth`,
+        }
+      );
+
+      if (error) throw error;
+
+      toast({
+        title: "Email enviado",
+        description: "Verifique sua caixa de entrada para redefinir a senha",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Erro",
+        description: error.message || "Erro ao enviar email de recuperação",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-muted to-background p-4">
       <Card className="w-full max-w-md">
@@ -95,6 +131,15 @@ const Auth = () => {
                 </div>
                 <Button type="submit" className="w-full" disabled={loading}>
                   {loading ? 'Entrando...' : 'Entrar'}
+                </Button>
+                <Button 
+                  type="button" 
+                  variant="link" 
+                  className="w-full text-sm" 
+                  onClick={handleForgotPassword}
+                  disabled={loading}
+                >
+                  Esqueci minha senha
                 </Button>
                 <div className="relative my-4">
                   <Separator />
