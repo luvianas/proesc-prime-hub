@@ -31,35 +31,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         
         if (session?.user) {
           // Fetch user profile to get role
-          setTimeout(async () => {
-            try {
-              const { data: profile } = await supabase
-                .from('profiles')
-                .select('role')
-                .eq('user_id', session.user.id)
-                .single();
-              
-              setUserRole(profile?.role || 'user');
-            } catch (error) {
-              console.error('Error fetching user role:', error);
-              setUserRole('user');
-            }
-          }, 0);
-        } else {
-          setUserRole(null);
-        }
-        
-        setLoading(false);
-      }
-    );
-
-    // Check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      
-      if (session?.user) {
-        setTimeout(async () => {
           try {
             const { data: profile } = await supabase
               .from('profiles')
@@ -72,11 +43,35 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             console.error('Error fetching user role:', error);
             setUserRole('user');
           }
-          setLoading(false);
-        }, 0);
-      } else {
+        } else {
+          setUserRole(null);
+        }
+        
         setLoading(false);
       }
+    );
+
+    // Check for existing session
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      setSession(session);
+      setUser(session?.user ?? null);
+      
+      if (session?.user) {
+        try {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('role')
+            .eq('user_id', session.user.id)
+            .single();
+          
+          setUserRole(profile?.role || 'user');
+        } catch (error) {
+          console.error('Error fetching user role:', error);
+          setUserRole('user');
+        }
+      }
+      
+      setLoading(false);
     });
 
     return () => subscription.unsubscribe();
