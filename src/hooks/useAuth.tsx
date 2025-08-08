@@ -23,67 +23,60 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const { toast } = useToast();
 
   useEffect(() => {
-    console.log('🔄 Auth useEffect iniciado');
-    
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        console.log('🔄 Auth state change:', event, session?.user?.id);
+      (event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
         
         if (session?.user) {
-          console.log('👤 Buscando role do usuário:', session.user.id);
-          // Fetch user profile to get role
+          // Defer Supabase calls to prevent deadlock
+          setTimeout(async () => {
+            try {
+              const { data: profile } = await supabase
+                .from('profiles')
+                .select('role')
+                .eq('user_id', session.user.id)
+                .maybeSingle();
+              
+              setUserRole(profile?.role || 'user');
+            } catch (error) {
+              console.error('Error fetching user role:', error);
+              setUserRole('user');
+            }
+            setLoading(false);
+          }, 0);
+        } else {
+          setUserRole(null);
+          setLoading(false);
+        }
+      }
+    );
+
+    // Check for existing session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setUser(session?.user ?? null);
+      
+      if (session?.user) {
+        setTimeout(async () => {
           try {
             const { data: profile } = await supabase
               .from('profiles')
               .select('role')
               .eq('user_id', session.user.id)
-              .single();
+              .maybeSingle();
             
-            console.log('👤 Role encontrado:', profile?.role);
             setUserRole(profile?.role || 'user');
           } catch (error) {
-            console.error('❌ Erro ao buscar role:', error);
+            console.error('Error fetching user role:', error);
             setUserRole('user');
           }
-        } else {
-          console.log('🚪 Usuário deslogado');
-          setUserRole(null);
-        }
-        
-        console.log('✅ Finalizando loading');
+          setLoading(false);
+        }, 0);
+      } else {
         setLoading(false);
       }
-    );
-
-    // Check for existing session
-    console.log('🔍 Verificando sessão existente');
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      console.log('🔍 Sessão existente:', session?.user?.id);
-      setSession(session);
-      setUser(session?.user ?? null);
-      
-      if (session?.user) {
-        console.log('👤 Buscando role inicial:', session.user.id);
-        try {
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('role')
-            .eq('user_id', session.user.id)
-            .single();
-          
-          console.log('👤 Role inicial encontrado:', profile?.role);
-          setUserRole(profile?.role || 'user');
-        } catch (error) {
-          console.error('❌ Erro ao buscar role inicial:', error);
-          setUserRole('user');
-        }
-      }
-      
-      console.log('✅ Finalizando loading inicial');
-      setLoading(false);
     });
 
     return () => subscription.unsubscribe();
