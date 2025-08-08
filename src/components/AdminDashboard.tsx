@@ -9,9 +9,10 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
-import { Plus, Users, Settings, Trash2, School, Edit3 } from 'lucide-react';
+import { Plus, Users, Settings, Trash2, School, Edit3, Minimize2, Maximize2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/useAuth';
 
 interface User {
   id: string;
@@ -83,6 +84,8 @@ const AdminDashboard = () => {
   });
 
   const { toast } = useToast();
+  const { userRole } = useAuth();
+  const [minimized, setMinimized] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -371,341 +374,359 @@ const AdminDashboard = () => {
           <h1 className="text-3xl font-bold">Painel Administrativo</h1>
           <p className="text-muted-foreground">Gerencie usuários, escolas e ambientes do sistema</p>
         </div>
+        {userRole === 'admin' && (
+          <Button variant="outline" size="sm" onClick={() => setMinimized((v) => !v)}>
+            {minimized ? (
+              <>
+                <Maximize2 className="w-4 h-4 mr-2" />
+                Expandir
+              </>
+            ) : (
+              <>
+                <Minimize2 className="w-4 h-4 mr-2" />
+                Minimizar
+              </>
+            )}
+          </Button>
+        )}
       </div>
 
-      <Tabs defaultValue="users" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="users">Usuários</TabsTrigger>
-          <TabsTrigger value="schools">Escolas</TabsTrigger>
-        </TabsList>
+      {!minimized && (
+        <Tabs defaultValue="users" className="space-y-4">
+          <TabsList>
+            <TabsTrigger value="users">Usuários</TabsTrigger>
+            <TabsTrigger value="schools">Escolas</TabsTrigger>
+          </TabsList>
 
-        <TabsContent value="users" className="space-y-4">
-          <div className="flex justify-between items-center">
-            <h2 className="text-xl font-semibold">Gerenciar Usuários</h2>
-            <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-              <DialogTrigger asChild>
-                <Button>
-                  <Plus className="w-4 h-4 mr-2" />
-                  Novo Usuário
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-md max-h-[80vh] overflow-y-auto">
-                <DialogHeader>
-                  <DialogTitle>Criar Novo Usuário</DialogTitle>
-                  <DialogDescription>
-                    Crie um novo usuário e configure seu ambiente personalizado
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="name">Nome</Label>
-                    <Input
-                      id="name"
-                      value={newUser.name}
-                      onChange={(e) => setNewUser({ ...newUser, name: e.target.value })}
-                      placeholder="Nome do usuário"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="email">Email</Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      value={newUser.email}
-                      onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
-                      placeholder="email@exemplo.com"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="password">Senha</Label>
-                    <Input
-                      id="password"
-                      type="password"
-                      value={newUser.password}
-                      onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
-                      placeholder="Senha"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="role">Tipo de Usuário</Label>
-                    <Select value={newUser.role} onValueChange={(value: 'admin' | 'user' | 'gestor') => setNewUser({ ...newUser, role: value })}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione o tipo" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="user">Usuário</SelectItem>
-                        <SelectItem value="gestor">Gestor</SelectItem>
-                        <SelectItem value="admin">Admin</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  
-                  {newUser.role === 'gestor' && (
+          <TabsContent value="users" className="space-y-4">
+            <div className="flex justify-between items-center">
+              <h2 className="text-xl font-semibold">Gerenciar Usuários</h2>
+              <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button>
+                    <Plus className="w-4 h-4 mr-2" />
+                    Novo Usuário
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-md max-h-[80vh] overflow-y-auto">
+                  <DialogHeader>
+                    <DialogTitle>Criar Novo Usuário</DialogTitle>
+                    <DialogDescription>
+                      Crie um novo usuário e configure seu ambiente personalizado
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4">
                     <div className="space-y-2">
-                      <Label htmlFor="school">Escola</Label>
-                      <Select value={newUser.schoolId} onValueChange={(value) => setNewUser({ ...newUser, schoolId: value })}>
+                      <Label htmlFor="name">Nome</Label>
+                      <Input
+                        id="name"
+                        value={newUser.name}
+                        onChange={(e) => setNewUser({ ...newUser, name: e.target.value })}
+                        placeholder="Nome do usuário"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="email">Email</Label>
+                      <Input
+                        id="email"
+                        type="email"
+                        value={newUser.email}
+                        onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
+                        placeholder="email@exemplo.com"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="password">Senha</Label>
+                      <Input
+                        id="password"
+                        type="password"
+                        value={newUser.password}
+                        onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
+                        placeholder="Senha"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="role">Tipo de Usuário</Label>
+                      <Select value={newUser.role} onValueChange={(value: 'admin' | 'user' | 'gestor') => setNewUser({ ...newUser, role: value })}>
                         <SelectTrigger>
-                          <SelectValue placeholder="Selecione a escola" />
+                          <SelectValue placeholder="Selecione o tipo" />
                         </SelectTrigger>
                         <SelectContent>
-                          {schools.map(school => (
-                            <SelectItem key={school.id} value={school.id}>
-                              {school.school_name}
-                            </SelectItem>
-                          ))}
+                          <SelectItem value="user">Usuário</SelectItem>
+                          <SelectItem value="gestor">Gestor</SelectItem>
+                          <SelectItem value="admin">Admin</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
-                  )}
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="environmentName">Nome do Ambiente</Label>
-                    <Input
-                      id="environmentName"
-                      value={newUser.environmentName}
-                      onChange={(e) => setNewUser({ ...newUser, environmentName: e.target.value })}
-                      placeholder="Meu Ambiente"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="themeColor">Cor do Tema</Label>
-                    <Input
-                      id="themeColor"
-                      type="color"
-                      value={newUser.themeColor}
-                      onChange={(e) => setNewUser({ ...newUser, themeColor: e.target.value })}
-                    />
-                  </div>
-                  <Button onClick={createUser} className="w-full" disabled={loading}>
-                    {loading ? 'Criando...' : 'Criar Usuário'}
-                  </Button>
-                </div>
-              </DialogContent>
-            </Dialog>
-          </div>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Users className="w-5 h-5" />
-                Usuários ({users.length})
-              </CardTitle>
-              <CardDescription>
-                Lista de todos os usuários do sistema
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {users.map((user) => {
-                  const environment = getUserEnvironment(user.user_id);
-                  return (
-                    <div key={user.id} className="flex items-center justify-between p-4 border rounded-lg">
-                      <div className="flex items-center space-x-4">
-                        <div 
-                          className="w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold"
-                          style={{ backgroundColor: environment?.theme_color || '#3b82f6' }}
-                        >
-                          {user.name.charAt(0).toUpperCase()}
-                        </div>
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <p className="font-medium">{user.name}</p>
-                            <Badge variant={user.role === 'admin' ? 'default' : user.role === 'gestor' ? 'secondary' : 'outline'}>
-                              {user.role === 'admin' ? 'Admin' : user.role === 'gestor' ? 'Gestor' : 'Usuário'}
-                            </Badge>
-                            <Badge variant={user.is_active ? 'default' : 'destructive'}>
-                              {user.is_active ? 'Ativo' : 'Inativo'}
-                            </Badge>
-                          </div>
-                          <p className="text-sm text-muted-foreground">{user.email}</p>
-                          {user.role === 'gestor' && user.school_id && (
-                            <p className="text-xs text-muted-foreground">
-                              Escola: {getSchoolName(user.school_id)}
-                            </p>
-                          )}
-                          {environment && (
-                            <p className="text-xs text-muted-foreground">
-                              Ambiente: {environment.name}
-                            </p>
-                          )}
-                        </div>
+                    
+                    {newUser.role === 'gestor' && (
+                      <div className="space-y-2">
+                        <Label htmlFor="school">Escola</Label>
+                        <Select value={newUser.schoolId} onValueChange={(value) => setNewUser({ ...newUser, schoolId: value })}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecione a escola" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {schools.map(school => (
+                              <SelectItem key={school.id} value={school.id}>
+                                {school.school_name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       </div>
-                      
-                      <div className="flex items-center space-x-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => editUser(user)}
-                        >
-                          <Edit3 className="w-4 h-4" />
-                        </Button>
-                        <Switch
-                          checked={user.is_active}
-                          onCheckedChange={() => toggleUserStatus(user.user_id, user.is_active)}
-                          disabled={user.role === 'admin'}
-                        />
-                        {user.role !== 'admin' && (
-                          <Button
-                            variant="destructive"
-                            size="sm"
-                            onClick={() => deleteUser(user.user_id)}
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        )}
-                      </div>
+                    )}
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="environmentName">Nome do Ambiente</Label>
+                      <Input
+                        id="environmentName"
+                        value={newUser.environmentName}
+                        onChange={(e) => setNewUser({ ...newUser, environmentName: e.target.value })}
+                        placeholder="Meu Ambiente"
+                      />
                     </div>
-                  );
-                })}
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
+                    <div className="space-y-2">
+                      <Label htmlFor="themeColor">Cor do Tema</Label>
+                      <Input
+                        id="themeColor"
+                        type="color"
+                        value={newUser.themeColor}
+                        onChange={(e) => setNewUser({ ...newUser, themeColor: e.target.value })}
+                      />
+                    </div>
+                    <Button onClick={createUser} className="w-full" disabled={loading}>
+                      {loading ? 'Criando...' : 'Criar Usuário'}
+                    </Button>
+                  </div>
+                </DialogContent>
+              </Dialog>
+            </div>
 
-        <TabsContent value="schools" className="space-y-4">
-          <div className="flex justify-between items-center">
-            <h2 className="text-xl font-semibold">Gerenciar Escolas</h2>
-            <Dialog open={schoolDialogOpen} onOpenChange={setSchoolDialogOpen}>
-              <DialogTrigger asChild>
-                <Button>
-                  <Plus className="w-4 h-4 mr-2" />
-                  Nova Escola
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-lg max-h-[80vh] overflow-y-auto">
-                <DialogHeader>
-                  <DialogTitle>Personalizar Nova Escola</DialogTitle>
-                  <DialogDescription>
-                    Configure as personalizações da escola para os gestores
-                  </DialogDescription>
-                </DialogHeader>
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Users className="w-5 h-5" />
+                  Usuários ({users.length})
+                </CardTitle>
+                <CardDescription>
+                  Lista de todos os usuários do sistema
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
                 <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="schoolName">Nome da Escola</Label>
-                    <Input
-                      id="schoolName"
-                      value={newSchool.school_name}
-                      onChange={(e) => setNewSchool({ ...newSchool, school_name: e.target.value })}
-                      placeholder="Nome da escola"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="schoolThemeColor">Cor do Tema</Label>
-                    <Input
-                      id="schoolThemeColor"
-                      type="color"
-                      value={newSchool.theme_color}
-                      onChange={(e) => setNewSchool({ ...newSchool, theme_color: e.target.value })}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="logoUrl">URL do Logo</Label>
-                    <Input
-                      id="logoUrl"
-                      value={newSchool.logo_url}
-                      onChange={(e) => setNewSchool({ ...newSchool, logo_url: e.target.value })}
-                      placeholder="https://exemplo.com/logo.png"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="consultantName">Nome do Consultor</Label>
-                    <Input
-                      id="consultantName"
-                      value={newSchool.consultant_name}
-                      onChange={(e) => setNewSchool({ ...newSchool, consultant_name: e.target.value })}
-                      placeholder="Nome do consultor"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="consultantPhoto">Foto do Consultor</Label>
-                    <Input
-                      id="consultantPhoto"
-                      value={newSchool.consultant_photo_url}
-                      onChange={(e) => setNewSchool({ ...newSchool, consultant_photo_url: e.target.value })}
-                      placeholder="https://exemplo.com/foto.jpg"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="zendeskUrl">URL Integração Zendesk</Label>
-                    <Input
-                      id="zendeskUrl"
-                      value={newSchool.zendesk_integration_url}
-                      onChange={(e) => setNewSchool({ ...newSchool, zendesk_integration_url: e.target.value })}
-                      placeholder="https://escola.zendesk.com"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="metabaseUrl">URL Integração Metabase</Label>
-                    <Input
-                      id="metabaseUrl"
-                      value={newSchool.metabase_integration_url}
-                      onChange={(e) => setNewSchool({ ...newSchool, metabase_integration_url: e.target.value })}
-                      placeholder="https://metabase.escola.com"
-                    />
-                  </div>
-                  <Button onClick={createSchool} className="w-full">
-                    Criar Escola
-                  </Button>
-                </div>
-              </DialogContent>
-            </Dialog>
-          </div>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <School className="w-5 h-5" />
-                Escolas ({schools.length})
-              </CardTitle>
-              <CardDescription>
-                Personalizações configuradas para as escolas
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid gap-4">
-                {schools.map((school) => (
-                  <div key={school.id} className="p-4 border rounded-lg">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-4">
-                        <div 
-                          className="w-12 h-12 rounded-lg flex items-center justify-center text-white font-bold"
-                          style={{ backgroundColor: school.theme_color }}
-                        >
-                          {school.school_name.charAt(0).toUpperCase()}
-                        </div>
-                        <div>
-                          <h3 className="font-semibold">{school.school_name}</h3>
-                          {school.consultant_name && (
-                            <p className="text-sm text-muted-foreground">
-                              Consultor: {school.consultant_name}
-                            </p>
-                          )}
-                          <div className="flex gap-2 mt-2">
-                            {school.zendesk_integration_url && (
-                              <Badge variant="outline">Zendesk</Badge>
+                  {users.map((user) => {
+                    const environment = getUserEnvironment(user.user_id);
+                    return (
+                      <div key={user.id} className="flex items-center justify-between p-4 border rounded-lg">
+                        <div className="flex items-center space-x-4">
+                          <div 
+                            className="w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold"
+                            style={{ backgroundColor: environment?.theme_color || '#3b82f6' }}
+                          >
+                            {user.name.charAt(0).toUpperCase()}
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <p className="font-medium">{user.name}</p>
+                              <Badge variant={user.role === 'admin' ? 'default' : user.role === 'gestor' ? 'secondary' : 'outline'}>
+                                {user.role === 'admin' ? 'Admin' : user.role === 'gestor' ? 'Gestor' : 'Usuário'}
+                              </Badge>
+                              <Badge variant={user.is_active ? 'default' : 'destructive'}>
+                                {user.is_active ? 'Ativo' : 'Inativo'}
+                              </Badge>
+                            </div>
+                            <p className="text-sm text-muted-foreground">{user.email}</p>
+                            {user.role === 'gestor' && user.school_id && (
+                              <p className="text-xs text-muted-foreground">
+                                Escola: {getSchoolName(user.school_id)}
+                              </p>
                             )}
-                            {school.metabase_integration_url && (
-                              <Badge variant="outline">Metabase</Badge>
+                            {environment && (
+                              <p className="text-xs text-muted-foreground">
+                                Ambiente: {environment.name}
+                              </p>
                             )}
                           </div>
                         </div>
+                        
+                        <div className="flex items-center space-x-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => editUser(user)}
+                          >
+                            <Edit3 className="w-4 h-4" />
+                          </Button>
+                          <Switch
+                            checked={user.is_active}
+                            onCheckedChange={() => toggleUserStatus(user.user_id, user.is_active)}
+                            disabled={user.role === 'admin'}
+                          />
+                          {user.role !== 'admin' && (
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              onClick={() => deleteUser(user.user_id)}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          )}
+                        </div>
                       </div>
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={() => editSchool(school)}
-                      >
-                        <Edit3 className="w-4 h-4 mr-2" />
-                        Editar
-                      </Button>
+                    );
+                  })}
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="schools" className="space-y-4">
+            <div className="flex justify-between items-center">
+              <h2 className="text-xl font-semibold">Gerenciar Escolas</h2>
+              <Dialog open={schoolDialogOpen} onOpenChange={setSchoolDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button>
+                    <Plus className="w-4 h-4 mr-2" />
+                    Nova Escola
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-lg max-h-[80vh] overflow-y-auto">
+                  <DialogHeader>
+                    <DialogTitle>Personalizar Nova Escola</DialogTitle>
+                    <DialogDescription>
+                      Configure as personalizações da escola para os gestores
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="schoolName">Nome da Escola</Label>
+                      <Input
+                        id="schoolName"
+                        value={newSchool.school_name}
+                        onChange={(e) => setNewSchool({ ...newSchool, school_name: e.target.value })}
+                        placeholder="Nome da escola"
+                      />
                     </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="schoolThemeColor">Cor do Tema</Label>
+                      <Input
+                        id="schoolThemeColor"
+                        type="color"
+                        value={newSchool.theme_color}
+                        onChange={(e) => setNewSchool({ ...newSchool, theme_color: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="logoUrl">URL do Logo</Label>
+                      <Input
+                        id="logoUrl"
+                        value={newSchool.logo_url}
+                        onChange={(e) => setNewSchool({ ...newSchool, logo_url: e.target.value })}
+                        placeholder="https://exemplo.com/logo.png"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="consultantName">Nome do Consultor</Label>
+                      <Input
+                        id="consultantName"
+                        value={newSchool.consultant_name}
+                        onChange={(e) => setNewSchool({ ...newSchool, consultant_name: e.target.value })}
+                        placeholder="Nome do consultor"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="consultantPhoto">Foto do Consultor</Label>
+                      <Input
+                        id="consultantPhoto"
+                        value={newSchool.consultant_photo_url}
+                        onChange={(e) => setNewSchool({ ...newSchool, consultant_photo_url: e.target.value })}
+                        placeholder="https://exemplo.com/foto.jpg"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="zendeskUrl">URL Integração Zendesk</Label>
+                      <Input
+                        id="zendeskUrl"
+                        value={newSchool.zendesk_integration_url}
+                        onChange={(e) => setNewSchool({ ...newSchool, zendesk_integration_url: e.target.value })}
+                        placeholder="https://escola.zendesk.com"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="metabaseUrl">URL Integração Metabase</Label>
+                      <Input
+                        id="metabaseUrl"
+                        value={newSchool.metabase_integration_url}
+                        onChange={(e) => setNewSchool({ ...newSchool, metabase_integration_url: e.target.value })}
+                        placeholder="https://metabase.escola.com"
+                      />
+                    </div>
+                    <Button onClick={createSchool} className="w-full">
+                      Criar Escola
+                    </Button>
                   </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+                </DialogContent>
+              </Dialog>
+            </div>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <School className="w-5 h-5" />
+                  Escolas ({schools.length})
+                </CardTitle>
+                <CardDescription>
+                  Personalizações configuradas para as escolas
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid gap-4">
+                  {schools.map((school) => (
+                    <div key={school.id} className="p-4 border rounded-lg">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-4">
+                          <div 
+                            className="w-12 h-12 rounded-lg flex items-center justify-center text-white font-bold"
+                            style={{ backgroundColor: school.theme_color }}
+                          >
+                            {school.school_name.charAt(0).toUpperCase()}
+                          </div>
+                          <div>
+                            <h3 className="font-semibold">{school.school_name}</h3>
+                            {school.consultant_name && (
+                              <p className="text-sm text-muted-foreground">
+                                Consultor: {school.consultant_name}
+                              </p>
+                            )}
+                            <div className="flex gap-2 mt-2">
+                              {school.zendesk_integration_url && (
+                                <Badge variant="outline">Zendesk</Badge>
+                              )}
+                              {school.metabase_integration_url && (
+                                <Badge variant="outline">Metabase</Badge>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => editSchool(school)}
+                        >
+                          <Edit3 className="w-4 h-4 mr-2" />
+                          Editar
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
+      )}
+
 
       {/* Edit User Dialog */}
       <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
