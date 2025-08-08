@@ -106,6 +106,7 @@ export type Database = {
           id: string
           logo_url: string | null
           metabase_integration_url: string | null
+          school_id: string | null
           school_name: string
           theme_color: string | null
           updated_at: string
@@ -119,6 +120,7 @@ export type Database = {
           id?: string
           logo_url?: string | null
           metabase_integration_url?: string | null
+          school_id?: string | null
           school_name: string
           theme_color?: string | null
           updated_at?: string
@@ -132,6 +134,7 @@ export type Database = {
           id?: string
           logo_url?: string | null
           metabase_integration_url?: string | null
+          school_id?: string | null
           school_name?: string
           theme_color?: string | null
           updated_at?: string

@@ -67,7 +67,7 @@ const GestorDashboard = () => {
       const { data: school, error: schoolError } = await supabase
         .from('school_customizations')
         .select('*')
-        .eq('id', profile.school_id)
+        .eq('school_id', profile.school_id)
         .single();
 
       if (schoolError) throw schoolError;
