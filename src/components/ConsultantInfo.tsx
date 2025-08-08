@@ -1,16 +1,15 @@
-
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ArrowLeft, MessageCircle, Calendar, Clock, Phone } from "lucide-react";
-
 interface ConsultantInfoProps {
   onBack: () => void;
 }
-
-const ConsultantInfo = ({ onBack }: ConsultantInfoProps) => {
+const ConsultantInfo = ({
+  onBack
+}: ConsultantInfoProps) => {
   const consultant = {
     name: "Lucas Viana",
     role: "Consultor Prime",
@@ -19,36 +18,29 @@ const ConsultantInfo = ({ onBack }: ConsultantInfoProps) => {
     availability: "Segunda a Sexta, 9h às 17h30",
     photo: "/lovable-uploads/2d289e04-9c96-46d8-9efe-65c09617717d.png"
   };
-
-  const upcomingMeetings = [
-    {
-      id: 1,
-      title: "Revisão Dashboard Financeiro",
-      date: "2024-01-20",
-      time: "14:00",
-      duration: "1h",
-      type: "Reunião Online"
-    },
-    {
-      id: 2,
-      title: "Treinamento Novas Funcionalidades",
-      date: "2024-01-22",
-      time: "10:00",
-      duration: "2h",
-      type: "Presencial"
-    },
-    {
-      id: 3,
-      title: "Planejamento Estratégico Q1",
-      date: "2024-01-25",
-      time: "15:30",
-      duration: "1h30min",
-      type: "Reunião Online"
-    }
-  ];
-
-  return (
-    <div>
+  const upcomingMeetings = [{
+    id: 1,
+    title: "Revisão Dashboard Financeiro",
+    date: "2024-01-20",
+    time: "14:00",
+    duration: "1h",
+    type: "Reunião Online"
+  }, {
+    id: 2,
+    title: "Treinamento Novas Funcionalidades",
+    date: "2024-01-22",
+    time: "10:00",
+    duration: "2h",
+    type: "Presencial"
+  }, {
+    id: 3,
+    title: "Planejamento Estratégico Q1",
+    date: "2024-01-25",
+    time: "15:30",
+    duration: "1h30min",
+    type: "Reunião Online"
+  }];
+  return <div>
       {/* Header */}
       <div className="flex items-center space-x-4 mb-8">
         <Button variant="ghost" onClick={onBack} className="p-2">
@@ -88,18 +80,11 @@ const ConsultantInfo = ({ onBack }: ConsultantInfoProps) => {
                 <span className="text-sm">{consultant.availability}</span>
               </div>
               <div className="pt-4 space-y-2">
-                <Button 
-                  className="w-full" 
-                  onClick={() => window.open(`https://wa.me/5596984130163`, "_blank")}
-                >
+                <Button className="w-full" onClick={() => window.open(`https://wa.me/5596984130163`, "_blank")}>
                   <MessageCircle className="h-4 w-4 mr-2" />
                   WhatsApp
                 </Button>
-                <Button 
-                  variant="outline" 
-                  className="w-full"
-                  onClick={() => window.open("https://calendar.app.google/qNPTz6CcU7kuG2AP9", "_blank")}
-                >
+                <Button variant="outline" className="w-full" onClick={() => window.open("https://calendar.app.google/qNPTz6CcU7kuG2AP9", "_blank")}>
                   <Calendar className="h-4 w-4 mr-2" />
                   Agendar Reunião
                 </Button>
@@ -119,25 +104,18 @@ const ConsultantInfo = ({ onBack }: ConsultantInfoProps) => {
               <Tabs defaultValue="calendar" className="w-full">
                 <TabsList className="grid w-full grid-cols-2">
                   <TabsTrigger value="calendar">Agenda Interativa</TabsTrigger>
-                  <TabsTrigger value="meetings">Próximos Compromissos</TabsTrigger>
+                  
                 </TabsList>
                 
                 <TabsContent value="calendar" className="mt-6">
                   <div className="w-full">
-                    <iframe 
-                      src="https://calendar.google.com/calendar/appointments/schedules/AcZssZ1LTF6kdNuIZi_ekDi1xZ7QfLGJ4FhqnNSvaIkEBgzjDYcL46RKLYEY0nTY4j8WYo8ATmZYl18d?gv=true"
-                      className="w-full border-0 rounded-lg"
-                      width="100%" 
-                      height="600"
-                      title="Agenda do Consultor Lucas Viana"
-                    />
+                    <iframe src="https://calendar.google.com/calendar/appointments/schedules/AcZssZ1LTF6kdNuIZi_ekDi1xZ7QfLGJ4FhqnNSvaIkEBgzjDYcL46RKLYEY0nTY4j8WYo8ATmZYl18d?gv=true" className="w-full border-0 rounded-lg" width="100%" height="600" title="Agenda do Consultor Lucas Viana" />
                   </div>
                 </TabsContent>
                 
                 <TabsContent value="meetings" className="mt-6">
                   <div className="space-y-4">
-                    {upcomingMeetings.map((meeting) => (
-                      <div key={meeting.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 transition-colors">
+                    {upcomingMeetings.map(meeting => <div key={meeting.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 transition-colors">
                         <div className="flex-1">
                           <h4 className="font-medium text-gray-900">{meeting.title}</h4>
                           <div className="flex items-center space-x-4 mt-2 text-sm text-gray-600">
@@ -157,8 +135,7 @@ const ConsultantInfo = ({ onBack }: ConsultantInfoProps) => {
                             Entrar
                           </Button>
                         </div>
-                      </div>
-                    ))}
+                      </div>)}
                   </div>
                 </TabsContent>
               </Tabs>
@@ -166,8 +143,6 @@ const ConsultantInfo = ({ onBack }: ConsultantInfoProps) => {
           </Card>
         </div>
       </div>
-    </div>
-  );
+    </div>;
 };
-
 export default ConsultantInfo;
