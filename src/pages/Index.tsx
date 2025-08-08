@@ -191,15 +191,9 @@ const Index = () => {
                   <Button variant="outline" size="sm" onClick={signOut}>Sair</Button>
                 </div>
               ) : (
-                <Button
-                  size="sm"
-                  onClick={async () => {
-                    const redirectTo = `${window.location.origin}/`;
-                    await supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo } });
-                  }}
-                >
-                  Entrar com Google
-                </Button>
+                <Link to="/login">
+                  <Button size="sm">Entrar</Button>
+                </Link>
               )}
             </div>
           </div>
