@@ -23,13 +23,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const { toast } = useToast();
 
   useEffect(() => {
+    console.log('🔄 Auth useEffect iniciado');
+    
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        console.log('🔄 Auth state change:', event, session?.user?.id);
         setSession(session);
         setUser(session?.user ?? null);
         
         if (session?.user) {
+          console.log('👤 Buscando role do usuário:', session.user.id);
           // Fetch user profile to get role
           try {
             const { data: profile } = await supabase
@@ -38,25 +42,31 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
               .eq('user_id', session.user.id)
               .single();
             
+            console.log('👤 Role encontrado:', profile?.role);
             setUserRole(profile?.role || 'user');
           } catch (error) {
-            console.error('Error fetching user role:', error);
+            console.error('❌ Erro ao buscar role:', error);
             setUserRole('user');
           }
         } else {
+          console.log('🚪 Usuário deslogado');
           setUserRole(null);
         }
         
+        console.log('✅ Finalizando loading');
         setLoading(false);
       }
     );
 
     // Check for existing session
+    console.log('🔍 Verificando sessão existente');
     supabase.auth.getSession().then(async ({ data: { session } }) => {
+      console.log('🔍 Sessão existente:', session?.user?.id);
       setSession(session);
       setUser(session?.user ?? null);
       
       if (session?.user) {
+        console.log('👤 Buscando role inicial:', session.user.id);
         try {
           const { data: profile } = await supabase
             .from('profiles')
@@ -64,13 +74,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             .eq('user_id', session.user.id)
             .single();
           
+          console.log('👤 Role inicial encontrado:', profile?.role);
           setUserRole(profile?.role || 'user');
         } catch (error) {
-          console.error('Error fetching user role:', error);
+          console.error('❌ Erro ao buscar role inicial:', error);
           setUserRole('user');
         }
       }
       
+      console.log('✅ Finalizando loading inicial');
       setLoading(false);
     });
 
