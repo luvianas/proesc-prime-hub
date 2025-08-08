@@ -25,7 +25,6 @@ interface User {
   updated_at: string;
   school_id?: string;
 }
-
 interface Environment {
   id: string;
   user_id: string;
@@ -36,7 +35,6 @@ interface Environment {
   settings: any;
   is_active: boolean;
 }
-
 interface SchoolCustomization {
   id: string;
   school_name: string;
@@ -50,7 +48,6 @@ interface SchoolCustomization {
   updated_at: string;
   created_by: string;
 }
-
 const AdminDashboard = () => {
   const [users, setUsers] = useState<User[]>([]);
   const [environments, setEnvironments] = useState<Environment[]>([]);
@@ -62,7 +59,6 @@ const AdminDashboard = () => {
   const [editSchoolDialogOpen, setEditSchoolDialogOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [editingSchool, setEditingSchool] = useState<SchoolCustomization | null>(null);
-  
   const [newUser, setNewUser] = useState({
     email: '',
     password: '',
@@ -72,7 +68,6 @@ const AdminDashboard = () => {
     themeColor: '#3b82f6',
     schoolId: ''
   });
-
   const [newSchool, setNewSchool] = useState({
     school_name: '',
     theme_color: '#3b82f6',
@@ -82,9 +77,12 @@ const AdminDashboard = () => {
     zendesk_integration_url: '',
     metabase_integration_url: ''
   });
-
-  const { toast } = useToast();
-  const { userRole } = useAuth();
+  const {
+    toast
+  } = useToast();
+  const {
+    userRole
+  } = useAuth();
   const [minimized, setMinimized] = useState(false);
 
   // Reautenticação para exclusão de escola (sem trocar a sessão atual)
@@ -93,24 +91,22 @@ const AdminDashboard = () => {
   const [confirmEmail, setConfirmEmail] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [deletingSchool, setDeletingSchool] = useState(false);
-
   const [userSearch, setUserSearch] = useState('');
   const [schoolSearch, setSchoolSearch] = useState('');
-
   const TEMP_SUPABASE_URL = "https://yzlbtfhjohjhnqjbtmjn.supabase.co";
   const TEMP_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl6bGJ0Zmhqb2hqaG5xamJ0bWpuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQ0MjI4MzgsImV4cCI6MjA2OTk5ODgzOH0.wfdPLyebymkk34wW6GVm-fzq9zLO9-4xJQDSf3zEnTY";
   useEffect(() => {
     fetchData();
   }, []);
-
   const fetchData = async () => {
     try {
-      const [usersResponse, environmentsResponse, schoolsResponse] = await Promise.all([
-        supabase.from('profiles').select('*').order('created_at', { ascending: false }),
-        supabase.from('environments').select('*').order('created_at', { ascending: false }),
-        supabase.from('school_customizations').select('*').order('created_at', { ascending: false })
-      ]);
-
+      const [usersResponse, environmentsResponse, schoolsResponse] = await Promise.all([supabase.from('profiles').select('*').order('created_at', {
+        ascending: false
+      }), supabase.from('environments').select('*').order('created_at', {
+        ascending: false
+      }), supabase.from('school_customizations').select('*').order('created_at', {
+        ascending: false
+      })]);
       if (usersResponse.data) setUsers(usersResponse.data);
       if (environmentsResponse.data) setEnvironments(environmentsResponse.data);
       if (schoolsResponse.data) setSchools(schoolsResponse.data);
@@ -119,31 +115,26 @@ const AdminDashboard = () => {
       toast({
         title: "Erro",
         description: "Erro ao carregar dados",
-        variant: "destructive",
+        variant: "destructive"
       });
     } finally {
       setLoading(false);
     }
   };
-
   const createSchool = async () => {
     try {
-      const { data, error } = await supabase
-        .from('school_customizations')
-        .insert([{
-          ...newSchool,
-          created_by: (await supabase.auth.getUser()).data.user?.id
-        }])
-        .select()
-        .single();
-
+      const {
+        data,
+        error
+      } = await supabase.from('school_customizations').insert([{
+        ...newSchool,
+        created_by: (await supabase.auth.getUser()).data.user?.id
+      }]).select().single();
       if (error) throw error;
-
       toast({
         title: "Sucesso",
-        description: "Escola criada com sucesso!",
+        description: "Escola criada com sucesso!"
       });
-
       setSchoolDialogOpen(false);
       setNewSchool({
         school_name: '',
@@ -159,17 +150,19 @@ const AdminDashboard = () => {
       toast({
         title: "Erro",
         description: error.message || "Erro ao criar escola",
-        variant: "destructive",
+        variant: "destructive"
       });
     }
   };
-
   const createUser = async () => {
     try {
       setLoading(true);
-      
+
       // Create user in Supabase Auth
-      const { data: authData, error: authError } = await supabase.auth.signUp({
+      const {
+        data: authData,
+        error: authError
+      } = await supabase.auth.signUp({
         email: newUser.email,
         password: newUser.password,
         options: {
@@ -179,33 +172,26 @@ const AdminDashboard = () => {
           }
         }
       });
-
       if (authError) throw authError;
 
       // If it's a gestor, link to school
       if (authData.user && newUser.role === 'gestor' && newUser.schoolId) {
-        await supabase
-          .from('profiles')
-          .update({ school_id: newUser.schoolId })
-          .eq('user_id', authData.user.id);
+        await supabase.from('profiles').update({
+          school_id: newUser.schoolId
+        }).eq('user_id', authData.user.id);
       }
 
       // Update environment name and theme if needed
       if (authData.user) {
-        await supabase
-          .from('environments')
-          .update({
-            name: newUser.environmentName || 'Meu Ambiente',
-            theme_color: newUser.themeColor
-          })
-          .eq('user_id', authData.user.id);
+        await supabase.from('environments').update({
+          name: newUser.environmentName || 'Meu Ambiente',
+          theme_color: newUser.themeColor
+        }).eq('user_id', authData.user.id);
       }
-
       toast({
         title: "Sucesso",
-        description: "Usuário criado com sucesso!",
+        description: "Usuário criado com sucesso!"
       });
-
       setDialogOpen(false);
       setNewUser({
         email: '',
@@ -222,150 +208,138 @@ const AdminDashboard = () => {
       toast({
         title: "Erro",
         description: error.message || "Erro ao criar usuário",
-        variant: "destructive",
+        variant: "destructive"
       });
     } finally {
       setLoading(false);
     }
   };
-
   const toggleUserStatus = async (userId: string, currentStatus: boolean) => {
     try {
-      const { error } = await supabase
-        .from('profiles')
-        .update({ is_active: !currentStatus })
-        .eq('user_id', userId);
-
+      const {
+        error
+      } = await supabase.from('profiles').update({
+        is_active: !currentStatus
+      }).eq('user_id', userId);
       if (error) throw error;
-
-      setUsers(users.map(user => 
-        user.user_id === userId 
-          ? { ...user, is_active: !currentStatus }
-          : user
-      ));
-
+      setUsers(users.map(user => user.user_id === userId ? {
+        ...user,
+        is_active: !currentStatus
+      } : user));
       toast({
         title: "Sucesso",
-        description: `Usuário ${!currentStatus ? 'ativado' : 'desativado'} com sucesso!`,
+        description: `Usuário ${!currentStatus ? 'ativado' : 'desativado'} com sucesso!`
       });
     } catch (error: any) {
       toast({
         title: "Erro",
         description: error.message || "Erro ao atualizar usuário",
-        variant: "destructive",
+        variant: "destructive"
       });
     }
   };
-
   const deleteUser = async (userId: string) => {
     if (!confirm('Tem certeza que deseja excluir este usuário?')) return;
-
     try {
-      const { data, error } = await supabase.functions.invoke('delete-auth-user', {
-        body: { user_id: userId },
+      const {
+        data,
+        error
+      } = await supabase.functions.invoke('delete-auth-user', {
+        body: {
+          user_id: userId
+        }
       });
-
       if (error) throw error;
-
       toast({
         title: "Sucesso",
-        description: "Usuário excluído com sucesso!",
+        description: "Usuário excluído com sucesso!"
       });
-
       fetchData();
     } catch (error: any) {
       toast({
         title: "Erro",
         description: error.message || "Erro ao excluir usuário",
-        variant: "destructive",
+        variant: "destructive"
       });
     }
   };
-
   const openDeleteSchoolDialog = (school: SchoolCustomization) => {
     setSchoolToDelete(school);
     setConfirmEmail('');
     setConfirmPassword('');
     setDeleteSchoolDialogOpen(true);
   };
-
   const confirmDeleteSchool = async () => {
     if (!schoolToDelete) return;
     try {
       setDeletingSchool(true);
       const tempClient = createClient(TEMP_SUPABASE_URL, TEMP_SUPABASE_ANON_KEY, {
-        auth: { persistSession: false, autoRefreshToken: false },
+        auth: {
+          persistSession: false,
+          autoRefreshToken: false
+        }
       });
-
-      const { data: signInData, error: signInError } = await tempClient.auth.signInWithPassword({
+      const {
+        data: signInData,
+        error: signInError
+      } = await tempClient.auth.signInWithPassword({
         email: confirmEmail,
-        password: confirmPassword,
+        password: confirmPassword
       });
       if (signInError || !signInData?.user) throw new Error('Credenciais inválidas');
-
-      const { error: delError } = await tempClient
-        .from('school_customizations')
-        .delete()
-        .eq('id', schoolToDelete.id);
-
+      const {
+        error: delError
+      } = await tempClient.from('school_customizations').delete().eq('id', schoolToDelete.id);
       if (delError) throw delError;
-
-      toast({ title: 'Sucesso', description: 'Escola excluída com sucesso!' });
-      setSchools(schools.filter((s) => s.id !== schoolToDelete.id));
+      toast({
+        title: 'Sucesso',
+        description: 'Escola excluída com sucesso!'
+      });
+      setSchools(schools.filter(s => s.id !== schoolToDelete.id));
       setDeleteSchoolDialogOpen(false);
       setSchoolToDelete(null);
     } catch (error: any) {
       toast({
         title: 'Erro',
         description: error.message || 'Falha ao excluir escola (verifique permissões).',
-        variant: 'destructive',
+        variant: 'destructive'
       });
     } finally {
       setDeletingSchool(false);
     }
   };
-
   const getUserEnvironment = (userId: string) => {
     return environments.find(env => env.user_id === userId);
   };
-
   const getSchoolName = (schoolId: string | undefined) => {
     if (!schoolId) return '';
     const school = schools.find(s => s.id === schoolId);
     return school?.school_name || '';
   };
-
   const editUser = (user: User) => {
     setEditingUser(user);
     setEditDialogOpen(true);
   };
-
   const editSchool = (school: SchoolCustomization) => {
     setEditingSchool(school);
     setEditSchoolDialogOpen(true);
   };
-
   const updateUser = async () => {
     if (!editingUser) return;
-
     try {
-      const { error } = await supabase
-        .from('profiles')
-        .update({
-          name: editingUser.name,
-          email: editingUser.email,
-          role: editingUser.role,
-          school_id: editingUser.role === 'gestor' ? editingUser.school_id : null
-        })
-        .eq('user_id', editingUser.user_id);
-
+      const {
+        error
+      } = await supabase.from('profiles').update({
+        name: editingUser.name,
+        email: editingUser.email,
+        role: editingUser.role,
+        school_id: editingUser.role === 'gestor' ? editingUser.school_id : null
+      }).eq('user_id', editingUser.user_id);
       if (error) throw error;
-
       toast({
         title: "Sucesso",
-        description: "Usuário atualizado com sucesso!",
+        description: "Usuário atualizado com sucesso!"
       });
-
       setEditDialogOpen(false);
       setEditingUser(null);
       fetchData();
@@ -373,35 +347,29 @@ const AdminDashboard = () => {
       toast({
         title: "Erro",
         description: error.message || "Erro ao atualizar usuário",
-        variant: "destructive",
+        variant: "destructive"
       });
     }
   };
-
   const updateSchool = async () => {
     if (!editingSchool) return;
-
     try {
-      const { error } = await supabase
-        .from('school_customizations')
-        .update({
-          school_name: editingSchool.school_name,
-          theme_color: editingSchool.theme_color,
-          logo_url: editingSchool.logo_url,
-          consultant_name: editingSchool.consultant_name,
-          consultant_photo_url: editingSchool.consultant_photo_url,
-          zendesk_integration_url: editingSchool.zendesk_integration_url,
-          metabase_integration_url: editingSchool.metabase_integration_url
-        })
-        .eq('id', editingSchool.id);
-
+      const {
+        error
+      } = await supabase.from('school_customizations').update({
+        school_name: editingSchool.school_name,
+        theme_color: editingSchool.theme_color,
+        logo_url: editingSchool.logo_url,
+        consultant_name: editingSchool.consultant_name,
+        consultant_photo_url: editingSchool.consultant_photo_url,
+        zendesk_integration_url: editingSchool.zendesk_integration_url,
+        metabase_integration_url: editingSchool.metabase_integration_url
+      }).eq('id', editingSchool.id);
       if (error) throw error;
-
       toast({
         title: "Sucesso",
-        description: "Escola atualizada com sucesso!",
+        description: "Escola atualizada com sucesso!"
       });
-
       setEditSchoolDialogOpen(false);
       setEditingSchool(null);
       fetchData();
@@ -409,48 +377,29 @@ const AdminDashboard = () => {
       toast({
         title: "Erro",
         description: error.message || "Erro ao atualizar escola",
-        variant: "destructive",
+        variant: "destructive"
       });
     }
   };
-
   if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
+    return <div className="flex items-center justify-center min-h-screen">
         <div className="text-lg">Carregando...</div>
-      </div>
-    );
+      </div>;
   }
-
-  return (
-    <div className="container mx-auto p-6 space-y-6">
+  return <div className="container mx-auto p-6 space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">Painel Administrativo</h1>
           <p className="text-muted-foreground">Gerencie usuários, escolas e ambientes do sistema</p>
         </div>
-        {userRole === 'admin' && (
-          <Button variant="outline" size="sm" onClick={() => setMinimized((v) => !v)}>
-            {minimized ? (
-              <>
-                <Maximize2 className="w-4 h-4 mr-2" />
-                Expandir
-              </>
-            ) : (
-              <>
-                <Minimize2 className="w-4 h-4 mr-2" />
-                Minimizar
-              </>
-            )}
-          </Button>
-        )}
+        {userRole === 'admin'}
       </div>
 
-      {!minimized && (
-        <Tabs defaultValue="users" className="space-y-4">
+      {!minimized && <Tabs defaultValue="users" className="space-y-4">
           <TabsList>
             <TabsTrigger value="users">Usuários</TabsTrigger>
-            <TabsTrigger value="schools">Escolas</TabsTrigger>
+            <TabsTrigger value="schools">Instituições
+        </TabsTrigger>
           </TabsList>
 
           <TabsContent value="users" className="space-y-4">
@@ -473,36 +422,31 @@ const AdminDashboard = () => {
                   <div className="space-y-4">
                     <div className="space-y-2">
                       <Label htmlFor="name">Nome</Label>
-                      <Input
-                        id="name"
-                        value={newUser.name}
-                        onChange={(e) => setNewUser({ ...newUser, name: e.target.value })}
-                        placeholder="Nome do usuário"
-                      />
+                      <Input id="name" value={newUser.name} onChange={e => setNewUser({
+                    ...newUser,
+                    name: e.target.value
+                  })} placeholder="Nome do usuário" />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="email">Email</Label>
-                      <Input
-                        id="email"
-                        type="email"
-                        value={newUser.email}
-                        onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
-                        placeholder="email@exemplo.com"
-                      />
+                      <Input id="email" type="email" value={newUser.email} onChange={e => setNewUser({
+                    ...newUser,
+                    email: e.target.value
+                  })} placeholder="email@exemplo.com" />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="password">Senha</Label>
-                      <Input
-                        id="password"
-                        type="password"
-                        value={newUser.password}
-                        onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
-                        placeholder="Senha"
-                      />
+                      <Input id="password" type="password" value={newUser.password} onChange={e => setNewUser({
+                    ...newUser,
+                    password: e.target.value
+                  })} placeholder="Senha" />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="role">Tipo de Usuário</Label>
-                      <Select value={newUser.role} onValueChange={(value: 'admin' | 'user' | 'gestor') => setNewUser({ ...newUser, role: value })}>
+                      <Select value={newUser.role} onValueChange={(value: 'admin' | 'user' | 'gestor') => setNewUser({
+                    ...newUser,
+                    role: value
+                  })}>
                         <SelectTrigger>
                           <SelectValue placeholder="Selecione o tipo" />
                         </SelectTrigger>
@@ -514,41 +458,36 @@ const AdminDashboard = () => {
                       </Select>
                     </div>
                     
-                    {newUser.role === 'gestor' && (
-                      <div className="space-y-2">
+                    {newUser.role === 'gestor' && <div className="space-y-2">
                         <Label htmlFor="school">Escola</Label>
-                        <Select value={newUser.schoolId} onValueChange={(value) => setNewUser({ ...newUser, schoolId: value })}>
+                        <Select value={newUser.schoolId} onValueChange={value => setNewUser({
+                    ...newUser,
+                    schoolId: value
+                  })}>
                           <SelectTrigger>
                             <SelectValue placeholder="Selecione a escola" />
                           </SelectTrigger>
                           <SelectContent>
-                            {schools.map(school => (
-                              <SelectItem key={school.id} value={school.id}>
+                            {schools.map(school => <SelectItem key={school.id} value={school.id}>
                                 {school.school_name}
-                              </SelectItem>
-                            ))}
+                              </SelectItem>)}
                           </SelectContent>
                         </Select>
-                      </div>
-                    )}
+                      </div>}
                     
                     <div className="space-y-2">
                       <Label htmlFor="environmentName">Nome do Ambiente</Label>
-                      <Input
-                        id="environmentName"
-                        value={newUser.environmentName}
-                        onChange={(e) => setNewUser({ ...newUser, environmentName: e.target.value })}
-                        placeholder="Meu Ambiente"
-                      />
+                      <Input id="environmentName" value={newUser.environmentName} onChange={e => setNewUser({
+                    ...newUser,
+                    environmentName: e.target.value
+                  })} placeholder="Meu Ambiente" />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="themeColor">Cor do Tema</Label>
-                      <Input
-                        id="themeColor"
-                        type="color"
-                        value={newUser.themeColor}
-                        onChange={(e) => setNewUser({ ...newUser, themeColor: e.target.value })}
-                      />
+                      <Input id="themeColor" type="color" value={newUser.themeColor} onChange={e => setNewUser({
+                    ...newUser,
+                    themeColor: e.target.value
+                  })} />
                     </div>
                     <Button onClick={createUser} className="w-full" disabled={loading}>
                       {loading ? 'Criando...' : 'Criar Usuário'}
@@ -571,37 +510,24 @@ const AdminDashboard = () => {
               <CardContent>
                 {/* Busca de Usuários */}
                 <div className="flex gap-2 items-center mb-4">
-                  <Input
-                    placeholder="Procurar usuários (nome, email, função, escola)"
-                    value={userSearch}
-                    onChange={(e) => setUserSearch(e.target.value)}
-                  />
+                  <Input placeholder="Procurar usuários (nome, email, função, escola)" value={userSearch} onChange={e => setUserSearch(e.target.value)} />
                   <Button type="button">Procurar</Button>
                 </div>
 
                 <div className="space-y-4">
-                  {users
-                    .filter((u) => {
-                      const q = userSearch.trim().toLowerCase();
-                      if (!q) return true;
-                      const roleLabel = u.role;
-                      const schoolName = u.role === 'gestor' && u.school_id ? getSchoolName(u.school_id).toLowerCase() : '';
-                      return (
-                        u.name.toLowerCase().includes(q) ||
-                        u.email.toLowerCase().includes(q) ||
-                        roleLabel.toLowerCase().includes(q) ||
-                        schoolName.includes(q)
-                      );
-                    })
-                    .map((user) => {
-                      const environment = getUserEnvironment(user.user_id);
-                      return (
-                        <div key={user.id} className="flex items-center justify-between p-4 border rounded-lg">
+                  {users.filter(u => {
+                const q = userSearch.trim().toLowerCase();
+                if (!q) return true;
+                const roleLabel = u.role;
+                const schoolName = u.role === 'gestor' && u.school_id ? getSchoolName(u.school_id).toLowerCase() : '';
+                return u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q) || roleLabel.toLowerCase().includes(q) || schoolName.includes(q);
+              }).map(user => {
+                const environment = getUserEnvironment(user.user_id);
+                return <div key={user.id} className="flex items-center justify-between p-4 border rounded-lg">
                           <div className="flex items-center space-x-4">
-                            <div 
-                              className="w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold"
-                              style={{ backgroundColor: environment?.theme_color || '#3b82f6' }}
-                            >
+                            <div className="w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold" style={{
+                      backgroundColor: environment?.theme_color || '#3b82f6'
+                    }}>
                               {user.name.charAt(0).toUpperCase()}
                             </div>
                             <div>
@@ -615,45 +541,26 @@ const AdminDashboard = () => {
                                 </Badge>
                               </div>
                               <p className="text-sm text-muted-foreground">{user.email}</p>
-                              {user.role === 'gestor' && user.school_id && (
-                                <p className="text-xs text-muted-foreground">
+                              {user.role === 'gestor' && user.school_id && <p className="text-xs text-muted-foreground">
                                   Escola: {getSchoolName(user.school_id)}
-                                </p>
-                              )}
-                              {environment && (
-                                <p className="text-xs text-muted-foreground">
+                                </p>}
+                              {environment && <p className="text-xs text-muted-foreground">
                                   Ambiente: {environment.name}
-                                </p>
-                              )}
+                                </p>}
                             </div>
                           </div>
                           
                           <div className="flex items-center space-x-2">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => editUser(user)}
-                            >
+                            <Button variant="outline" size="sm" onClick={() => editUser(user)}>
                               <Edit3 className="w-4 h-4" />
                             </Button>
-                            <Switch
-                              checked={user.is_active}
-                              onCheckedChange={() => toggleUserStatus(user.user_id, user.is_active)}
-                              disabled={user.role === 'admin'}
-                            />
-                            {user.role !== 'admin' && (
-                              <Button
-                                variant="destructive"
-                                size="sm"
-                                onClick={() => deleteUser(user.user_id)}
-                              >
+                            <Switch checked={user.is_active} onCheckedChange={() => toggleUserStatus(user.user_id, user.is_active)} disabled={user.role === 'admin'} />
+                            {user.role !== 'admin' && <Button variant="destructive" size="sm" onClick={() => deleteUser(user.user_id)}>
                                 <Trash2 className="w-4 h-4" />
-                              </Button>
-                            )}
+                              </Button>}
                           </div>
-                        </div>
-                      );
-                    })}
+                        </div>;
+              })}
                 </div>
               </CardContent>
             </Card>
@@ -679,66 +586,52 @@ const AdminDashboard = () => {
                   <div className="space-y-4">
                     <div className="space-y-2">
                       <Label htmlFor="schoolName">Nome da Escola</Label>
-                      <Input
-                        id="schoolName"
-                        value={newSchool.school_name}
-                        onChange={(e) => setNewSchool({ ...newSchool, school_name: e.target.value })}
-                        placeholder="Nome da escola"
-                      />
+                      <Input id="schoolName" value={newSchool.school_name} onChange={e => setNewSchool({
+                    ...newSchool,
+                    school_name: e.target.value
+                  })} placeholder="Nome da escola" />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="schoolThemeColor">Cor do Tema</Label>
-                      <Input
-                        id="schoolThemeColor"
-                        type="color"
-                        value={newSchool.theme_color}
-                        onChange={(e) => setNewSchool({ ...newSchool, theme_color: e.target.value })}
-                      />
+                      <Input id="schoolThemeColor" type="color" value={newSchool.theme_color} onChange={e => setNewSchool({
+                    ...newSchool,
+                    theme_color: e.target.value
+                  })} />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="logoUrl">URL do Logo</Label>
-                      <Input
-                        id="logoUrl"
-                        value={newSchool.logo_url}
-                        onChange={(e) => setNewSchool({ ...newSchool, logo_url: e.target.value })}
-                        placeholder="https://exemplo.com/logo.png"
-                      />
+                      <Input id="logoUrl" value={newSchool.logo_url} onChange={e => setNewSchool({
+                    ...newSchool,
+                    logo_url: e.target.value
+                  })} placeholder="https://exemplo.com/logo.png" />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="consultantName">Nome do Consultor</Label>
-                      <Input
-                        id="consultantName"
-                        value={newSchool.consultant_name}
-                        onChange={(e) => setNewSchool({ ...newSchool, consultant_name: e.target.value })}
-                        placeholder="Nome do consultor"
-                      />
+                      <Input id="consultantName" value={newSchool.consultant_name} onChange={e => setNewSchool({
+                    ...newSchool,
+                    consultant_name: e.target.value
+                  })} placeholder="Nome do consultor" />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="consultantPhoto">Foto do Consultor</Label>
-                      <Input
-                        id="consultantPhoto"
-                        value={newSchool.consultant_photo_url}
-                        onChange={(e) => setNewSchool({ ...newSchool, consultant_photo_url: e.target.value })}
-                        placeholder="https://exemplo.com/foto.jpg"
-                      />
+                      <Input id="consultantPhoto" value={newSchool.consultant_photo_url} onChange={e => setNewSchool({
+                    ...newSchool,
+                    consultant_photo_url: e.target.value
+                  })} placeholder="https://exemplo.com/foto.jpg" />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="zendeskUrl">URL Integração Zendesk</Label>
-                      <Input
-                        id="zendeskUrl"
-                        value={newSchool.zendesk_integration_url}
-                        onChange={(e) => setNewSchool({ ...newSchool, zendesk_integration_url: e.target.value })}
-                        placeholder="https://escola.zendesk.com"
-                      />
+                      <Input id="zendeskUrl" value={newSchool.zendesk_integration_url} onChange={e => setNewSchool({
+                    ...newSchool,
+                    zendesk_integration_url: e.target.value
+                  })} placeholder="https://escola.zendesk.com" />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="metabaseUrl">URL Integração Metabase</Label>
-                      <Input
-                        id="metabaseUrl"
-                        value={newSchool.metabase_integration_url}
-                        onChange={(e) => setNewSchool({ ...newSchool, metabase_integration_url: e.target.value })}
-                        placeholder="https://metabase.escola.com"
-                      />
+                      <Input id="metabaseUrl" value={newSchool.metabase_integration_url} onChange={e => setNewSchool({
+                    ...newSchool,
+                    metabase_integration_url: e.target.value
+                  })} placeholder="https://metabase.escola.com" />
                     </div>
                     <Button onClick={createSchool} className="w-full">
                       Criar Escola
@@ -761,80 +654,52 @@ const AdminDashboard = () => {
               <CardContent>
                 {/* Busca de Escolas */}
                 <div className="flex gap-2 items-center mb-4">
-                  <Input
-                    placeholder="Procurar escolas (nome, consultor, integrações)"
-                    value={schoolSearch}
-                    onChange={(e) => setSchoolSearch(e.target.value)}
-                  />
+                  <Input placeholder="Procurar escolas (nome, consultor, integrações)" value={schoolSearch} onChange={e => setSchoolSearch(e.target.value)} />
                   <Button type="button">Procurar</Button>
                 </div>
 
                 <div className="grid gap-4">
-                  {schools
-                    .filter((s) => {
-                      const q = schoolSearch.trim().toLowerCase();
-                      if (!q) return true;
-                      const integrations = `${s.zendesk_integration_url ? 'zendesk' : ''} ${s.metabase_integration_url ? 'metabase' : ''}`;
-                      return (
-                        s.school_name.toLowerCase().includes(q) ||
-                        (s.consultant_name || '').toLowerCase().includes(q) ||
-                        integrations.includes(q)
-                      );
-                    })
-                    .map((school) => (
-                      <div key={school.id} className="p-4 border rounded-lg">
+                  {schools.filter(s => {
+                const q = schoolSearch.trim().toLowerCase();
+                if (!q) return true;
+                const integrations = `${s.zendesk_integration_url ? 'zendesk' : ''} ${s.metabase_integration_url ? 'metabase' : ''}`;
+                return s.school_name.toLowerCase().includes(q) || (s.consultant_name || '').toLowerCase().includes(q) || integrations.includes(q);
+              }).map(school => <div key={school.id} className="p-4 border rounded-lg">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center space-x-4">
-                            <div 
-                              className="w-12 h-12 rounded-lg flex items-center justify-center text-white font-bold"
-                              style={{ backgroundColor: school.theme_color }}
-                            >
+                            <div className="w-12 h-12 rounded-lg flex items-center justify-center text-white font-bold" style={{
+                      backgroundColor: school.theme_color
+                    }}>
                               {school.school_name.charAt(0).toUpperCase()}
                             </div>
                             <div>
                               <h3 className="font-semibold">{school.school_name}</h3>
-                              {school.consultant_name && (
-                                <p className="text-sm text-muted-foreground">
+                              {school.consultant_name && <p className="text-sm text-muted-foreground">
                                   Consultor: {school.consultant_name}
-                                </p>
-                              )}
+                                </p>}
                               <div className="flex gap-2 mt-2">
-                                {school.zendesk_integration_url && (
-                                  <Badge variant="outline">Zendesk</Badge>
-                                )}
-                                {school.metabase_integration_url && (
-                                  <Badge variant="outline">Metabase</Badge>
-                                )}
+                                {school.zendesk_integration_url && <Badge variant="outline">Zendesk</Badge>}
+                                {school.metabase_integration_url && <Badge variant="outline">Metabase</Badge>}
                               </div>
                             </div>
                           </div>
                           <div className="flex items-center gap-2">
-                            <Button 
-                              variant="outline" 
-                              size="sm"
-                              onClick={() => editSchool(school)}
-                            >
+                            <Button variant="outline" size="sm" onClick={() => editSchool(school)}>
                               <Edit3 className="w-4 h-4 mr-2" />
                               Editar
                             </Button>
-                            <Button
-                              variant="destructive"
-                              size="sm"
-                              onClick={() => openDeleteSchoolDialog(school)}
-                            >
+                            <Button variant="destructive" size="sm" onClick={() => openDeleteSchoolDialog(school)}>
                               <Trash2 className="w-4 h-4 mr-2" />
                               Excluir
                             </Button>
                           </div>
                         </div>
-                      </div>
-                    ))}
+                      </div>)}
                 </div>
               </CardContent>
             </Card>
           </TabsContent>
-        </Tabs>
-      )}
+        </Tabs>}
 
 
       {/* Edit User Dialog */}
@@ -846,35 +711,27 @@ const AdminDashboard = () => {
               Edite as informações do usuário
             </DialogDescription>
           </DialogHeader>
-          {editingUser && (
-            <div className="space-y-4">
+          {editingUser && <div className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="edit-name">Nome</Label>
-                <Input
-                  id="edit-name"
-                  value={editingUser.name}
-                  onChange={(e) => setEditingUser({ ...editingUser, name: e.target.value })}
-                  placeholder="Nome do usuário"
-                />
+                <Input id="edit-name" value={editingUser.name} onChange={e => setEditingUser({
+              ...editingUser,
+              name: e.target.value
+            })} placeholder="Nome do usuário" />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="edit-email">Email</Label>
-                <Input
-                  id="edit-email"
-                  type="email"
-                  value={editingUser.email}
-                  onChange={(e) => setEditingUser({ ...editingUser, email: e.target.value })}
-                  placeholder="email@exemplo.com"
-                />
+                <Input id="edit-email" type="email" value={editingUser.email} onChange={e => setEditingUser({
+              ...editingUser,
+              email: e.target.value
+            })} placeholder="email@exemplo.com" />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="edit-role">Tipo de Usuário</Label>
-                <Select 
-                  value={editingUser.role} 
-                  onValueChange={(value: 'admin' | 'user' | 'gestor') => 
-                    setEditingUser({ ...editingUser, role: value })
-                  }
-                >
+                <Select value={editingUser.role} onValueChange={(value: 'admin' | 'user' | 'gestor') => setEditingUser({
+              ...editingUser,
+              role: value
+            })}>
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione o tipo" />
                   </SelectTrigger>
@@ -886,32 +743,27 @@ const AdminDashboard = () => {
                 </Select>
               </div>
               
-              {editingUser.role === 'gestor' && (
-                <div className="space-y-2">
+              {editingUser.role === 'gestor' && <div className="space-y-2">
                   <Label htmlFor="edit-school">Escola</Label>
-                  <Select 
-                    value={editingUser.school_id || ''} 
-                    onValueChange={(value) => setEditingUser({ ...editingUser, school_id: value })}
-                  >
+                  <Select value={editingUser.school_id || ''} onValueChange={value => setEditingUser({
+              ...editingUser,
+              school_id: value
+            })}>
                     <SelectTrigger>
                       <SelectValue placeholder="Selecione a escola" />
                     </SelectTrigger>
                     <SelectContent>
-                      {schools.map(school => (
-                        <SelectItem key={school.id} value={school.id}>
+                      {schools.map(school => <SelectItem key={school.id} value={school.id}>
                           {school.school_name}
-                        </SelectItem>
-                      ))}
+                        </SelectItem>)}
                     </SelectContent>
                   </Select>
-                </div>
-              )}
+                </div>}
               
               <Button onClick={updateUser} className="w-full">
                 Atualizar Usuário
               </Button>
-            </div>
-          )}
+            </div>}
         </DialogContent>
       </Dialog>
 
@@ -924,76 +776,60 @@ const AdminDashboard = () => {
               Edite as configurações da escola
             </DialogDescription>
           </DialogHeader>
-          {editingSchool && (
-            <div className="space-y-4">
+          {editingSchool && <div className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="edit-school-name">Nome da Escola</Label>
-                <Input
-                  id="edit-school-name"
-                  value={editingSchool.school_name}
-                  onChange={(e) => setEditingSchool({ ...editingSchool, school_name: e.target.value })}
-                  placeholder="Nome da escola"
-                />
+                <Input id="edit-school-name" value={editingSchool.school_name} onChange={e => setEditingSchool({
+              ...editingSchool,
+              school_name: e.target.value
+            })} placeholder="Nome da escola" />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="edit-school-theme">Cor do Tema</Label>
-                <Input
-                  id="edit-school-theme"
-                  type="color"
-                  value={editingSchool.theme_color}
-                  onChange={(e) => setEditingSchool({ ...editingSchool, theme_color: e.target.value })}
-                />
+                <Input id="edit-school-theme" type="color" value={editingSchool.theme_color} onChange={e => setEditingSchool({
+              ...editingSchool,
+              theme_color: e.target.value
+            })} />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="edit-logo-url">URL do Logo</Label>
-                <Input
-                  id="edit-logo-url"
-                  value={editingSchool.logo_url || ''}
-                  onChange={(e) => setEditingSchool({ ...editingSchool, logo_url: e.target.value })}
-                  placeholder="https://exemplo.com/logo.png"
-                />
+                <Input id="edit-logo-url" value={editingSchool.logo_url || ''} onChange={e => setEditingSchool({
+              ...editingSchool,
+              logo_url: e.target.value
+            })} placeholder="https://exemplo.com/logo.png" />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="edit-consultant-name">Nome do Consultor</Label>
-                <Input
-                  id="edit-consultant-name"
-                  value={editingSchool.consultant_name || ''}
-                  onChange={(e) => setEditingSchool({ ...editingSchool, consultant_name: e.target.value })}
-                  placeholder="Nome do consultor"
-                />
+                <Input id="edit-consultant-name" value={editingSchool.consultant_name || ''} onChange={e => setEditingSchool({
+              ...editingSchool,
+              consultant_name: e.target.value
+            })} placeholder="Nome do consultor" />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="edit-consultant-photo">Foto do Consultor</Label>
-                <Input
-                  id="edit-consultant-photo"
-                  value={editingSchool.consultant_photo_url || ''}
-                  onChange={(e) => setEditingSchool({ ...editingSchool, consultant_photo_url: e.target.value })}
-                  placeholder="https://exemplo.com/foto.jpg"
-                />
+                <Input id="edit-consultant-photo" value={editingSchool.consultant_photo_url || ''} onChange={e => setEditingSchool({
+              ...editingSchool,
+              consultant_photo_url: e.target.value
+            })} placeholder="https://exemplo.com/foto.jpg" />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="edit-zendesk-url">URL Integração Zendesk</Label>
-                <Input
-                  id="edit-zendesk-url"
-                  value={editingSchool.zendesk_integration_url || ''}
-                  onChange={(e) => setEditingSchool({ ...editingSchool, zendesk_integration_url: e.target.value })}
-                  placeholder="https://escola.zendesk.com"
-                />
+                <Input id="edit-zendesk-url" value={editingSchool.zendesk_integration_url || ''} onChange={e => setEditingSchool({
+              ...editingSchool,
+              zendesk_integration_url: e.target.value
+            })} placeholder="https://escola.zendesk.com" />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="edit-metabase-url">URL Integração Metabase</Label>
-                <Input
-                  id="edit-metabase-url"
-                  value={editingSchool.metabase_integration_url || ''}
-                  onChange={(e) => setEditingSchool({ ...editingSchool, metabase_integration_url: e.target.value })}
-                  placeholder="https://metabase.escola.com"
-                />
+                <Input id="edit-metabase-url" value={editingSchool.metabase_integration_url || ''} onChange={e => setEditingSchool({
+              ...editingSchool,
+              metabase_integration_url: e.target.value
+            })} placeholder="https://metabase.escola.com" />
               </div>
               <Button onClick={updateSchool} className="w-full">
                 Atualizar Escola
               </Button>
-            </div>
-          )}
+            </div>}
         </DialogContent>
       </Dialog>
 
@@ -1007,11 +843,11 @@ const AdminDashboard = () => {
           <div className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="confirm-email">Email</Label>
-              <Input id="confirm-email" type="email" value={confirmEmail} onChange={(e) => setConfirmEmail(e.target.value)} placeholder="email@exemplo.com" />
+              <Input id="confirm-email" type="email" value={confirmEmail} onChange={e => setConfirmEmail(e.target.value)} placeholder="email@exemplo.com" />
             </div>
             <div className="space-y-2">
               <Label htmlFor="confirm-password">Senha</Label>
-              <Input id="confirm-password" type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} placeholder="Sua senha" />
+              <Input id="confirm-password" type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} placeholder="Sua senha" />
             </div>
             <Button onClick={confirmDeleteSchool} disabled={deletingSchool} variant="destructive" className="w-full">
               {deletingSchool ? 'Excluindo...' : 'Confirmar Exclusão'}
@@ -1020,8 +856,6 @@ const AdminDashboard = () => {
         </DialogContent>
       </Dialog>
 
-    </div>
-  );
+    </div>;
 };
-
 export default AdminDashboard;
