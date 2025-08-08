@@ -4,23 +4,23 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Loader2, AlertTriangle } from "lucide-react";
 
-interface FinancialDashboardProps {
+interface AgendaDashboardProps {
   onBack: () => void;
 }
 
-const FinancialDashboard = ({ onBack }: FinancialDashboardProps) => {
+const AgendaDashboard = ({ onBack }: AgendaDashboardProps) => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string>('');
 
-  const dashboardUrl = "https://graficos.proesc.com/public/dashboard/9a7e2013-25b0-4e91-8767-5ee3305a3a23?curso=&entidade_id=4442&etapa=&filtro_de_data=thisyear&tab=64-vis%C3%A3o-geral&tipo__de_d%25C3%25A9bito=&unidade=";
+  const dashboardUrl = "https://graficos.proesc.com/public/dashboard/ea74f678-24d5-4413-af6a-5afeae7f2d60?data=thisyear&entidade_id=4442&tab=319-dashboard";
 
   const handleIframeLoad = () => {
     setIsLoading(false);
-    console.log('Dashboard Financeira carregada com sucesso');
+    console.log('Dashboard Proesc Agenda carregada com sucesso');
   };
 
   const handleIframeError = () => {
-    setError('Erro ao carregar o dashboard Financeira. Verifique a conexão.');
+    setError('Erro ao carregar o dashboard Proesc Agenda. Verifique a conexão.');
     setIsLoading(false);
   };
 
@@ -35,13 +35,13 @@ const FinancialDashboard = ({ onBack }: FinancialDashboardProps) => {
           <ArrowLeft className="h-4 w-4" />
           <span>Voltar</span>
         </Button>
-        <h2 className="text-3xl font-bold text-gray-900">Dashboard Financeira</h2>
+        <h2 className="text-3xl font-bold text-gray-900">Dashboard Proesc Agenda</h2>
       </div>
 
       <Card className="w-full">
         <CardHeader>
           <CardTitle className="flex items-center space-x-2">
-            <span>Relatórios Financeiros - Red House Internacional School</span>
+            <span>Sistema de Agendamentos - Red House Internacional School</span>
             {isLoading && <Loader2 className="h-5 w-5 animate-spin text-red-600" />}
           </CardTitle>
         </CardHeader>
@@ -71,13 +71,13 @@ const FinancialDashboard = ({ onBack }: FinancialDashboardProps) => {
                 <div className="absolute inset-0 flex items-center justify-center bg-white bg-opacity-75 z-10">
                   <div className="flex items-center space-x-2">
                     <Loader2 className="h-6 w-6 animate-spin text-red-600" />
-                    <span>Carregando dashboard financeira...</span>
+                    <span>Carregando dashboard de agenda...</span>
                   </div>
                 </div>
               )}
               <iframe
                 src={dashboardUrl}
-                title="Dashboard Financeira"
+                title="Dashboard Proesc Agenda"
                 width="100%"
                 height="800"
                 frameBorder="0"
@@ -93,10 +93,10 @@ const FinancialDashboard = ({ onBack }: FinancialDashboardProps) => {
       </Card>
 
       <div className="text-sm text-gray-600 bg-blue-50 p-4 rounded-lg">
-        <p><strong>Dashboard Financeira:</strong> Visualização integrada dos relatórios financeiros e receitas da Red House Internacional School.</p>
+        <p><strong>Dashboard Proesc Agenda:</strong> Visualização integrada do sistema de agendamentos da Red House Internacional School.</p>
       </div>
     </div>
   );
 };
 
-export default FinancialDashboard;
+export default AgendaDashboard;

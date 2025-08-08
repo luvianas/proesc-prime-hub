@@ -1,70 +1,160 @@
-import { useEffect, useState } from "react";
-import type { Session, User } from "@supabase/supabase-js";
-import { supabase } from "@/integrations/supabase/client";
+import { createContext, useContext, useEffect, useState } from 'react';
+import { User, Session } from '@supabase/supabase-js';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
-export type Profile = {
-  id: string;
-  user_id: string;
-  email: string;
-  name: string;
-  role: "admin" | "gestor" | "user";
-  school_id: string | null;
-};
+interface AuthContextType {
+  user: User | null;
+  session: Session | null;
+  userRole: 'admin' | 'user' | 'gestor' | null;
+  loading: boolean;
+  signIn: (email: string, password: string) => Promise<{ error: any }>;
+  signUp: (email: string, password: string, name: string) => Promise<{ error: any }>;
+  signOut: () => Promise<void>;
+}
 
-export function useAuth() {
-  const [session, setSession] = useState<Session | null>(null);
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [profile, setProfile] = useState<Profile | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
+  const [userRole, setUserRole] = useState<'admin' | 'user' | 'gestor' | null>(null);
   const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
 
   useEffect(() => {
-    const { data: listener } = supabase.auth.onAuthStateChange((_, s) => {
-      setSession(s);
-      setUser(s?.user ?? null);
-      if (s?.user) {
-        // Defer any Supabase calls to avoid deadlocks in the callback
-        setTimeout(() => fetchProfile(s.user.id), 0);
+    // Set up auth state listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        setSession(session);
+        setUser(session?.user ?? null);
+        
+        if (session?.user) {
+          // Defer Supabase calls to prevent deadlock
+          setTimeout(async () => {
+            try {
+              const { data: profile } = await supabase
+                .from('profiles')
+                .select('role')
+                .eq('user_id', session.user.id)
+                .maybeSingle();
+              
+              setUserRole(profile?.role || 'user');
+            } catch (error) {
+              console.error('Error fetching user role:', error);
+              setUserRole('user');
+            }
+            setLoading(false);
+          }, 0);
+        } else {
+          setUserRole(null);
+          setLoading(false);
+        }
+      }
+    );
+
+    // Check for existing session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setUser(session?.user ?? null);
+      
+      if (session?.user) {
+        setTimeout(async () => {
+          try {
+            const { data: profile } = await supabase
+              .from('profiles')
+              .select('role')
+              .eq('user_id', session.user.id)
+              .maybeSingle();
+            
+            setUserRole(profile?.role || 'user');
+          } catch (error) {
+            console.error('Error fetching user role:', error);
+            setUserRole('user');
+          }
+          setLoading(false);
+        }, 0);
       } else {
-        setProfile(null);
         setLoading(false);
       }
     });
 
-    supabase.auth.getSession().then(({ data }) => {
-      const s = data.session ?? null;
-      setSession(s);
-      setUser(s?.user ?? null);
-      if (s?.user) {
-        setTimeout(() => fetchProfile(s.user.id), 0);
-      } else {
-        setLoading(false);
-      }
-    });
-
-    return () => listener.subscription.unsubscribe();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    return () => subscription.unsubscribe();
   }, []);
 
-  const fetchProfile = async (userId: string) => {
-    try {
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("id,user_id,email,name,role,school_id")
-        .eq("user_id", userId)
-        .maybeSingle();
-      if (error) throw error;
-      setProfile(data as Profile | null);
-    } catch (e) {
-      console.error("Failed to load profile", e);
-      setProfile(null);
-    } finally {
-      setLoading(false);
+  const signIn = async (email: string, password: string) => {
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    if (error) {
+      toast({
+        title: "Erro no login",
+        description: error.message,
+        variant: "destructive",
+      });
     }
+
+    return { error };
+  };
+
+  const signUp = async (email: string, password: string, name: string) => {
+    const redirectUrl = `${window.location.origin}/`;
+    
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        emailRedirectTo: redirectUrl,
+        data: {
+          name,
+        }
+      }
+    });
+
+    if (error) {
+      toast({
+        title: "Erro no cadastro",
+        description: error.message,
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "Cadastro realizado",
+        description: "Verifique seu email para confirmar a conta.",
+      });
+    }
+
+    return { error };
   };
 
   const signOut = async () => {
     await supabase.auth.signOut();
+    setUser(null);
+    setSession(null);
+    setUserRole(null);
   };
 
-  return { session, user, profile, loading, signOut };
-}
+  return (
+    <AuthContext.Provider value={{
+      user,
+      session,
+      userRole,
+      loading,
+      signIn,
+      signUp,
+      signOut,
+    }}>
+      {children}
+    </AuthContext.Provider>
+  );
+};
+
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
+};
