@@ -23,19 +23,19 @@ const Header = ({ showAI, setShowAI }: HeaderProps) => {
               />
               <div className="ml-3">
                 <h1 className="text-xl font-bold" style={{ color: '#c41133' }}>Red House Internacional School</h1>
-                <div className="flex items-center space-x-2">
-                  <Badge variant="secondary" className="text-xs">Portal Prime</Badge>
-                  <img 
-                    src="/lovable-uploads/72aa872c-a403-45a6-a89f-d1c8ce13777b.png" 
-                    alt="Proesc Prime" 
-                    className="h-8"
-                  />
-                </div>
+                <Badge variant="secondary" className="text-xs">Portal Prime</Badge>
               </div>
             </div>
           </div>
           
-          <div className="flex-1"></div>
+          {/* Proesc Prime Logo - Centered */}
+          <div className="flex items-center justify-center flex-1">
+            <img 
+              src="/lovable-uploads/72aa872c-a403-45a6-a89f-d1c8ce13777b.png" 
+              alt="Proesc Prime" 
+              className="h-12"
+            />
+          </div>
           
           <div className="flex items-center space-x-4">
             <Button

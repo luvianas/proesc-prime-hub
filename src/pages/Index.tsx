@@ -198,7 +198,7 @@ const Index = () => {
                 Prime Hub - {schoolHeader?.schoolName ?? 'Escola'}
               </h1>
               <div className="flex items-center gap-3 text-sm text-muted-foreground">
-                <Badge className="bg-primary text-primary-foreground">Gestor</Badge>
+                <Badge className="bg-primary text-primary-foreground">Prime</Badge>
                 {schoolHeader?.consultantName}
               </div>
             </div>
