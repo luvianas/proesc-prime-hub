@@ -14,6 +14,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { createClient } from '@supabase/supabase-js';
+import BannersManager from '@/components/BannersManager';
 interface User {
   id: string;
   user_id: string;
@@ -109,6 +110,7 @@ const AdminDashboard = () => {
   const [bannerScope, setBannerScope] = useState<'global' | 'school'>('global');
   const [bannerSchoolId, setBannerSchoolId] = useState<string>('');
   const [uploadingBanner, setUploadingBanner] = useState(false);
+  const [bannersReloadKey, setBannersReloadKey] = useState(0);
 
   const uploadImage = async (file: File, folder: string) => {
     try {
@@ -165,6 +167,7 @@ const AdminDashboard = () => {
       if (error) throw error;
 
       toast({ title: 'Banner enviado com sucesso' });
+      setBannersReloadKey((k) => k + 1);
       setBannerDialogOpen(false);
       setBannerFile(null);
       setBannerSchoolId('');
@@ -483,6 +486,7 @@ const AdminDashboard = () => {
             <TabsList>
               <TabsTrigger value="users">Usuários</TabsTrigger>
               <TabsTrigger value="schools">Instituições</TabsTrigger>
+              <TabsTrigger value="banners">Novidades</TabsTrigger>
             </TabsList>
             <Dialog open={bannerDialogOpen} onOpenChange={setBannerDialogOpen}>
               <DialogTrigger asChild>
@@ -857,6 +861,9 @@ const AdminDashboard = () => {
                 </div>
               </CardContent>
             </Card>
+          </TabsContent>
+          <TabsContent value="banners" className="space-y-4">
+            <BannersManager key={bannersReloadKey} />
           </TabsContent>
         </Tabs>}
 
