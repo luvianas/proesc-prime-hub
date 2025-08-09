@@ -9,12 +9,12 @@ import { useToast } from '@/hooks/use-toast';
 import AIAssistant from '@/components/AIAssistant';
 import TicketSystem from '@/components/TicketSystem';
 import ConsultorAgenda from '@/components/ConsultorAgenda';
-
 import FinancialDashboard from '@/components/FinancialDashboard';
 import SecretariaDashboard from '@/components/SecretariaDashboard';
 import PedagogicoDashboard from '@/components/PedagogicoDashboard';
 import AgendaDashboard from '@/components/AgendaDashboard';
 import NovidadesCarousel from '@/components/NovidadesCarousel';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
  
 interface SchoolCustomization {
   id: string;
@@ -37,6 +37,7 @@ interface UserProfile {
   school_id: string;
   name: string;
   email: string;
+  avatar_url?: string;
 }
 
 const GestorDashboard = () => {
@@ -79,6 +80,38 @@ const GestorDashboard = () => {
     canonical.setAttribute('href', window.location.href);
   }, []);
 
+  // Apply school theme colors dynamically
+  useEffect(() => {
+    if (schoolData?.theme_color) {
+      // Convert hex to HSL for CSS custom properties
+      const hexToHsl = (hex: string) => {
+        const r = parseInt(hex.slice(1, 3), 16) / 255;
+        const g = parseInt(hex.slice(3, 5), 16) / 255;
+        const b = parseInt(hex.slice(5, 7), 16) / 255;
+
+        const max = Math.max(r, g, b);
+        const min = Math.min(r, g, b);
+        let h = 0, s = 0, l = (max + min) / 2;
+
+        if (max !== min) {
+          const d = max - min;
+          s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+          switch (max) {
+            case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+            case g: h = (b - r) / d + 2; break;
+            case b: h = (r - g) / d + 4; break;
+          }
+          h /= 6;
+        }
+
+        return `${Math.round(h * 360)} ${Math.round(s * 100)}% ${Math.round(l * 100)}%`;
+      };
+
+      const hslColor = hexToHsl(schoolData.theme_color);
+      document.documentElement.style.setProperty('--primary', hslColor);
+    }
+  }, [schoolData]);
+
   const fetchSchoolData = async () => {
     if (!user) return;
 
@@ -86,7 +119,7 @@ const GestorDashboard = () => {
       // First get user profile with school_id
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
-        .select('school_id, name, email')
+        .select('school_id, name, email, avatar_url')
         .eq('user_id', user.id)
         .single();
 
@@ -189,12 +222,45 @@ const GestorDashboard = () => {
   }
 
   return (
-    <div
-      className="min-h-screen"
-      style={{
-        background: `linear-gradient(135deg, ${schoolData.theme_color}10 0%, ${schoolData.theme_color}05 100%)`,
-      }}
-    >
+    <div className="min-h-screen bg-gradient-to-br from-primary/5 to-primary/10">
+      {/* Header with logo and profile */}
+      <header className="bg-background/80 backdrop-blur border-b">
+        <div className="container mx-auto px-6 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <img 
+              src="/lovable-uploads/930b35eb-0dec-4ae6-b035-c09aaa983262.png" 
+              alt="Proesc Prime Logo" 
+              className="h-10 w-auto"
+            />
+            <div>
+              <h1 className="text-lg font-semibold text-foreground">
+                {schoolData.school_name}
+              </h1>
+              <p className="text-sm text-muted-foreground">Portal Prime</p>
+            </div>
+          </div>
+          
+          <div className="flex items-center gap-4">
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="flex items-center gap-2 hover:bg-primary/10"
+            >
+              <Avatar className="h-8 w-8 ring-2 ring-primary/20">
+                <AvatarImage src={userProfile.avatar_url || ''} alt={userProfile.name} />
+                <AvatarFallback className="bg-primary/10 text-primary font-medium text-sm">
+                  {userProfile.name.charAt(0).toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+            </Button>
+            <div className="text-right">
+              <p className="text-sm font-medium">{userProfile.name}</p>
+              <p className="text-xs text-muted-foreground">Gestor</p>
+            </div>
+          </div>
+        </div>
+      </header>
+
       <div className="container mx-auto p-6 space-y-6">
         {/* Welcome Message */}
         <div className="text-center py-8">

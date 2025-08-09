@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
+import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious, CarouselApi } from '@/components/ui/carousel';
 import { AspectRatio } from '@/components/ui/aspect-ratio';
 const sb: any = supabase;
 
@@ -19,6 +19,7 @@ interface NovidadesCarouselProps {
 
 const NovidadesCarousel = ({ schoolId }: NovidadesCarouselProps) => {
   const [banners, setBanners] = useState<SchoolBanner[]>([]);
+  const [api, setApi] = useState<CarouselApi>();
 
   useEffect(() => {
     if (!schoolId) return;
@@ -63,13 +64,28 @@ const NovidadesCarousel = ({ schoolId }: NovidadesCarouselProps) => {
     fetchBanners();
   }, [schoolId]);
 
+  // Auto-scroll carousel every 5 seconds
+  useEffect(() => {
+    if (!api) return;
+
+    const interval = setInterval(() => {
+      api.scrollNext();
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, [api]);
+
   if (!banners?.length) return null;
 
   return (
     <section aria-label="Novidades" className="space-y-4">
       <h2 className="text-xl font-semibold">Novidades</h2>
       <div className="relative">
-        <Carousel opts={{ loop: true, align: 'start' }} className="w-full">
+        <Carousel 
+          opts={{ loop: true, align: 'start' }} 
+          className="w-full"
+          setApi={setApi}
+        >
           <CarouselContent>
             {banners.map((banner) => {
               const img = (

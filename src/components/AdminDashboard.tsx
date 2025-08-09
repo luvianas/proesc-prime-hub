@@ -46,6 +46,7 @@ interface SchoolCustomization {
   consultant_calendar_url?: string;
   zendesk_integration_url?: string;
   metabase_integration_url?: string;
+  dashboard_links?: any;
   created_at: string;
   updated_at: string;
   created_by: string;
@@ -78,7 +79,13 @@ const AdminDashboard = () => {
     consultant_photo_url: '',
     consultant_calendar_url: '',
     zendesk_integration_url: '',
-    metabase_integration_url: ''
+    metabase_integration_url: '',
+    dashboard_links: {
+      financeiro: '',
+      agenda: '',
+      secretaria: '',
+      pedagogico: ''
+    }
   });
   const {
     toast
@@ -252,7 +259,13 @@ const AdminDashboard = () => {
         consultant_photo_url: '',
         consultant_calendar_url: '',
         zendesk_integration_url: '',
-        metabase_integration_url: ''
+        metabase_integration_url: '',
+        dashboard_links: {
+          financeiro: '',
+          agenda: '',
+          secretaria: '',
+          pedagogico: ''
+        }
       });
       fetchData();
     } catch (error: any) {
@@ -473,7 +486,8 @@ const AdminDashboard = () => {
         consultant_photo_url: editingSchool.consultant_photo_url,
         consultant_calendar_url: editingSchool.consultant_calendar_url,
         zendesk_integration_url: editingSchool.zendesk_integration_url,
-        metabase_integration_url: editingSchool.metabase_integration_url
+        metabase_integration_url: editingSchool.metabase_integration_url,
+        dashboard_links: editingSchool.dashboard_links
       }).eq('id', editingSchool.id);
       if (error) throw error;
       toast({
@@ -814,11 +828,75 @@ const AdminDashboard = () => {
                   })} placeholder="https://escola.zendesk.com" />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="metabaseUrl">Link de incorporação do Google Calendar do Consultor</Label>
+                      <Label htmlFor="metabaseUrl">URL Integração Metabase</Label>
                       <Input id="metabaseUrl" value={newSchool.metabase_integration_url} onChange={e => setNewSchool({
                     ...newSchool,
                     metabase_integration_url: e.target.value
                   })} placeholder="https://metabase.escola.com" />
+                    </div>
+                    
+                    <div className="space-y-4">
+                      <h4 className="font-medium">Links dos Dashboards (Metabase)</h4>
+                      <div className="space-y-2">
+                        <Label htmlFor="dashFinanceiro">Dashboard Financeiro</Label>
+                        <Input 
+                          id="dashFinanceiro" 
+                          value={newSchool.dashboard_links?.financeiro || ''} 
+                          onChange={e => setNewSchool({
+                            ...newSchool,
+                            dashboard_links: {
+                              ...newSchool.dashboard_links,
+                              financeiro: e.target.value
+                            }
+                          })} 
+                          placeholder="https://metabase.escola.com/public/dashboard/..." 
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="dashAgenda">Dashboard Agenda</Label>
+                        <Input 
+                          id="dashAgenda" 
+                          value={newSchool.dashboard_links?.agenda || ''} 
+                          onChange={e => setNewSchool({
+                            ...newSchool,
+                            dashboard_links: {
+                              ...newSchool.dashboard_links,
+                              agenda: e.target.value
+                            }
+                          })} 
+                          placeholder="https://metabase.escola.com/public/dashboard/..." 
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="dashSecretaria">Dashboard Secretaria</Label>
+                        <Input 
+                          id="dashSecretaria" 
+                          value={newSchool.dashboard_links?.secretaria || ''} 
+                          onChange={e => setNewSchool({
+                            ...newSchool,
+                            dashboard_links: {
+                              ...newSchool.dashboard_links,
+                              secretaria: e.target.value
+                            }
+                          })} 
+                          placeholder="https://metabase.escola.com/public/dashboard/..." 
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="dashPedagogico">Dashboard Pedagógico</Label>
+                        <Input 
+                          id="dashPedagogico" 
+                          value={newSchool.dashboard_links?.pedagogico || ''} 
+                          onChange={e => setNewSchool({
+                            ...newSchool,
+                            dashboard_links: {
+                              ...newSchool.dashboard_links,
+                              pedagogico: e.target.value
+                            }
+                          })} 
+                          placeholder="https://metabase.escola.com/public/dashboard/..." 
+                        />
+                      </div>
                     </div>
                     <Button onClick={createSchool} className="w-full">
                       Criar Escola
@@ -1040,6 +1118,70 @@ const AdminDashboard = () => {
               ...editingSchool,
               metabase_integration_url: e.target.value
             })} placeholder="https://metabase.escola.com" />
+              </div>
+              
+              <div className="space-y-4">
+                <h4 className="font-medium">Links dos Dashboards (Metabase)</h4>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-dash-financeiro">Dashboard Financeiro</Label>
+                  <Input 
+                    id="edit-dash-financeiro" 
+                    value={editingSchool.dashboard_links?.financeiro || ''} 
+                    onChange={e => setEditingSchool({
+                      ...editingSchool,
+                      dashboard_links: {
+                        ...editingSchool.dashboard_links,
+                        financeiro: e.target.value
+                      }
+                    })} 
+                    placeholder="https://metabase.escola.com/public/dashboard/..." 
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-dash-agenda">Dashboard Agenda</Label>
+                  <Input 
+                    id="edit-dash-agenda" 
+                    value={editingSchool.dashboard_links?.agenda || ''} 
+                    onChange={e => setEditingSchool({
+                      ...editingSchool,
+                      dashboard_links: {
+                        ...editingSchool.dashboard_links,
+                        agenda: e.target.value
+                      }
+                    })} 
+                    placeholder="https://metabase.escola.com/public/dashboard/..." 
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-dash-secretaria">Dashboard Secretaria</Label>
+                  <Input 
+                    id="edit-dash-secretaria" 
+                    value={editingSchool.dashboard_links?.secretaria || ''} 
+                    onChange={e => setEditingSchool({
+                      ...editingSchool,
+                      dashboard_links: {
+                        ...editingSchool.dashboard_links,
+                        secretaria: e.target.value
+                      }
+                    })} 
+                    placeholder="https://metabase.escola.com/public/dashboard/..." 
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-dash-pedagogico">Dashboard Pedagógico</Label>
+                  <Input 
+                    id="edit-dash-pedagogico" 
+                    value={editingSchool.dashboard_links?.pedagogico || ''} 
+                    onChange={e => setEditingSchool({
+                      ...editingSchool,
+                      dashboard_links: {
+                        ...editingSchool.dashboard_links,
+                        pedagogico: e.target.value
+                      }
+                    })} 
+                    placeholder="https://metabase.escola.com/public/dashboard/..." 
+                  />
+                </div>
               </div>
               <Button onClick={updateSchool} className="w-full">
                 Atualizar Escola
