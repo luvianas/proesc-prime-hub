@@ -196,7 +196,8 @@ const GestorDashboard = () => {
       }}
     >
       <div className="container mx-auto p-6 space-y-6">
-        {/* Header moved to top bar in Index.tsx for Gestor users */}
+        {/* Novidades - Carrossel de Banners (no topo) */}
+        <NovidadesCarousel schoolId={userProfile.school_id} />
 
         {/* Destaques */}
         <section className="grid md:grid-cols-2 gap-6">
@@ -224,9 +225,6 @@ const GestorDashboard = () => {
             </CardContent>
           </Card>
         </section>
-
-        {/* Novidades - Carrossel de Banners */}
-        <NovidadesCarousel schoolId={userProfile.school_id} />
 
         {/* Dashboards */}
         <section className="space-y-4">
