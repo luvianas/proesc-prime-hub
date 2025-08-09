@@ -6,13 +6,14 @@ import { ArrowLeft, Loader2, AlertTriangle } from "lucide-react";
 
 interface FinancialDashboardProps {
   onBack: () => void;
+  dashboardUrl?: string;
 }
 
-const FinancialDashboard = ({ onBack }: FinancialDashboardProps) => {
+const FinancialDashboard = ({ onBack, dashboardUrl }: FinancialDashboardProps) => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string>('');
 
-  const dashboardUrl = "https://graficos.proesc.com/public/dashboard/9a7e2013-25b0-4e91-8767-5ee3305a3a23?curso=&entidade_id=4442&etapa=&filtro_de_data=thisyear&tab=64-vis%C3%A3o-geral&tipo__de_d%25C3%25A9bito=&unidade=";
+  const defaultUrl = "https://graficos.proesc.com/public/dashboard/9a7e2013-25b0-4e91-8767-5ee3305a3a23?curso=&entidade_id=4442&etapa=&filtro_de_data=thisyear&tab=64-vis%C3%A3o-geral&tipo__de_d%25C3%25A9bito=&unidade=";
 
   const handleIframeLoad = () => {
     setIsLoading(false);
@@ -76,7 +77,7 @@ const FinancialDashboard = ({ onBack }: FinancialDashboardProps) => {
                 </div>
               )}
               <iframe
-                src={dashboardUrl}
+                src={dashboardUrl || defaultUrl}
                 title="Dashboard Financeira"
                 width="100%"
                 height="800"

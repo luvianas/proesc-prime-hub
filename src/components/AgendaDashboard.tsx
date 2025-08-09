@@ -6,13 +6,14 @@ import { ArrowLeft, Loader2, AlertTriangle } from "lucide-react";
 
 interface AgendaDashboardProps {
   onBack: () => void;
+  dashboardUrl?: string;
 }
 
-const AgendaDashboard = ({ onBack }: AgendaDashboardProps) => {
+const AgendaDashboard = ({ onBack, dashboardUrl }: AgendaDashboardProps) => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string>('');
 
-  const dashboardUrl = "https://graficos.proesc.com/public/dashboard/ea74f678-24d5-4413-af6a-5afeae7f2d60?data=thisyear&entidade_id=4442&tab=319-dashboard";
+  const defaultUrl = "https://graficos.proesc.com/public/dashboard/ea74f678-24d5-4413-af6a-5afeae7f2d60?data=thisyear&entidade_id=4442&tab=319-dashboard";
 
   const handleIframeLoad = () => {
     setIsLoading(false);
@@ -76,7 +77,7 @@ const AgendaDashboard = ({ onBack }: AgendaDashboardProps) => {
                 </div>
               )}
               <iframe
-                src={dashboardUrl}
+                src={dashboardUrl || defaultUrl}
                 title="Dashboard Proesc Agenda"
                 width="100%"
                 height="800"

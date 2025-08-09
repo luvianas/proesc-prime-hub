@@ -27,6 +27,7 @@ interface SchoolCustomization {
   consultant_calendar_url?: string;
   zendesk_integration_url?: string;
   metabase_integration_url?: string;
+  dashboard_links?: any;
   created_at: string;
   updated_at: string;
   created_by: string;
@@ -70,6 +71,13 @@ const GestorDashboard = () => {
       document.head.appendChild(meta);
     }
     meta.setAttribute('content', desc);
+    let canonical = document.querySelector('link[rel="canonical"]');
+    if (!canonical) {
+      canonical = document.createElement('link');
+      canonical.setAttribute('rel', 'canonical');
+      document.head.appendChild(canonical);
+    }
+    canonical.setAttribute('href', window.location.href);
   }, []);
 
   const fetchSchoolData = async () => {
@@ -173,10 +181,9 @@ const GestorDashboard = () => {
           />
         )}
         {activeSection === 'dash-matricula' && <MatriculaDashboard onBack={back} />}
-        {activeSection === 'dash-financeiro' && <FinancialDashboard onBack={back} />}
-        {activeSection === 'dash-agenda' && <AgendaDashboard onBack={back} />}
-        {activeSection === 'dash-secretaria' && <SecretariaDashboard onBack={back} />}
-        {activeSection === 'dash-pedagogico' && <PedagogicoDashboard onBack={back} />}
+        {activeSection === 'dash-financeiro' && <FinancialDashboard onBack={back} dashboardUrl={schoolData.dashboard_links?.financeiro} />}
+        {activeSection === 'dash-agenda' && <AgendaDashboard onBack={back} dashboardUrl={schoolData.dashboard_links?.agenda} />}
+        {activeSection === 'dash-pedagogico' && <PedagogicoDashboard onBack={back} dashboardUrl={schoolData.dashboard_links?.pedagogico} />}
         {showAssistant && <AIAssistant onClose={() => setShowAssistant(false)} />}
       </div>
     );

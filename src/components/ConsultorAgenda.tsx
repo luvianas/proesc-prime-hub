@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Calendar, MessageCircle, Phone, Mail, Clock } from "lucide-react";
+import { ArrowLeft, Calendar, MessageCircle, Clock } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
 interface ConsultorAgendaProps {
@@ -52,6 +52,7 @@ const ConsultorAgenda = ({ onBack, consultantName, consultantWhatsapp, consultan
           <span>Voltar</span>
         </Button>
         <h2 className="text-3xl font-bold text-gray-900">Agenda com Consultor</h2>
+        <link rel="canonical" href={window.location.href} />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -70,14 +71,7 @@ const ConsultorAgenda = ({ onBack, consultantName, consultantWhatsapp, consultan
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex items-center space-x-2">
-              <Phone className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm">{consultant.phone}</span>
-            </div>
-            <div className="flex items-center space-x-2">
-              <Mail className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm">{consultant.email}</span>
-            </div>
+            {/* Contatos removidos por não estarem configurados no contexto atual */}
             
             <div className="space-y-2">
               <Button 

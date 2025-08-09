@@ -6,13 +6,14 @@ import { ArrowLeft, Loader2, AlertTriangle } from "lucide-react";
 
 interface PedagogicoDashboardProps {
   onBack: () => void;
+  dashboardUrl?: string;
 }
 
-const PedagogicoDashboard = ({ onBack }: PedagogicoDashboardProps) => {
+const PedagogicoDashboard = ({ onBack, dashboardUrl }: PedagogicoDashboardProps) => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string>('');
 
-  const dashboardUrl = "https://graficos.proesc.com/public/dashboard/40e6a09c-89c2-4838-9351-43dc118dcaaa?curso=&entidade_id=4442&etapa=&exerc%25C3%25ADcio=2025&tab=139-notas&turma=&unidade=RED+HOUSE+INTERNATIONAL+SCHOOL+CAMPO+GRANDE";
+  const defaultUrl = "https://graficos.proesc.com/public/dashboard/40e6a09c-89c2-4838-9351-43dc118dcaaa?curso=&entidade_id=4442&etapa=&exerc%25C3%25ADcio=2025&tab=139-notas&turma=&unidade=RED+HOUSE+INTERNATIONAL+SCHOOL+CAMPO+GRANDE";
 
   const handleIframeLoad = () => {
     setIsLoading(false);
@@ -76,7 +77,7 @@ const PedagogicoDashboard = ({ onBack }: PedagogicoDashboardProps) => {
                 </div>
               )}
               <iframe
-                src={dashboardUrl}
+                src={dashboardUrl || defaultUrl}
                 title="Dashboard Pedagógica"
                 width="100%"
                 height="800"

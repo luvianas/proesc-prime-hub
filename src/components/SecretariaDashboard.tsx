@@ -6,13 +6,14 @@ import { ArrowLeft, Loader2, AlertTriangle } from "lucide-react";
 
 interface SecretariaDashboardProps {
   onBack: () => void;
+  dashboardUrl?: string;
 }
 
-const SecretariaDashboard = ({ onBack }: SecretariaDashboardProps) => {
+const SecretariaDashboard = ({ onBack, dashboardUrl }: SecretariaDashboardProps) => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string>('');
 
-  const dashboardUrl = "https://graficos.proesc.com/public/dashboard/ffae0cf9-0c53-40ba-b72c-013846fe8b7f?entidade_id=4442&exerc%25C3%25ADcio=2025&grupos=&tab=141-geral&unidade=";
+  const defaultUrl = "https://graficos.proesc.com/public/dashboard/ffae0cf9-0c53-40ba-b72c-013846fe8b7f?entidade_id=4442&exerc%25C3%25ADcio=2025&grupos=&tab=141-geral&unidade=";
 
   const handleIframeLoad = () => {
     setIsLoading(false);
@@ -76,7 +77,7 @@ const SecretariaDashboard = ({ onBack }: SecretariaDashboardProps) => {
                 </div>
               )}
               <iframe
-                src={dashboardUrl}
+                src={dashboardUrl || defaultUrl}
                 title="Dashboard de Secretaria"
                 width="100%"
                 height="800"
