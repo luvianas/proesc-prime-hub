@@ -103,8 +103,8 @@ const GestorDashboard = () => {
       }
 
       setUserProfile(profile);
-
-      // Then get school customization data
+      console.log('👤 GestorDashboard: Profile carregado:', profile);
+      console.log('🎯 School ID para banners:', profile.school_id);
       const { data: school, error: schoolError } = await supabase
         .from('school_customizations')
         .select('*')

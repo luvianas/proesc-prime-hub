@@ -29,16 +29,24 @@ const BannersManager = () => {
 
   useEffect(() => {
     const load = async () => {
+      console.log('🔧 BannersManager: Iniciando carregamento de banners');
       try {
         const [{ data: list, error }, { data: sch, error: schErr }] = await Promise.all([
           supabase.from('school_banners').select('*'),
           supabase.from('school_customizations').select('id, school_name')
         ]);
+        
+        console.log('📊 Dados recebidos - banners:', list, 'escolas:', sch);
+        console.log('⚠️ Erros - banners:', error, 'escolas:', schErr);
+        
         if (error) throw error;
         if (schErr) throw schErr;
         setBanners((list || []).sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0))); 
         setSchools(sch || []);
+        
+        console.log('✅ Estado final - banners:', list?.length || 0, 'escolas:', sch?.length || 0);
       } catch (e: any) {
+        console.error('❌ Erro no BannersManager:', e);
         toast({ title: 'Erro', description: e.message || 'Falha ao carregar banners', variant: 'destructive' });
       } finally { setLoading(false); }
     };
