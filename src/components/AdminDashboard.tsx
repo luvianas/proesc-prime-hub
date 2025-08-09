@@ -174,6 +174,7 @@ const AdminDashboard = () => {
         logo_url: '',
         consultant_name: '',
         consultant_photo_url: '',
+        consultant_calendar_url: '',
         zendesk_integration_url: '',
         metabase_integration_url: ''
       });

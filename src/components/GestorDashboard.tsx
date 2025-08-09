@@ -9,7 +9,7 @@ import { useToast } from '@/hooks/use-toast';
 import AIAssistant from '@/components/AIAssistant';
 import TicketSystem from '@/components/TicketSystem';
 import ConsultorAgenda from '@/components/ConsultorAgenda';
-import MatriculaDashboard from '@/components/MatriculaDashboard';
+
 import FinancialDashboard from '@/components/FinancialDashboard';
 import SecretariaDashboard from '@/components/SecretariaDashboard';
 import PedagogicoDashboard from '@/components/PedagogicoDashboard';
@@ -47,7 +47,6 @@ const GestorDashboard = () => {
     | 'home'
     | 'tickets'
     | 'consultor-agenda'
-    | 'dash-matricula'
     | 'dash-financeiro'
     | 'dash-agenda'
     | 'dash-secretaria'
@@ -180,9 +179,9 @@ const GestorDashboard = () => {
             calendarEmbedUrl={schoolData.consultant_calendar_url}
           />
         )}
-        {activeSection === 'dash-matricula' && <MatriculaDashboard onBack={back} />}
         {activeSection === 'dash-financeiro' && <FinancialDashboard onBack={back} dashboardUrl={schoolData.dashboard_links?.financeiro} />}
         {activeSection === 'dash-agenda' && <AgendaDashboard onBack={back} dashboardUrl={schoolData.dashboard_links?.agenda} />}
+        {activeSection === 'dash-secretaria' && <SecretariaDashboard onBack={back} dashboardUrl={schoolData.dashboard_links?.secretaria} />}
         {activeSection === 'dash-pedagogico' && <PedagogicoDashboard onBack={back} dashboardUrl={schoolData.dashboard_links?.pedagogico} />}
         {showAssistant && <AIAssistant onClose={() => setShowAssistant(false)} />}
       </div>
@@ -216,8 +215,7 @@ const GestorDashboard = () => {
                 </div>
               )}
               <div className="flex-1">
-                <h1 className="text-3xl font-bold">{schoolData.school_name}</h1>
-                <p className="text-muted-foreground mt-2">Painel de Gestão - {userProfile?.name}</p>
+                <h1 className="text-3xl font-bold">Prime Hub - {schoolData.school_name} - {userProfile?.name}</h1>
                 <div className="flex items-center gap-4 mt-4">
                   <Badge
                     style={{ backgroundColor: schoolData.theme_color, color: 'white' }}
@@ -271,17 +269,6 @@ const GestorDashboard = () => {
         <section className="space-y-4">
           <h2 className="text-xl font-semibold">Dashboards</h2>
           <div className="grid md:grid-cols-3 gap-6">
-            <Card className="hover:shadow-md transition-shadow">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2"><LineChart className="h-5 w-5" /> Dashboard de Matrícula</CardTitle>
-                <CardDescription>Acompanhe seu funil de matrículas</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Button className="w-full" onClick={() => setActiveSection('dash-matricula')}>
-                  Abrir
-                </Button>
-              </CardContent>
-            </Card>
 
             <Card className="hover:shadow-md transition-shadow">
               <CardHeader>
@@ -331,28 +318,6 @@ const GestorDashboard = () => {
               </CardContent>
             </Card>
 
-            <Card className="hover:shadow-md transition-shadow">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <BarChart3 className="w-5 h-5" style={{ color: schoolData.theme_color }} />
-                  Dashboards - Metabase
-                </CardTitle>
-                <CardDescription>Relatórios e métricas</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Button
-                  onClick={() => handleExternalLink(schoolData.metabase_integration_url, 'Metabase')}
-                  className="w-full"
-                  variant="outline"
-                  style={{ borderColor: schoolData.theme_color, color: schoolData.theme_color }}
-                >
-                  <ExternalLink className="w-4 h-4 mr-2" /> Abrir Metabase
-                </Button>
-                {!schoolData.metabase_integration_url && (
-                  <p className="text-xs text-muted-foreground mt-2 text-center">Integração não configurada</p>
-                )}
-              </CardContent>
-            </Card>
           </div>
         </section>
 
