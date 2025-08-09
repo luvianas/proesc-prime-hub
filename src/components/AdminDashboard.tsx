@@ -321,7 +321,13 @@ const AdminDashboard = () => {
   const createSchool = async () => {
     try {
       const { data, error } = await supabase.from('school_customizations').insert([{
-        ...newSchool,
+        school_name: newSchool.school_name,
+        theme_color: newSchool.primary_color,
+        logo_url: newSchool.logo_url,
+        consultant_name: newSchool.consultant_id,
+        zendesk_integration_url: newSchool.zendesk_integration_url,
+        metabase_integration_url: newSchool.metabase_integration_url,
+        dashboard_links: newSchool.dashboard_links,
         created_by: (await supabase.auth.getUser()).data.user?.id
       }]).select().single();
       if (error) throw error;
@@ -606,6 +612,7 @@ const AdminDashboard = () => {
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>Meu Perfil - Admin</DialogTitle>
+            <DialogDescription>Gerencie suas informações pessoais e credenciais</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div className="flex items-center gap-4">
@@ -1182,6 +1189,7 @@ const AdminDashboard = () => {
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Editar Usuário</DialogTitle>
+            <DialogDescription>Modificar informações do usuário selecionado</DialogDescription>
           </DialogHeader>
           {editingUser && (
             <div className="space-y-4">
@@ -1265,6 +1273,7 @@ const AdminDashboard = () => {
         <DialogContent className="sm:max-w-lg max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Editar Escola</DialogTitle>
+            <DialogDescription>Modificar configurações da escola selecionada</DialogDescription>
           </DialogHeader>
           {editingSchool && (
             <div className="space-y-4">
