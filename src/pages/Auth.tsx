@@ -97,7 +97,18 @@ const Auth = () => {
       setLoading(false);
     }
   };
-  return <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-muted to-background p-4">
+  return (
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-background via-muted to-background p-4">
+      <div className="w-full max-w-3xl mb-6 flex items-center justify-center" aria-hidden="false">
+        <img
+          src="/lovable-uploads/44ae6822-899c-4fb5-9009-871015494dd9.png"
+          alt="Logomarca Proesc Prime"
+          className="h-16 md:h-20 object-contain"
+          loading="eager"
+          width={512}
+          height={128}
+        />
+      </div>
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <h1 className="text-2xl font-bold">Proesc Prime Hub</h1>
@@ -143,6 +154,7 @@ const Auth = () => {
           </form>
         </CardContent>
       </Card>
-    </div>;
+    </div>
+  );
 };
 export default Auth;
