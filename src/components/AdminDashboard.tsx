@@ -73,11 +73,10 @@ const AdminDashboard = () => {
   });
   const [newSchool, setNewSchool] = useState({
     school_name: '',
-    theme_color: '#3b82f6',
+    primary_color: '#3b82f6',
+    secondary_color: '#64748b',
     logo_url: '',
-    consultant_name: '',
-    consultant_photo_url: '',
-    consultant_calendar_url: '',
+    consultant_id: '',
     zendesk_integration_url: '',
     metabase_integration_url: '',
     dashboard_links: {

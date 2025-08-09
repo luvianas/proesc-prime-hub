@@ -31,9 +31,9 @@ const Header = ({ showAI, setShowAI }: HeaderProps) => {
           {/* Proesc Prime Logo - Increased size and centered */}
           <div className="flex items-center justify-center flex-1">
             <img 
-              src="/lovable-uploads/87a7541c-22d3-4ff4-8b78-7b74c4f90f7e.png" 
+              src="/lovable-uploads/72aa872c-a403-45a6-a89f-d1c8ce13777b.png" 
               alt="Proesc Prime" 
-              className="h-16"
+              className="h-12"
             />
           </div>
           
