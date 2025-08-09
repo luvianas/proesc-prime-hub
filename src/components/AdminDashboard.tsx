@@ -138,6 +138,8 @@ const AdminDashboard = () => {
 
   const handleBannerUpload = async () => {
     try {
+      console.log('🚀 Iniciando upload de banner');
+      
       if (!bannerFile) {
         toast({ title: 'Selecione uma imagem', variant: 'destructive' });
         return;
@@ -152,18 +154,39 @@ const AdminDashboard = () => {
       }
 
       setUploadingBanner(true);
+      
+      // Verificar usuário atual e role
+      const { data: userData } = await supabase.auth.getUser();
+      console.log('👤 Usuário atual:', userData.user?.id);
+      
+      // Verificar role do usuário
+      const { data: roleData, error: roleError } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('user_id', userData.user?.id)
+        .single();
+      
+      console.log('🔑 Role do usuário:', roleData, 'Erro:', roleError);
+      
       const imageUrl = await uploadImage(bannerFile, 'banners');
       if (!imageUrl) return;
 
-      const { data: userData } = await supabase.auth.getUser();
-      const { error } = await supabase.from('school_banners').insert([
-        {
-          image_url: imageUrl,
-          is_global: bannerScope === 'global',
-          school_id: bannerScope === 'school' ? bannerSchoolId : null,
-          created_by: userData.user?.id ?? null,
-        },
-      ]);
+      const bannerData = {
+        image_url: imageUrl,
+        is_global: bannerScope === 'global',
+        school_id: bannerScope === 'school' ? bannerSchoolId : null,
+        created_by: userData.user?.id ?? null,
+      };
+      
+      console.log('📝 Dados do banner a serem inseridos:', bannerData);
+      
+      const { data: insertResult, error } = await supabase
+        .from('school_banners')
+        .insert([bannerData])
+        .select();
+        
+      console.log('💾 Resultado da inserção:', insertResult, 'Erro:', error);
+      
       if (error) throw error;
 
       toast({ title: 'Banner enviado com sucesso' });
@@ -173,6 +196,7 @@ const AdminDashboard = () => {
       setBannerSchoolId('');
       setBannerScope('global');
     } catch (e: any) {
+      console.error('❌ Erro completo no upload:', e);
       toast({ title: 'Erro', description: e.message || 'Falha ao enviar banner', variant: 'destructive' });
     } finally {
       setUploadingBanner(false);
