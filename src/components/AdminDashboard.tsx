@@ -46,8 +46,6 @@ interface Environment {
 interface SchoolCustomization {
   id: string;
   school_name: string;
-  primary_color: string;
-  secondary_color: string;
   logo_url?: string;
   consultant_name?: string;
   consultant_id?: string;
@@ -83,8 +81,6 @@ const AdminDashboard = () => {
   });
   const [newSchool, setNewSchool] = useState({
     school_name: '',
-    primary_color: '#3b82f6',
-    secondary_color: '#64748b',
     logo_url: '',
     consultant_id: '',
     zendesk_integration_url: '',
@@ -326,7 +322,6 @@ const AdminDashboard = () => {
     try {
       const { data, error } = await supabase.from('school_customizations').insert([{
         school_name: newSchool.school_name,
-        theme_color: newSchool.primary_color,
         logo_url: newSchool.logo_url,
         consultant_id: newSchool.consultant_id || null,
         zendesk_integration_url: newSchool.zendesk_integration_url,
@@ -342,8 +337,6 @@ const AdminDashboard = () => {
       setSchoolDialogOpen(false);
       setNewSchool({
         school_name: '',
-        primary_color: '#3b82f6',
-        secondary_color: '#64748b',
         logo_url: '',
         consultant_id: '',
         zendesk_integration_url: '',
@@ -563,7 +556,6 @@ const AdminDashboard = () => {
     try {
       const { error } = await supabase.from('school_customizations').update({
         school_name: editingSchool.school_name,
-        theme_color: editingSchool.primary_color,
         logo_url: editingSchool.logo_url,
         consultant_id: editingSchool.consultant_id || null,
         zendesk_integration_url: editingSchool.zendesk_integration_url,
@@ -949,30 +941,6 @@ const AdminDashboard = () => {
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="schoolPrimaryColor">Cor Primária (Botões)</Label>
-                      <Input 
-                        id="schoolPrimaryColor" 
-                        type="color" 
-                        value={newSchool.primary_color} 
-                        onChange={e => setNewSchool({
-                          ...newSchool,
-                          primary_color: e.target.value
-                        })} 
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="schoolSecondaryColor">Cor Secundária (Textos)</Label>
-                      <Input 
-                        id="schoolSecondaryColor" 
-                        type="color" 
-                        value={newSchool.secondary_color} 
-                        onChange={e => setNewSchool({
-                          ...newSchool,
-                          secondary_color: e.target.value
-                        })} 
-                      />
-                    </div>
-                    <div className="space-y-2">
                       <Label htmlFor="logoFile">Logo da Escola</Label>
                       <Input 
                         id="logoFile" 
@@ -1133,27 +1101,12 @@ const AdminDashboard = () => {
                     return s.school_name.toLowerCase().includes(q);
                   }).map(school => (
                     <div key={school.id} className="flex items-center justify-between p-4 border rounded-lg">
-                      <div className="flex items-center space-x-4">
-                        <div 
-                          className="w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold" 
-                          style={{ backgroundColor: school.primary_color }}
-                        >
-                          {school.school_name.charAt(0).toUpperCase()}
-                        </div>
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <p className="font-medium">{school.school_name}</p>
-                            <div 
-                              className="w-4 h-4 rounded-full border" 
-                              style={{ backgroundColor: school.primary_color }}
-                              title="Cor primária"
-                            />
-                            <div 
-                              className="w-4 h-4 rounded-full border" 
-                              style={{ backgroundColor: school.secondary_color }}
-                              title="Cor secundária"
-                            />
-                          </div>
+                       <div className="flex items-center space-x-4">
+                         <div className="w-10 h-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-semibold">
+                           {school.school_name.charAt(0).toUpperCase()}
+                         </div>
+                         <div>
+                           <p className="font-medium">{school.school_name}</p>
                           <p className="text-sm text-muted-foreground">
                             Consultor: {school.consultant_name || 'Não informado'}
                           </p>
@@ -1285,30 +1238,6 @@ const AdminDashboard = () => {
                   onChange={e => setEditingSchool({
                     ...editingSchool,
                     school_name: e.target.value
-                  })} 
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="editPrimaryColor">Cor Primária (Botões)</Label>
-                <Input 
-                  id="editPrimaryColor" 
-                  type="color" 
-                  value={editingSchool.primary_color} 
-                  onChange={e => setEditingSchool({
-                    ...editingSchool,
-                    primary_color: e.target.value
-                  })} 
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="editSecondaryColor">Cor Secundária (Textos)</Label>
-                <Input 
-                  id="editSecondaryColor" 
-                  type="color" 
-                  value={editingSchool.secondary_color} 
-                  onChange={e => setEditingSchool({
-                    ...editingSchool,
-                    secondary_color: e.target.value
                   })} 
                 />
               </div>

@@ -41,7 +41,6 @@ const Index = () => {
   } = useAuth();
   const [schoolHeader, setSchoolHeader] = useState<{
     schoolName: string;
-    themeColor: string;
     logoUrl?: string;
     consultantName?: string;
     userName?: string;
@@ -133,72 +132,19 @@ const Index = () => {
       setSavingProfile(false);
     }
   };
-  // Convert HEX like #c41133 to "h s% l%" for CSS variables
-  const hexToHsl = (hex: string): {
-    h: number;
-    s: number;
-    l: number;
-  } | null => {
-    const cleaned = hex.replace('#', '');
-    if (!(cleaned.length === 3 || cleaned.length === 6)) return null;
-    const full = cleaned.length === 3 ? cleaned.split('').map(c => c + c).join('') : cleaned;
-    const r = parseInt(full.substring(0, 2), 16) / 255;
-    const g = parseInt(full.substring(2, 4), 16) / 255;
-    const b = parseInt(full.substring(4, 6), 16) / 255;
-    const max = Math.max(r, g, b),
-      min = Math.min(r, g, b);
-    let h = 0,
-      s = 0,
-      l = (max + min) / 2;
-    if (max !== min) {
-      const d = max - min;
-      s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
-      switch (max) {
-        case r:
-          h = (g - b) / d + (g < b ? 6 : 1);
-          break;
-        case g:
-          h = (b - r) / d + 3;
-          break;
-        case b:
-          h = (r - g) / d + 5;
-          break;
-      }
-      h *= 60;
-    }
-    return {
-      h: Math.round(h),
-      s: Math.round(s * 100),
-      l: Math.round(l * 100)
-    };
-  };
-  const applyTheme = (hex?: string) => {
-    if (!hex) return;
-    const hsl = hexToHsl(hex);
-    if (!hsl) return;
-    const hslString = `${hsl.h} ${hsl.s}% ${hsl.l}%`;
-    const accentL = Math.min(95, hsl.l + 35);
-    const accent = `${hsl.h} ${Math.max(20, hsl.s - 30)}% ${accentL}%`;
-    document.documentElement.style.setProperty('--primary', hslString);
-    document.documentElement.style.setProperty('--ring', hslString);
-    document.documentElement.style.setProperty('--accent', accent);
-    document.documentElement.style.setProperty('--secondary', accent);
-  };
   useEffect(() => {
     if (userRole !== 'gestor' || !user) return;
     const load = async () => {
       const { data: profile } = await supabase.from('profiles').select('school_id, name').eq('user_id', user.id).single();
       if (!profile?.school_id) return;
-      const { data: school } = await supabase.from('school_customizations').select('school_name, primary_color, logo_url').eq('school_id', profile.school_id).maybeSingle();
+      const { data: school } = await supabase.from('school_customizations').select('school_name, logo_url').eq('school_id', profile.school_id).maybeSingle();
       if (school) {
         setSchoolHeader({
           schoolName: school.school_name,
-          themeColor: school.primary_color,
           logoUrl: school.logo_url || undefined,
           consultantName: undefined,
           userName: profile.name || undefined
         });
-        applyTheme(school.primary_color);
       }
     };
     load();

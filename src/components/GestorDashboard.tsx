@@ -17,8 +17,6 @@ import NovidadesCarousel from '@/components/NovidadesCarousel';
 interface SchoolCustomization {
   id: string;
   school_name: string;
-  primary_color: string;
-  secondary_color: string;
   logo_url?: string;
   consultant_id?: string;
   consultant_whatsapp?: string;
@@ -149,16 +147,14 @@ const GestorDashboard = () => {
         {showAssistant && <AIAssistant onClose={() => setShowAssistant(false)} />}
       </div>;
   }
-  return <div className="min-h-screen" style={{
-    background: `linear-gradient(135deg, ${schoolData.primary_color}10 0%, ${schoolData.primary_color}05 100%)`
-  }}>
+  return <div className="min-h-screen bg-gradient-to-br from-background via-muted to-background">
       <div className="container mx-auto p-6 space-y-6">
         {/* Welcome Message */}
         <div className="text-center py-8">
-          <h1 className="text-4xl font-bold mb-2" style={{ color: schoolData.primary_color }}>
+          <h1 className="text-4xl font-bold mb-2 text-primary">
             Bem-vindo ao seu Portal Prime
           </h1>
-          <p className="text-lg" style={{ color: schoolData.secondary_color }}>
+          <p className="text-lg text-foreground">
             {schoolData.school_name} - Gerencie sua escola com excelência
           </p>
         </div>
