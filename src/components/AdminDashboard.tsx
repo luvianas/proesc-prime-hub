@@ -252,11 +252,10 @@ const AdminDashboard = () => {
       setSchoolDialogOpen(false);
       setNewSchool({
         school_name: '',
-        theme_color: '#3b82f6',
+        primary_color: '#3b82f6',
+        secondary_color: '#64748b',
         logo_url: '',
-        consultant_name: '',
-        consultant_photo_url: '',
-        consultant_calendar_url: '',
+        consultant_id: '',
         zendesk_integration_url: '',
         metabase_integration_url: '',
         dashboard_links: {
@@ -767,10 +766,10 @@ const AdminDashboard = () => {
                   })} placeholder="Nome da escola" />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="schoolThemeColor">Cor do Tema</Label>
-                      <Input id="schoolThemeColor" type="color" value={newSchool.theme_color} onChange={e => setNewSchool({
+                      <Label htmlFor="schoolPrimaryColor">Cor Primária</Label>
+                      <Input id="schoolPrimaryColor" type="color" value={newSchool.primary_color} onChange={e => setNewSchool({
                     ...newSchool,
-                    theme_color: e.target.value
+                    primary_color: e.target.value
                   })} />
                     </div>
                     <div className="space-y-2">
@@ -790,34 +789,29 @@ const AdminDashboard = () => {
                       {newSchool.logo_url && <img src={newSchool.logo_url} alt="Logo da escola" className="h-12 rounded" />}
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="consultantName">Nome do Consultor</Label>
-                      <Input id="consultantName" value={newSchool.consultant_name} onChange={e => setNewSchool({
+                      <Label htmlFor="consultantSelect">Consultor</Label>
+                      <Select value={newSchool.consultant_id} onValueChange={value => setNewSchool({
                     ...newSchool,
-                    consultant_name: e.target.value
-                  })} placeholder="Nome do consultor" />
+                    consultant_id: value
+                  })}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione um consultor" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {users.filter(user => user.role === 'admin').map(user => (
+                            <SelectItem key={user.user_id} value={user.user_id}>
+                              {user.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="consultantPhotoFile">Foto do Consultor</Label>
-                      <Input id="consultantPhotoFile" type="file" accept="image/*" onChange={async e => {
-                    const file = e.target.files?.[0];
-                    if (!file) return;
-                    setUploadingConsultantNew(true);
-                    const url = await uploadImage(file, 'consultants');
-                    setUploadingConsultantNew(false);
-                    if (url) setNewSchool({
-                      ...newSchool,
-                      consultant_photo_url: url
-                    });
-                  }} />
-                      {uploadingConsultantNew && <p className="text-sm text-muted-foreground">Enviando...</p>}
-                      {newSchool.consultant_photo_url && <img src={newSchool.consultant_photo_url} alt="Foto do consultor" className="h-12 rounded" />}
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="calendarUrl">Link de incorporação do Google Calendar</Label>
-                      <Input id="calendarUrl" value={newSchool.consultant_calendar_url || ''} onChange={e => setNewSchool({
+                      <Label htmlFor="secondaryColor">Cor Secundária</Label>
+                      <Input id="secondaryColor" type="color" value={newSchool.secondary_color} onChange={e => setNewSchool({
                     ...newSchool,
-                    consultant_calendar_url: e.target.value
-                  })} placeholder="https://calendar.google.com/calendar/embed?..." />
+                    secondary_color: e.target.value
+                  })} />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="zendeskUrl">URL Integração Zendesk</Label>
