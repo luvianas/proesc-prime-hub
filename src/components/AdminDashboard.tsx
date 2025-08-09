@@ -49,7 +49,7 @@ interface SchoolCustomization {
   primary_color: string;
   secondary_color: string;
   logo_url?: string;
-  consultant_id?: string;
+  consultant_name?: string;
   zendesk_integration_url?: string;
   metabase_integration_url?: string;
   dashboard_links?: any;
@@ -84,7 +84,7 @@ const AdminDashboard = () => {
     primary_color: '#3b82f6',
     secondary_color: '#64748b',
     logo_url: '',
-    consultant_id: '',
+    consultant_name: '',
     zendesk_integration_url: '',
     metabase_integration_url: '',
     dashboard_links: {
@@ -324,7 +324,7 @@ const AdminDashboard = () => {
         school_name: newSchool.school_name,
         theme_color: newSchool.primary_color,
         logo_url: newSchool.logo_url,
-        consultant_name: newSchool.consultant_id,
+        consultant_name: newSchool.consultant_name,
         zendesk_integration_url: newSchool.zendesk_integration_url,
         metabase_integration_url: newSchool.metabase_integration_url,
         dashboard_links: newSchool.dashboard_links,
@@ -341,7 +341,7 @@ const AdminDashboard = () => {
         primary_color: '#3b82f6',
         secondary_color: '#64748b',
         logo_url: '',
-        consultant_id: '',
+        consultant_name: '',
         zendesk_integration_url: '',
         metabase_integration_url: '',
         dashboard_links: {
@@ -559,10 +559,9 @@ const AdminDashboard = () => {
     try {
       const { error } = await supabase.from('school_customizations').update({
         school_name: editingSchool.school_name,
-        primary_color: editingSchool.primary_color,
-        secondary_color: editingSchool.secondary_color,
+        theme_color: editingSchool.primary_color,
         logo_url: editingSchool.logo_url,
-        consultant_id: editingSchool.consultant_id,
+        consultant_name: editingSchool.consultant_name,
         zendesk_integration_url: editingSchool.zendesk_integration_url,
         metabase_integration_url: editingSchool.metabase_integration_url,
         dashboard_links: editingSchool.dashboard_links
@@ -991,25 +990,16 @@ const AdminDashboard = () => {
                       {newSchool.logo_url && <img src={newSchool.logo_url} alt="Logo da escola" className="h-12 rounded" />}
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="consultantSelect">Consultor</Label>
-                      <Select 
-                        value={newSchool.consultant_id} 
-                        onValueChange={value => setNewSchool({
+                      <Label htmlFor="consultantName">Nome do Consultor</Label>
+                      <Input 
+                        id="consultantName"
+                        value={newSchool.consultant_name} 
+                        onChange={(e) => setNewSchool({
                           ...newSchool,
-                          consultant_id: value
+                          consultant_name: e.target.value
                         })}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecione um consultor" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {users.filter(user => user.role === 'admin').map(user => (
-                            <SelectItem key={user.user_id} value={user.user_id}>
-                              {user.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                        placeholder="Digite o nome do consultor"
+                      />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="zendeskUrl">URL Integração Zendesk</Label>
@@ -1155,7 +1145,7 @@ const AdminDashboard = () => {
                             />
                           </div>
                           <p className="text-sm text-muted-foreground">
-                            Consultor: {getConsultantName(school.consultant_id)}
+                            Consultor: {school.consultant_name || 'Não informado'}
                           </p>
                           <p className="text-xs text-muted-foreground">
                             Criado em: {new Date(school.created_at).toLocaleDateString()}
@@ -1334,25 +1324,16 @@ const AdminDashboard = () => {
                 {editingSchool.logo_url && <img src={editingSchool.logo_url} alt="Logo da escola" className="h-12 rounded" />}
               </div>
               <div className="space-y-2">
-                <Label htmlFor="editConsultantSelect">Consultor</Label>
-                <Select 
-                  value={editingSchool.consultant_id || ''} 
-                  onValueChange={value => setEditingSchool({
+                <Label htmlFor="editConsultantName">Nome do Consultor</Label>
+                <Input 
+                  id="editConsultantName"
+                  value={editingSchool.consultant_name || ''} 
+                  onChange={(e) => setEditingSchool({
                     ...editingSchool,
-                    consultant_id: value
+                    consultant_name: e.target.value
                   })}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione um consultor" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {users.filter(user => user.role === 'admin').map(user => (
-                      <SelectItem key={user.user_id} value={user.user_id}>
-                        {user.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  placeholder="Digite o nome do consultor"
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="editZendeskUrl">URL Integração Zendesk</Label>
