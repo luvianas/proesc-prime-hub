@@ -410,7 +410,8 @@ const AdminDashboard = () => {
         consultant_photo_url: editingSchool.consultant_photo_url,
         consultant_calendar_url: editingSchool.consultant_calendar_url,
         zendesk_integration_url: editingSchool.zendesk_integration_url,
-        metabase_integration_url: editingSchool.metabase_integration_url
+        metabase_integration_url: editingSchool.metabase_integration_url,
+        dashboard_links: editingSchool.dashboard_links
       }).eq('id', editingSchool.id);
       if (error) throw error;
       toast({

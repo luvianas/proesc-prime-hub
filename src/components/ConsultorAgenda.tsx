@@ -15,6 +15,13 @@ interface ConsultorAgendaProps {
 const ConsultorAgenda = ({ onBack, consultantName, consultantWhatsapp, consultantPhotoUrl, calendarEmbedUrl }: ConsultorAgendaProps) => {
   const name = consultantName || "Consultor(a)";
   const photo = consultantPhotoUrl || undefined;
+  const extractSrc = (input?: string) => {
+    if (!input) return undefined;
+    const match = input.match(/src=["']([^"']+)["']/i);
+    if (match) return match[1];
+    return input.trim();
+  };
+  const calendarSrc = extractSrc(calendarEmbedUrl);
 
   const upcomingMeetings = [
     {
@@ -124,7 +131,7 @@ const ConsultorAgenda = ({ onBack, consultantName, consultantWhatsapp, consultan
         </CardHeader>
         <CardContent className="p-0">
           <iframe
-            src={calendarEmbedUrl || "https://calendar.google.com/calendar/embed?src=c_classroom34b38741%40group.calendar.google.com&ctz=America%2FSao_Paulo"}
+            src={calendarSrc || "https://calendar.google.com/calendar/embed?src=c_classroom34b38741%40group.calendar.google.com&ctz=America%2FSao_Paulo"}
             title="Calendário do Consultor"
             width="100%"
             height="600"

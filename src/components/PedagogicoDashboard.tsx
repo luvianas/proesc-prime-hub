@@ -14,6 +14,13 @@ const PedagogicoDashboard = ({ onBack, dashboardUrl }: PedagogicoDashboardProps)
   const [error, setError] = useState<string>('');
 
   const defaultUrl = "https://graficos.proesc.com/public/dashboard/40e6a09c-89c2-4838-9351-43dc118dcaaa?curso=&entidade_id=4442&etapa=&exerc%25C3%25ADcio=2025&tab=139-notas&turma=&unidade=RED+HOUSE+INTERNATIONAL+SCHOOL+CAMPO+GRANDE";
+  const extractSrc = (input?: string) => {
+    if (!input) return undefined;
+    const match = input.match(/src=["']([^"']+)["']/i);
+    if (match) return match[1];
+    return input.trim();
+  };
+  const finalUrl = extractSrc(dashboardUrl) || defaultUrl;
 
   const handleIframeLoad = () => {
     setIsLoading(false);
@@ -77,7 +84,7 @@ const PedagogicoDashboard = ({ onBack, dashboardUrl }: PedagogicoDashboardProps)
                 </div>
               )}
               <iframe
-                src={dashboardUrl || defaultUrl}
+                src={finalUrl}
                 title="Dashboard Pedagógica"
                 width="100%"
                 height="800"

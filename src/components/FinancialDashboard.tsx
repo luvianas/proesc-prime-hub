@@ -14,6 +14,13 @@ const FinancialDashboard = ({ onBack, dashboardUrl }: FinancialDashboardProps) =
   const [error, setError] = useState<string>('');
 
   const defaultUrl = "https://graficos.proesc.com/public/dashboard/9a7e2013-25b0-4e91-8767-5ee3305a3a23?curso=&entidade_id=4442&etapa=&filtro_de_data=thisyear&tab=64-vis%C3%A3o-geral&tipo__de_d%25C3%25A9bito=&unidade=";
+  const extractSrc = (input?: string) => {
+    if (!input) return undefined;
+    const match = input.match(/src=["']([^"']+)["']/i);
+    if (match) return match[1];
+    return input.trim();
+  };
+  const finalUrl = extractSrc(dashboardUrl) || defaultUrl;
 
   const handleIframeLoad = () => {
     setIsLoading(false);
@@ -77,7 +84,7 @@ const FinancialDashboard = ({ onBack, dashboardUrl }: FinancialDashboardProps) =
                 </div>
               )}
               <iframe
-                src={dashboardUrl || defaultUrl}
+                src={finalUrl}
                 title="Dashboard Financeira"
                 width="100%"
                 height="800"

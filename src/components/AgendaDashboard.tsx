@@ -14,6 +14,13 @@ const AgendaDashboard = ({ onBack, dashboardUrl }: AgendaDashboardProps) => {
   const [error, setError] = useState<string>('');
 
   const defaultUrl = "https://graficos.proesc.com/public/dashboard/ea74f678-24d5-4413-af6a-5afeae7f2d60?data=thisyear&entidade_id=4442&tab=319-dashboard";
+  const extractSrc = (input?: string) => {
+    if (!input) return undefined;
+    const match = input.match(/src=["']([^"']+)["']/i);
+    if (match) return match[1];
+    return input.trim();
+  };
+  const finalUrl = extractSrc(dashboardUrl) || defaultUrl;
 
   const handleIframeLoad = () => {
     setIsLoading(false);
@@ -77,7 +84,7 @@ const AgendaDashboard = ({ onBack, dashboardUrl }: AgendaDashboardProps) => {
                 </div>
               )}
               <iframe
-                src={dashboardUrl || defaultUrl}
+                src={finalUrl}
                 title="Dashboard Proesc Agenda"
                 width="100%"
                 height="800"
