@@ -6,15 +6,13 @@ import { Badge } from "@/components/ui/badge";
 
 interface ConsultorAgendaProps {
   onBack: () => void;
-  consultantName?: string;
-  consultantWhatsapp?: string;
-  consultantPhotoUrl?: string;
+  consultantId?: string;
   calendarEmbedUrl?: string;
 }
 
-const ConsultorAgenda = ({ onBack, consultantName, consultantWhatsapp, consultantPhotoUrl, calendarEmbedUrl }: ConsultorAgendaProps) => {
-  const name = consultantName || "Consultor(a)";
-  const photo = consultantPhotoUrl || undefined;
+const ConsultorAgenda = ({ onBack, consultantId, calendarEmbedUrl }: ConsultorAgendaProps) => {
+  const name = "Consultor(a)";
+  const photo = undefined;
   const extractSrc = (input?: string) => {
     if (!input) return undefined;
     const match = input.match(/src=["']([^"']+)["']/i);
@@ -39,7 +37,7 @@ const ConsultorAgenda = ({ onBack, consultantName, consultantWhatsapp, consultan
   ];
 
   const handleWhatsAppClick = () => {
-    const phone = (consultantWhatsapp || '').replace(/\D/g, '');
+    const phone = '';
     if (!phone) {
       window.alert('WhatsApp do consultor não configurado.');
       return;

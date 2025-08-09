@@ -17,10 +17,10 @@ import NovidadesCarousel from '@/components/NovidadesCarousel';
 interface SchoolCustomization {
   id: string;
   school_name: string;
-  theme_color: string;
+  primary_color: string;
+  secondary_color: string;
   logo_url?: string;
-  consultant_name?: string;
-  consultant_photo_url?: string;
+  consultant_id?: string;
   consultant_whatsapp?: string;
   consultant_calendar_url?: string;
   zendesk_integration_url?: string;
@@ -141,7 +141,7 @@ const GestorDashboard = () => {
     return <div className="container mx-auto p-4">
         {activeSection === 'tickets' && <TicketSystem onBack={back} />}
         
-        {activeSection === 'consultor-agenda' && <ConsultorAgenda onBack={back} consultantName={schoolData.consultant_name} consultantWhatsapp={schoolData.consultant_whatsapp} consultantPhotoUrl={schoolData.consultant_photo_url} calendarEmbedUrl={schoolData.consultant_calendar_url} />}
+        {activeSection === 'consultor-agenda' && <ConsultorAgenda onBack={back} consultantId={schoolData.consultant_id} calendarEmbedUrl={schoolData.consultant_calendar_url} />}
         {activeSection === 'dash-financeiro' && <FinancialDashboard onBack={back} dashboardUrl={schoolData.dashboard_links?.financeiro} />}
         {activeSection === 'dash-agenda' && <AgendaDashboard onBack={back} dashboardUrl={schoolData.dashboard_links?.agenda} />}
         {activeSection === 'dash-secretaria' && <SecretariaDashboard onBack={back} dashboardUrl={schoolData.dashboard_links?.secretaria} />}

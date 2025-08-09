@@ -187,22 +187,18 @@ const Index = () => {
   useEffect(() => {
     if (userRole !== 'gestor' || !user) return;
     const load = async () => {
-      const {
-        data: profile
-      } = await supabase.from('profiles').select('school_id, name').eq('user_id', user.id).single();
+      const { data: profile } = await supabase.from('profiles').select('school_id, name').eq('user_id', user.id).single();
       if (!profile?.school_id) return;
-      const {
-        data: school
-      } = await supabase.from('school_customizations').select('school_name, theme_color, logo_url, consultant_name').eq('school_id', profile.school_id).maybeSingle();
+      const { data: school } = await supabase.from('school_customizations').select('school_name, primary_color, logo_url').eq('school_id', profile.school_id).maybeSingle();
       if (school) {
         setSchoolHeader({
           schoolName: school.school_name,
-          themeColor: school.theme_color,
+          themeColor: school.primary_color,
           logoUrl: school.logo_url || undefined,
-          consultantName: school.consultant_name || undefined,
+          consultantName: undefined,
           userName: profile.name || undefined
         });
-        applyTheme(school.theme_color);
+        applyTheme(school.primary_color);
       }
     };
     load();
@@ -260,11 +256,24 @@ const Index = () => {
                 {schoolHeader?.consultantName}
               </div>
             </div>
+            
+            {/* Proesc Prime Logo in the center */}
+            <div className="flex-1 flex justify-center">
+              <img 
+                src="/lovable-uploads/72aa872c-a403-45a6-a89f-d1c8ce13777b.png" 
+                alt="Proesc Prime" 
+                className="h-12"
+              />
+            </div>
           </div>
           <div className="flex items-center gap-2">
-            <Button onClick={openProfile}>
-              <User className="w-4 h-4 mr-2" />
-              Perfil
+            <Button onClick={openProfile} variant="outline" className="rounded-full w-10 h-10 p-0">
+              <Avatar className="w-8 h-8">
+                <AvatarImage src={avatarUrl} alt="Foto do perfil" />
+                <AvatarFallback>
+                  {schoolHeader?.schoolName?.charAt(0).toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
             </Button>
             <Button onClick={signOut}>
               <LogOut className="w-4 h-4 mr-2" />
