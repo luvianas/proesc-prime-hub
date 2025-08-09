@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { ExternalLink, School, User, BarChart3, Bot, CalendarDays, ClipboardList, LineChart, Wallet, ClipboardCheck, GraduationCap } from 'lucide-react';
+import { School, CalendarDays, ClipboardList, Wallet, ClipboardCheck, GraduationCap } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
@@ -196,47 +196,7 @@ const GestorDashboard = () => {
       }}
     >
       <div className="container mx-auto p-6 space-y-6">
-        {/* Header with School Info */}
-        <Card className="border-0 shadow-lg">
-          <CardContent className="p-8">
-            <div className="flex items-center gap-6">
-              {schoolData.logo_url ? (
-                <img
-                  src={schoolData.logo_url}
-                  alt={`Logo ${schoolData.school_name}`}
-                  className="w-20 h-20 object-contain rounded-lg"
-                />
-              ) : (
-                <div
-                  className="w-20 h-20 rounded-lg flex items-center justify-center text-white text-2xl font-bold"
-                  style={{ backgroundColor: schoolData.theme_color }}
-                >
-                  {schoolData.school_name.charAt(0).toUpperCase()}
-                </div>
-              )}
-              <div className="flex-1">
-                <h1 className="text-3xl font-bold">Prime Hub - {schoolData.school_name} - {userProfile?.name}</h1>
-                <div className="flex items-center gap-4 mt-4">
-                  <Badge
-                    style={{ backgroundColor: schoolData.theme_color, color: 'white' }}
-                  >
-                    Gestor
-                  </Badge>
-                  {schoolData.consultant_name && (
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <User className="w-4 h-4" /> Consultor: {schoolData.consultant_name}
-                    </div>
-                  )}
-                </div>
-              </div>
-              <div className="flex items-center gap-3">
-                <Button variant="outline" onClick={() => setShowAssistant(true)} aria-label="Abrir IA Assistente">
-                  <Bot className="h-4 w-4 mr-2" /> IA Assistente
-                </Button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        {/* Header moved to top bar in Index.tsx for Gestor users */}
 
         {/* Destaques */}
         <section className="grid md:grid-cols-2 gap-6">

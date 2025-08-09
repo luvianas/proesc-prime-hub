@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Navigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { LogOut } from "lucide-react";
@@ -22,12 +22,87 @@ import WelcomeSection from "@/components/WelcomeSection";
 import CarouselSection from "@/components/CarouselSection";
 import QuickActions from "@/components/QuickActions";
 import DashboardGrid from "@/components/DashboardGrid";
+import { supabase } from "@/integrations/supabase/client";
+import { Badge } from "@/components/ui/badge";
 
 const Index = () => {
   const [showAI, setShowAI] = useState(false);
   const [activeSection, setActiveSection] = useState("dashboard");
   const [expandedDashboard, setExpandedDashboard] = useState<string | null>(null);
   const { user, userRole, loading, signOut } = useAuth();
+  const [schoolHeader, setSchoolHeader] = useState<{
+    schoolName: string;
+    themeColor: string;
+    logoUrl?: string;
+    consultantName?: string;
+    userName?: string;
+  } | null>(null);
+
+  // Convert HEX like #c41133 to "h s% l%" for CSS variables
+  const hexToHsl = (hex: string): { h: number; s: number; l: number } | null => {
+    const cleaned = hex.replace('#', '');
+    if (!(cleaned.length === 3 || cleaned.length === 6)) return null;
+    const full = cleaned.length === 3
+      ? cleaned.split('').map(c => c + c).join('')
+      : cleaned;
+    const r = parseInt(full.substring(0,2), 16) / 255;
+    const g = parseInt(full.substring(2,4), 16) / 255;
+    const b = parseInt(full.substring(4,6), 16) / 255;
+    const max = Math.max(r,g,b), min = Math.min(r,g,b);
+    let h = 0, s = 0, l = (max + min) / 2;
+    if (max !== min) {
+      const d = max - min;
+      s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+      switch(max){
+        case r: h = (g - b) / d + (g < b ? 6 : 1); break;
+        case g: h = (b - r) / d + 3; break;
+        case b: h = (r - g) / d + 5; break;
+      }
+      h *= 60;
+    }
+    return { h: Math.round(h), s: Math.round(s * 100), l: Math.round(l * 100) };
+  };
+
+  const applyTheme = (hex?: string) => {
+    if (!hex) return;
+    const hsl = hexToHsl(hex);
+    if (!hsl) return;
+    const hslString = `${hsl.h} ${hsl.s}% ${hsl.l}%`;
+    const accentL = Math.min(95, hsl.l + 35);
+    const accent = `${hsl.h} ${Math.max(20, hsl.s - 30)}% ${accentL}%`;
+    document.documentElement.style.setProperty('--primary', hslString);
+    document.documentElement.style.setProperty('--ring', hslString);
+    document.documentElement.style.setProperty('--accent', accent);
+    document.documentElement.style.setProperty('--secondary', accent);
+  };
+
+  useEffect(() => {
+    if (userRole !== 'gestor' || !user) return;
+    const load = async () => {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('school_id, name')
+        .eq('user_id', user.id)
+        .single();
+      if (!profile?.school_id) return;
+      const { data: school } = await supabase
+        .from('school_customizations')
+        .select('school_name, theme_color, logo_url, consultant_name')
+        .eq('school_id', profile.school_id)
+        .maybeSingle();
+      if (school) {
+        setSchoolHeader({
+          schoolName: school.school_name,
+          themeColor: school.theme_color,
+          logoUrl: school.logo_url || undefined,
+          consultantName: school.consultant_name || undefined,
+          userName: profile.name || undefined,
+        });
+        applyTheme(school.theme_color);
+      }
+    };
+    load();
+  }, [userRole, user]);
 
   // Show loading state
   if (loading) {
@@ -63,7 +138,33 @@ const Index = () => {
   if (userRole === 'gestor') {
     return (
       <div className="min-h-screen">
-        <div className="flex items-center justify-end p-4 border-b bg-card/50 backdrop-blur">
+        <div className="flex items-center justify-between p-4 border-b bg-card/50 backdrop-blur">
+          <div className="flex items-center gap-3">
+            {schoolHeader?.logoUrl ? (
+              <img
+                src={schoolHeader.logoUrl}
+                alt={`Logo ${schoolHeader.schoolName}`}
+                className="w-10 h-10 object-contain rounded"
+                loading="lazy"
+              />
+            ) : (
+              <div className="w-10 h-10 rounded bg-primary text-primary-foreground flex items-center justify-center font-bold">
+                {schoolHeader?.schoolName?.charAt(0).toUpperCase()}
+              </div>
+            )}
+            <div>
+              <h1 className="text-lg font-semibold">
+                Prime Hub - {schoolHeader?.schoolName ?? 'Escola'}
+                {schoolHeader?.userName ? ` - ${schoolHeader.userName}` : ''}
+              </h1>
+              <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                <Badge className="bg-primary text-primary-foreground">Gestor</Badge>
+                {schoolHeader?.consultantName && (
+                  <span>Consultor: {schoolHeader.consultantName}</span>
+                )}
+              </div>
+            </div>
+          </div>
           <Button variant="outline" onClick={signOut}>
             <LogOut className="w-4 h-4 mr-2" />
             Sair
