@@ -50,6 +50,7 @@ interface SchoolCustomization {
   secondary_color: string;
   logo_url?: string;
   consultant_name?: string;
+  consultant_id?: string;
   zendesk_integration_url?: string;
   metabase_integration_url?: string;
   dashboard_links?: any;
@@ -62,6 +63,7 @@ const AdminDashboard = () => {
   const [users, setUsers] = useState<User[]>([]);
   const [environments, setEnvironments] = useState<Environment[]>([]);
   const [schools, setSchools] = useState<SchoolCustomization[]>([]);
+  const [adminUsers, setAdminUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [schoolDialogOpen, setSchoolDialogOpen] = useState(false);
@@ -84,7 +86,7 @@ const AdminDashboard = () => {
     primary_color: '#3b82f6',
     secondary_color: '#64748b',
     logo_url: '',
-    consultant_name: '',
+    consultant_id: '',
     zendesk_integration_url: '',
     metabase_integration_url: '',
     dashboard_links: {
@@ -298,14 +300,16 @@ const AdminDashboard = () => {
 
   const fetchData = async () => {
     try {
-      const [usersResponse, environmentsResponse, schoolsResponse] = await Promise.all([
+      const [usersResponse, environmentsResponse, schoolsResponse, adminUsersResponse] = await Promise.all([
         supabase.from('profiles').select('*').order('created_at', { ascending: false }),
         supabase.from('environments').select('*').order('created_at', { ascending: false }),
-        supabase.from('school_customizations').select('*').order('created_at', { ascending: false })
+        supabase.from('school_customizations').select('*').order('created_at', { ascending: false }),
+        supabase.from('profiles').select('user_id, name, email').eq('role', 'admin').order('name')
       ]);
       if (usersResponse.data) setUsers(usersResponse.data);
       if (environmentsResponse.data) setEnvironments(environmentsResponse.data);
       if (schoolsResponse.data) setSchools(schoolsResponse.data);
+      if (adminUsersResponse.data) setAdminUsers(adminUsersResponse.data);
     } catch (error) {
       console.error('Error fetching data:', error);
       toast({
@@ -324,7 +328,7 @@ const AdminDashboard = () => {
         school_name: newSchool.school_name,
         theme_color: newSchool.primary_color,
         logo_url: newSchool.logo_url,
-        consultant_name: newSchool.consultant_name,
+        consultant_id: newSchool.consultant_id || null,
         zendesk_integration_url: newSchool.zendesk_integration_url,
         metabase_integration_url: newSchool.metabase_integration_url,
         dashboard_links: newSchool.dashboard_links,
@@ -341,7 +345,7 @@ const AdminDashboard = () => {
         primary_color: '#3b82f6',
         secondary_color: '#64748b',
         logo_url: '',
-        consultant_name: '',
+        consultant_id: '',
         zendesk_integration_url: '',
         metabase_integration_url: '',
         dashboard_links: {
@@ -561,7 +565,7 @@ const AdminDashboard = () => {
         school_name: editingSchool.school_name,
         theme_color: editingSchool.primary_color,
         logo_url: editingSchool.logo_url,
-        consultant_name: editingSchool.consultant_name,
+        consultant_id: editingSchool.consultant_id || null,
         zendesk_integration_url: editingSchool.zendesk_integration_url,
         metabase_integration_url: editingSchool.metabase_integration_url,
         dashboard_links: editingSchool.dashboard_links
@@ -990,16 +994,22 @@ const AdminDashboard = () => {
                       {newSchool.logo_url && <img src={newSchool.logo_url} alt="Logo da escola" className="h-12 rounded" />}
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="consultantName">Nome do Consultor</Label>
-                      <Input 
-                        id="consultantName"
-                        value={newSchool.consultant_name} 
-                        onChange={(e) => setNewSchool({
-                          ...newSchool,
-                          consultant_name: e.target.value
-                        })}
-                        placeholder="Digite o nome do consultor"
-                      />
+                      <Label htmlFor="consultant_id">Consultor Responsável</Label>
+                      <Select
+                        value={newSchool.consultant_id}
+                        onValueChange={(value) => setNewSchool(prev => ({ ...prev, consultant_id: value }))}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione um consultor" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {adminUsers.map((admin) => (
+                            <SelectItem key={admin.user_id} value={admin.user_id}>
+                              {admin.name} ({admin.email})
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="zendeskUrl">URL Integração Zendesk</Label>
@@ -1324,16 +1334,22 @@ const AdminDashboard = () => {
                 {editingSchool.logo_url && <img src={editingSchool.logo_url} alt="Logo da escola" className="h-12 rounded" />}
               </div>
               <div className="space-y-2">
-                <Label htmlFor="editConsultantName">Nome do Consultor</Label>
-                <Input 
-                  id="editConsultantName"
-                  value={editingSchool.consultant_name || ''} 
-                  onChange={(e) => setEditingSchool({
-                    ...editingSchool,
-                    consultant_name: e.target.value
-                  })}
-                  placeholder="Digite o nome do consultor"
-                />
+                <Label htmlFor="editConsultantId">Consultor Responsável</Label>
+                <Select
+                  value={editingSchool.consultant_id || ''}
+                  onValueChange={(value) => setEditingSchool(prev => ({ ...prev, consultant_id: value }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione um consultor" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {adminUsers.map((admin) => (
+                      <SelectItem key={admin.user_id} value={admin.user_id}>
+                        {admin.name} ({admin.email})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="editZendeskUrl">URL Integração Zendesk</Label>

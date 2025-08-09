@@ -148,6 +148,7 @@ export type Database = {
       school_customizations: {
         Row: {
           consultant_calendar_url: string | null
+          consultant_id: string | null
           consultant_name: string | null
           consultant_photo_url: string | null
           consultant_whatsapp: string | null
@@ -167,6 +168,7 @@ export type Database = {
         }
         Insert: {
           consultant_calendar_url?: string | null
+          consultant_id?: string | null
           consultant_name?: string | null
           consultant_photo_url?: string | null
           consultant_whatsapp?: string | null
@@ -186,6 +188,7 @@ export type Database = {
         }
         Update: {
           consultant_calendar_url?: string | null
+          consultant_id?: string | null
           consultant_name?: string | null
           consultant_photo_url?: string | null
           consultant_whatsapp?: string | null
@@ -204,6 +207,13 @@ export type Database = {
           zendesk_integration_url?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "school_customizations_consultant_id_fkey"
+            columns: ["consultant_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
           {
             foreignKeyName: "school_customizations_created_by_fkey"
             columns: ["created_by"]

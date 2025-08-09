@@ -141,7 +141,7 @@ const GestorDashboard = () => {
     return <div className="container mx-auto p-4">
         {activeSection === 'tickets' && <TicketSystem onBack={back} />}
         
-        {activeSection === 'consultor-agenda' && <ConsultorAgenda onBack={back} consultantId={schoolData.consultant_id} calendarEmbedUrl={schoolData.consultant_calendar_url} />}
+        {activeSection === 'consultor-agenda' && <ConsultorAgenda onBack={back} schoolData={schoolData} />}
         {activeSection === 'dash-financeiro' && <FinancialDashboard onBack={back} dashboardUrl={schoolData.dashboard_links?.financeiro} />}
         {activeSection === 'dash-agenda' && <AgendaDashboard onBack={back} dashboardUrl={schoolData.dashboard_links?.agenda} />}
         {activeSection === 'dash-secretaria' && <SecretariaDashboard onBack={back} dashboardUrl={schoolData.dashboard_links?.secretaria} />}
