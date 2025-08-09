@@ -2,12 +2,15 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
 import { AspectRatio } from '@/components/ui/aspect-ratio';
+const sb: any = supabase;
 
 interface SchoolBanner {
   id: string;
   image_url: string;
   title?: string | null;
   link_url?: string | null;
+  order_index?: number | null;
+  created_at?: string;
 }
 
 interface NovidadesCarouselProps {
@@ -20,17 +23,30 @@ const NovidadesCarousel = ({ schoolId }: NovidadesCarouselProps) => {
   useEffect(() => {
     if (!schoolId) return;
     const fetchBanners = async () => {
-      const { data, error } = await supabase
+      const globalRes = await sb
         .from('school_banners')
-        .select('id, image_url, title, link_url')
-        .eq('school_id', schoolId)
-        .order('order_index', { ascending: true })
-        .order('created_at', { ascending: false });
-      if (error) {
-        console.error('Erro ao carregar banners:', error);
-        return;
-      }
-      setBanners(data || []);
+        .select('id, image_url, title, link_url, order_index, created_at')
+        .eq('is_global', true);
+      const schoolRes = await sb
+        .from('school_banners')
+        .select('id, image_url, title, link_url, order_index, created_at')
+        .eq('school_id', schoolId);
+
+      if (globalRes.error) console.error('Erro ao carregar banners globais:', globalRes.error);
+      if (schoolRes.error) console.error('Erro ao carregar banners da escola:', schoolRes.error);
+
+      const list: SchoolBanner[] = [
+        ...(((globalRes.data as unknown) as SchoolBanner[]) || []),
+        ...(((schoolRes.data as unknown) as SchoolBanner[]) || []),
+      ];
+      list.sort((a: SchoolBanner, b: SchoolBanner) => {
+        const orderDiff = (a.order_index ?? 0) - (b.order_index ?? 0);
+        if (orderDiff !== 0) return orderDiff;
+        const aDate = a.created_at ? new Date(a.created_at).getTime() : 0;
+        const bDate = b.created_at ? new Date(b.created_at).getTime() : 0;
+        return bDate - aDate;
+      });
+      setBanners(list);
     };
     fetchBanners();
   }, [schoolId]);

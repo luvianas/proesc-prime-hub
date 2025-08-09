@@ -102,31 +102,80 @@ const AdminDashboard = () => {
   const [uploadingConsultantNew, setUploadingConsultantNew] = useState(false);
   const [uploadingLogoEdit, setUploadingLogoEdit] = useState(false);
   const [uploadingConsultantEdit, setUploadingConsultantEdit] = useState(false);
+
+  // Banner upload dialog state
+  const [bannerDialogOpen, setBannerDialogOpen] = useState(false);
+  const [bannerFile, setBannerFile] = useState<File | null>(null);
+  const [bannerScope, setBannerScope] = useState<'global' | 'school'>('global');
+  const [bannerSchoolId, setBannerSchoolId] = useState<string>('');
+  const [uploadingBanner, setUploadingBanner] = useState(false);
+
   const uploadImage = async (file: File, folder: string) => {
     try {
       const ext = file.name.split('.').pop() || 'png';
       const fileName = `${folder}/${Date.now()}.${ext}`;
-      const {
-        error: uploadError
-      } = await supabase.storage.from('school-assets').upload(fileName, file, {
-        upsert: true,
-        contentType: file.type,
-        cacheControl: '3600'
-      });
+      const { error: uploadError } = await supabase.storage
+        .from('school-assets')
+        .upload(fileName, file, {
+          upsert: true,
+          contentType: file.type,
+          cacheControl: '3600',
+        });
       if (uploadError) throw uploadError;
-      const {
-        data
-      } = supabase.storage.from('school-assets').getPublicUrl(fileName);
+      const { data } = supabase.storage.from('school-assets').getPublicUrl(fileName);
       return data.publicUrl;
     } catch (e: any) {
       toast({
         title: 'Erro',
         description: e.message || 'Falha no upload da imagem',
-        variant: 'destructive'
+        variant: 'destructive',
       });
       return null;
     }
   };
+
+  const handleBannerUpload = async () => {
+    try {
+      if (!bannerFile) {
+        toast({ title: 'Selecione uma imagem', variant: 'destructive' });
+        return;
+      }
+      if (!['image/png', 'image/jpeg'].includes(bannerFile.type)) {
+        toast({ title: 'Formato inválido', description: 'Envie JPG ou PNG.', variant: 'destructive' });
+        return;
+      }
+      if (bannerScope === 'school' && !bannerSchoolId) {
+        toast({ title: 'Selecione a escola', variant: 'destructive' });
+        return;
+      }
+
+      setUploadingBanner(true);
+      const imageUrl = await uploadImage(bannerFile, 'banners');
+      if (!imageUrl) return;
+
+      const { data: userData } = await supabase.auth.getUser();
+      const { error } = await supabase.from('school_banners').insert([
+        {
+          image_url: imageUrl,
+          is_global: bannerScope === 'global',
+          school_id: bannerScope === 'school' ? bannerSchoolId : null,
+          created_by: userData.user?.id ?? null,
+        },
+      ]);
+      if (error) throw error;
+
+      toast({ title: 'Banner enviado com sucesso' });
+      setBannerDialogOpen(false);
+      setBannerFile(null);
+      setBannerSchoolId('');
+      setBannerScope('global');
+    } catch (e: any) {
+      toast({ title: 'Erro', description: e.message || 'Falha ao enviar banner', variant: 'destructive' });
+    } finally {
+      setUploadingBanner(false);
+    }
+  };
+
   useEffect(() => {
     fetchData();
   }, []);
@@ -430,11 +479,62 @@ const AdminDashboard = () => {
       </div>
 
       {!minimized && <Tabs defaultValue="users" className="space-y-4">
-          <TabsList>
-            <TabsTrigger value="users">Usuários</TabsTrigger>
-            <TabsTrigger value="schools">Instituições
-        </TabsTrigger>
-          </TabsList>
+          <div className="flex items-center justify-between">
+            <TabsList>
+              <TabsTrigger value="users">Usuários</TabsTrigger>
+              <TabsTrigger value="schools">Instituições</TabsTrigger>
+            </TabsList>
+            <Dialog open={bannerDialogOpen} onOpenChange={setBannerDialogOpen}>
+              <DialogTrigger asChild>
+                <Button>Enviar Banner</Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                  <DialogTitle>Enviar Banner</DialogTitle>
+                  <DialogDescription>Envie imagens JPG ou PNG e defina o escopo.</DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label>Imagem (JPG ou PNG)</Label>
+                    <Input type="file" accept="image/png, image/jpeg" onChange={(e) => setBannerFile(e.target.files?.[0] || null)} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Escopo</Label>
+                    <Select value={bannerScope} onValueChange={(v: 'global' | 'school') => setBannerScope(v)}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione o escopo" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="global">Global (todas as escolas)</SelectItem>
+                        <SelectItem value="school">Por escola</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  {bannerScope === 'school' && (
+                    <div className="space-y-2">
+                      <Label>Escolha a escola</Label>
+                      <Select value={bannerSchoolId} onValueChange={(v) => setBannerSchoolId(v)}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione a escola" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {schools.map((s) => (
+                            <SelectItem key={s.id} value={s.id}>{s.school_name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+                  <div className="flex justify-end gap-2">
+                    <Button variant="ghost" onClick={() => setBannerDialogOpen(false)}>Cancelar</Button>
+                    <Button onClick={handleBannerUpload} disabled={uploadingBanner || (bannerScope==='school' && !bannerSchoolId)}>
+                      {uploadingBanner ? 'Enviando...' : 'Enviar'}
+                    </Button>
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
+          </div>
 
           <TabsContent value="users" className="space-y-4">
             <div className="flex justify-between items-center">
