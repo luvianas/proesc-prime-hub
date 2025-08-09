@@ -148,7 +148,7 @@ const Index = () => {
     return <div className="min-h-screen">
         <div className="flex items-center justify-between p-4 border-b bg-card/50 backdrop-blur">
           <div className="flex items-center gap-3">
-            {schoolHeader?.logoUrl ? <img src={schoolHeader.logoUrl} alt={`Logo ${schoolHeader.schoolName}`} className="w-10 h-10 object-contain rounded" loading="lazy" /> : <div className="w-10 h-10 rounded bg-primary text-primary-foreground flex items-center justify-center font-bold">
+            {schoolHeader?.logoUrl ? <img src={schoolHeader.logoUrl} alt={`Logo ${schoolHeader.schoolName}`} className="w-12 h-12 object-contain rounded" loading="lazy" /> : <div className="w-12 h-12 rounded bg-primary text-primary-foreground flex items-center justify-center font-bold">
                 {schoolHeader?.schoolName?.charAt(0).toUpperCase()}
               </div>}
             <div>
