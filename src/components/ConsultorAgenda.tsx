@@ -6,16 +6,15 @@ import { Badge } from "@/components/ui/badge";
 
 interface ConsultorAgendaProps {
   onBack: () => void;
+  consultantName?: string;
+  consultantWhatsapp?: string;
+  consultantPhotoUrl?: string;
+  calendarEmbedUrl?: string;
 }
 
-const ConsultorAgenda = ({ onBack }: ConsultorAgendaProps) => {
-  const consultant = {
-    name: "Maria Silva",
-    role: "Consultora Educacional",
-    phone: "+55 11 99999-9999",
-    email: "maria.silva@redhouse.edu.br",
-    avatar: "/lovable-uploads/e591c8ad-1800-4b34-afed-43510f6a8268.png"
-  };
+const ConsultorAgenda = ({ onBack, consultantName, consultantWhatsapp, consultantPhotoUrl, calendarEmbedUrl }: ConsultorAgendaProps) => {
+  const name = consultantName || "Consultor(a)";
+  const photo = consultantPhotoUrl || undefined;
 
   const upcomingMeetings = [
     {
@@ -33,8 +32,12 @@ const ConsultorAgenda = ({ onBack }: ConsultorAgendaProps) => {
   ];
 
   const handleWhatsAppClick = () => {
-    const whatsappUrl = `https://wa.me/5511999999999?text=Olá! Gostaria de agendar uma reunião.`;
-    window.open(whatsappUrl, '_blank');
+    const phone = (consultantWhatsapp || '').replace(/\D/g, '');
+    if (!phone) {
+      window.alert('WhatsApp do consultor não configurado.');
+      return;
+    }
+    window.open(`https://wa.me/${phone}`, '_blank');
   };
 
   return (
@@ -56,16 +59,13 @@ const ConsultorAgenda = ({ onBack }: ConsultorAgendaProps) => {
         <Card className="lg:col-span-1">
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
-              <div className="w-12 h-12 rounded-full overflow-hidden">
-                <img 
-                  src={consultant.avatar} 
-                  alt={consultant.name}
-                  className="w-full h-full object-cover"
-                />
-              </div>
+              {photo && (
+                <div className="w-12 h-12 rounded-full overflow-hidden">
+                  <img src={photo} alt={name} className="w-full h-full object-cover" />
+                </div>
+              )}
               <div>
-                <h3 className="text-lg font-semibold">{consultant.name}</h3>
-                <p className="text-sm text-muted-foreground">{consultant.role}</p>
+                <h3 className="text-lg font-semibold">{name}</h3>
               </div>
             </CardTitle>
           </CardHeader>
@@ -130,7 +130,7 @@ const ConsultorAgenda = ({ onBack }: ConsultorAgendaProps) => {
         </CardHeader>
         <CardContent className="p-0">
           <iframe
-            src="https://calendar.google.com/calendar/embed?src=c_classroom34b38741%40group.calendar.google.com&ctz=America%2FSao_Paulo"
+            src={calendarEmbedUrl || "https://calendar.google.com/calendar/embed?src=c_classroom34b38741%40group.calendar.google.com&ctz=America%2FSao_Paulo"}
             title="Calendário do Consultor"
             width="100%"
             height="600"

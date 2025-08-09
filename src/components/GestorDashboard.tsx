@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { ExternalLink, School, User, BarChart3, MessageCircle, Bot, CalendarDays, ListChecks, ClipboardList, LineChart, Wallet, ClipboardCheck, GraduationCap } from 'lucide-react';
+import { ExternalLink, School, User, BarChart3, Bot, CalendarDays, ClipboardList, LineChart, Wallet, ClipboardCheck, GraduationCap } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
@@ -14,7 +14,7 @@ import FinancialDashboard from '@/components/FinancialDashboard';
 import SecretariaDashboard from '@/components/SecretariaDashboard';
 import PedagogicoDashboard from '@/components/PedagogicoDashboard';
 import AgendaDashboard from '@/components/AgendaDashboard';
-import TicketQueue from '@/components/TicketQueue';
+
 
 interface SchoolCustomization {
   id: string;
@@ -45,7 +45,6 @@ const GestorDashboard = () => {
   const [activeSection, setActiveSection] = useState<
     | 'home'
     | 'tickets'
-    | 'queue'
     | 'consultor-agenda'
     | 'dash-matricula'
     | 'dash-financeiro'
@@ -63,7 +62,7 @@ const GestorDashboard = () => {
 
   useEffect(() => {
     document.title = 'Proesc Prime - Painel do Gestor';
-    const desc = 'Portal Prime para gestores: tickets, WhatsApp do consultor, agenda e dashboards.';
+    const desc = 'Portal Prime para gestores: tickets, agenda do consultor e dashboards.';
     let meta = document.querySelector('meta[name="description"]');
     if (!meta) {
       meta = document.createElement('meta');
@@ -154,18 +153,6 @@ const GestorDashboard = () => {
     window.open(url, '_blank');
   };
 
-  const handleWhatsAppClick = () => {
-    const phone = schoolData?.consultant_whatsapp?.replace(/\D/g, '');
-    if (!phone) {
-      toast({
-        title: 'WhatsApp não configurado',
-        description: 'Solicite ao administrador para configurar o WhatsApp do consultor.',
-        variant: 'destructive',
-      });
-      return;
-    }
-    window.open(`https://wa.me/${phone}`, '_blank');
-  };
 
   if (!schoolData) return null;
 
@@ -175,8 +162,16 @@ const GestorDashboard = () => {
     return (
       <div className="container mx-auto p-4">
         {activeSection === 'tickets' && <TicketSystem onBack={back} />}
-        {activeSection === 'queue' && <TicketQueue onBack={back} />}
-        {activeSection === 'consultor-agenda' && <ConsultorAgenda onBack={back} />}
+        
+        {activeSection === 'consultor-agenda' && (
+          <ConsultorAgenda
+            onBack={back}
+            consultantName={schoolData.consultant_name}
+            consultantWhatsapp={schoolData.consultant_whatsapp}
+            consultantPhotoUrl={schoolData.consultant_photo_url}
+            calendarEmbedUrl={schoolData.consultant_calendar_url}
+          />
+        )}
         {activeSection === 'dash-matricula' && <MatriculaDashboard onBack={back} />}
         {activeSection === 'dash-financeiro' && <FinancialDashboard onBack={back} />}
         {activeSection === 'dash-agenda' && <AgendaDashboard onBack={back} />}
@@ -233,21 +228,13 @@ const GestorDashboard = () => {
                 <Button variant="outline" onClick={() => setShowAssistant(true)} aria-label="Abrir IA Assistente">
                   <Bot className="h-4 w-4 mr-2" /> IA Assistente
                 </Button>
-                {schoolData.consultant_photo_url && (
-                  <img
-                    src={schoolData.consultant_photo_url}
-                    alt="Foto do consultor"
-                    className="w-16 h-16 rounded-full object-cover border-2"
-                    style={{ borderColor: schoolData.theme_color }}
-                  />
-                )}
               </div>
             </div>
           </CardContent>
         </Card>
 
-        {/* Acessos Rápidos */}
-        <section className="grid md:grid-cols-3 gap-6">
+        {/* Destaques */}
+        <section className="grid md:grid-cols-2 gap-6">
           <Card className="hover:shadow-md transition-shadow">
             <CardHeader>
               <CardTitle className="flex items-center gap-2"><ClipboardList className="h-5 w-5" /> Acompanhar Tickets</CardTitle>
@@ -256,30 +243,6 @@ const GestorDashboard = () => {
             <CardContent>
               <Button className="w-full" onClick={() => setActiveSection('tickets')}>
                 Abrir
-              </Button>
-            </CardContent>
-          </Card>
-
-          <Card className="hover:shadow-md transition-shadow">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2"><ListChecks className="h-5 w-5" /> Fila de Tickets</CardTitle>
-              <CardDescription>Veja a ordem de atendimento</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Button variant="outline" className="w-full" onClick={() => setActiveSection('queue')}>
-                Abrir
-              </Button>
-            </CardContent>
-          </Card>
-
-          <Card className="hover:shadow-md transition-shadow">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2"><MessageCircle className="h-5 w-5" /> WhatsApp do Consultor</CardTitle>
-              <CardDescription>Fale diretamente com o seu consultor</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Button className="w-full" onClick={handleWhatsAppClick}>
-                Abrir WhatsApp
               </Button>
             </CardContent>
           </Card>
@@ -295,115 +258,97 @@ const GestorDashboard = () => {
               </Button>
             </CardContent>
           </Card>
-
-          <Card className="hover:shadow-md transition-shadow">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2"><LineChart className="h-5 w-5" /> Dashboard de Matrícula</CardTitle>
-              <CardDescription>Acompanhe seu funil de matrículas</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Button className="w-full" onClick={() => setActiveSection('dash-matricula')}>
-                Abrir
-              </Button>
-            </CardContent>
-          </Card>
-
-          <Card className="hover:shadow-md transition-shadow">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2"><Wallet className="h-5 w-5" /> Dashboard Financeiro</CardTitle>
-              <CardDescription>Receitas, inadimplência e projeções</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Button variant="outline" className="w-full" onClick={() => setActiveSection('dash-financeiro')}>
-                Abrir
-              </Button>
-            </CardContent>
-          </Card>
-
-          <Card className="hover:shadow-md transition-shadow">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2"><CalendarDays className="h-5 w-5" /> Proesc Agenda</CardTitle>
-              <CardDescription>Compromissos e lembretes acadêmicos</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Button className="w-full" onClick={() => setActiveSection('dash-agenda')}>
-                Abrir
-              </Button>
-            </CardContent>
-          </Card>
-
-          <Card className="hover:shadow-md transition-shadow">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2"><ClipboardCheck className="h-5 w-5" /> Dashboard Secretaria</CardTitle>
-              <CardDescription>Gestão documental e processos</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Button variant="outline" className="w-full" onClick={() => setActiveSection('dash-secretaria')}>
-                Abrir
-              </Button>
-            </CardContent>
-          </Card>
-
-          <Card className="hover:shadow-md transition-shadow">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2"><GraduationCap className="h-5 w-5" /> Dashboard Pedagógico</CardTitle>
-              <CardDescription>Avaliações e desempenho acadêmico</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Button className="w-full" onClick={() => setActiveSection('dash-pedagogico')}>
-                Abrir
-              </Button>
-            </CardContent>
-          </Card>
         </section>
 
-        {/* Integrações (opcionais) */}
-        <div className="grid md:grid-cols-2 gap-6">
-          <Card className="hover:shadow-md transition-shadow">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <MessageCircle className="w-5 h-5" style={{ color: schoolData.theme_color }} />
-                Suporte - Zendesk
-              </CardTitle>
-              <CardDescription>Acesse o sistema de tickets</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Button
-                onClick={() => handleExternalLink(schoolData.zendesk_integration_url, 'Zendesk')}
-                className="w-full"
-                style={{ backgroundColor: schoolData.theme_color, borderColor: schoolData.theme_color }}
-              >
-                <ExternalLink className="w-4 h-4 mr-2" /> Abrir Zendesk
-              </Button>
-              {!schoolData.zendesk_integration_url && (
-                <p className="text-xs text-muted-foreground mt-2 text-center">Integração não configurada</p>
-              )}
-            </CardContent>
-          </Card>
+        {/* Dashboards */}
+        <section className="space-y-4">
+          <h2 className="text-xl font-semibold">Dashboards</h2>
+          <div className="grid md:grid-cols-3 gap-6">
+            <Card className="hover:shadow-md transition-shadow">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2"><LineChart className="h-5 w-5" /> Dashboard de Matrícula</CardTitle>
+                <CardDescription>Acompanhe seu funil de matrículas</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Button className="w-full" onClick={() => setActiveSection('dash-matricula')}>
+                  Abrir
+                </Button>
+              </CardContent>
+            </Card>
 
-          <Card className="hover:shadow-md transition-shadow">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <BarChart3 className="w-5 h-5" style={{ color: schoolData.theme_color }} />
-                Dashboards - Metabase
-              </CardTitle>
-              <CardDescription>Relatórios e métricas</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Button
-                onClick={() => handleExternalLink(schoolData.metabase_integration_url, 'Metabase')}
-                className="w-full"
-                variant="outline"
-                style={{ borderColor: schoolData.theme_color, color: schoolData.theme_color }}
-              >
-                <ExternalLink className="w-4 h-4 mr-2" /> Abrir Metabase
-              </Button>
-              {!schoolData.metabase_integration_url && (
-                <p className="text-xs text-muted-foreground mt-2 text-center">Integração não configurada</p>
-              )}
-            </CardContent>
-          </Card>
-        </div>
+            <Card className="hover:shadow-md transition-shadow">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2"><Wallet className="h-5 w-5" /> Dashboard Financeiro</CardTitle>
+                <CardDescription>Receitas, inadimplência e projeções</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Button variant="outline" className="w-full" onClick={() => setActiveSection('dash-financeiro')}>
+                  Abrir
+                </Button>
+              </CardContent>
+            </Card>
+
+            <Card className="hover:shadow-md transition-shadow">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2"><CalendarDays className="h-5 w-5" /> Proesc Agenda</CardTitle>
+                <CardDescription>Compromissos e lembretes acadêmicos</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Button className="w-full" onClick={() => setActiveSection('dash-agenda')}>
+                  Abrir
+                </Button>
+              </CardContent>
+            </Card>
+
+            <Card className="hover:shadow-md transition-shadow">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2"><ClipboardCheck className="h-5 w-5" /> Dashboard Secretaria</CardTitle>
+                <CardDescription>Gestão documental e processos</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Button variant="outline" className="w-full" onClick={() => setActiveSection('dash-secretaria')}>
+                  Abrir
+                </Button>
+              </CardContent>
+            </Card>
+
+            <Card className="hover:shadow-md transition-shadow">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2"><GraduationCap className="h-5 w-5" /> Dashboard Pedagógico</CardTitle>
+                <CardDescription>Avaliações e desempenho acadêmico</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Button className="w-full" onClick={() => setActiveSection('dash-pedagogico')}>
+                  Abrir
+                </Button>
+              </CardContent>
+            </Card>
+
+            <Card className="hover:shadow-md transition-shadow">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <BarChart3 className="w-5 h-5" style={{ color: schoolData.theme_color }} />
+                  Dashboards - Metabase
+                </CardTitle>
+                <CardDescription>Relatórios e métricas</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Button
+                  onClick={() => handleExternalLink(schoolData.metabase_integration_url, 'Metabase')}
+                  className="w-full"
+                  variant="outline"
+                  style={{ borderColor: schoolData.theme_color, color: schoolData.theme_color }}
+                >
+                  <ExternalLink className="w-4 h-4 mr-2" /> Abrir Metabase
+                </Button>
+                {!schoolData.metabase_integration_url && (
+                  <p className="text-xs text-muted-foreground mt-2 text-center">Integração não configurada</p>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </section>
+
 
         {showAssistant && <AIAssistant onClose={() => setShowAssistant(false)} />}
       </div>

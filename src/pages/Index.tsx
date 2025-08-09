@@ -63,8 +63,7 @@ const Index = () => {
   if (userRole === 'gestor') {
     return (
       <div className="min-h-screen">
-        <div className="flex items-center justify-between p-4 border-b bg-card/50 backdrop-blur">
-          <h1 className="text-xl font-semibold">Sistema de Gestão</h1>
+        <div className="flex items-center justify-end p-4 border-b bg-card/50 backdrop-blur">
           <Button variant="outline" onClick={signOut}>
             <LogOut className="w-4 h-4 mr-2" />
             Sair

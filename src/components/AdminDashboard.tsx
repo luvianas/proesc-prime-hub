@@ -42,6 +42,7 @@ interface SchoolCustomization {
   logo_url?: string;
   consultant_name?: string;
   consultant_photo_url?: string;
+  consultant_calendar_url?: string;
   zendesk_integration_url?: string;
   metabase_integration_url?: string;
   created_at: string;
@@ -74,6 +75,7 @@ const AdminDashboard = () => {
     logo_url: '',
     consultant_name: '',
     consultant_photo_url: '',
+    consultant_calendar_url: '',
     zendesk_integration_url: '',
     metabase_integration_url: ''
   });
@@ -392,6 +394,7 @@ const AdminDashboard = () => {
         logo_url: editingSchool.logo_url,
         consultant_name: editingSchool.consultant_name,
         consultant_photo_url: editingSchool.consultant_photo_url,
+        consultant_calendar_url: editingSchool.consultant_calendar_url,
         zendesk_integration_url: editingSchool.zendesk_integration_url,
         metabase_integration_url: editingSchool.metabase_integration_url
       }).eq('id', editingSchool.id);
@@ -668,6 +671,15 @@ const AdminDashboard = () => {
                       {newSchool.consultant_photo_url && <img src={newSchool.consultant_photo_url} alt="Foto do consultor" className="h-12 rounded" />}
                     </div>
                     <div className="space-y-2">
+                      <Label htmlFor="calendarUrl">Link de incorporação do Google Calendar</Label>
+                      <Input
+                        id="calendarUrl"
+                        value={newSchool.consultant_calendar_url || ''}
+                        onChange={e => setNewSchool({ ...newSchool, consultant_calendar_url: e.target.value })}
+                        placeholder="https://calendar.google.com/calendar/embed?..."
+                      />
+                    </div>
+                    <div className="space-y-2">
                       <Label htmlFor="zendeskUrl">URL Integração Zendesk</Label>
                       <Input id="zendeskUrl" value={newSchool.zendesk_integration_url} onChange={e => setNewSchool({
                     ...newSchool,
@@ -877,6 +889,15 @@ const AdminDashboard = () => {
             }} />
                 {uploadingConsultantEdit && <p className="text-sm text-muted-foreground">Enviando...</p>}
                 {editingSchool.consultant_photo_url && <img src={editingSchool.consultant_photo_url} alt="Foto do consultor" className="h-12 rounded" />}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-calendar-url">Link de incorporação do Google Calendar</Label>
+                <Input
+                  id="edit-calendar-url"
+                  value={editingSchool.consultant_calendar_url || ''}
+                  onChange={e => setEditingSchool({ ...editingSchool, consultant_calendar_url: e.target.value })}
+                  placeholder="https://calendar.google.com/calendar/embed?..."
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="edit-zendesk-url">URL Integração Zendesk</Label>
