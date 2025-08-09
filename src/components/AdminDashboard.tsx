@@ -9,12 +9,14 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
-import { Plus, Users, Settings, Trash2, School, Edit3, Minimize2, Maximize2 } from 'lucide-react';
+import { Plus, Users, Settings, Trash2, School, Edit3, Minimize2, Maximize2, User } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { createClient } from '@supabase/supabase-js';
 import BannersManager from '@/components/BannersManager';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+
 interface User {
   id: string;
   user_id: string;
@@ -25,7 +27,11 @@ interface User {
   created_at: string;
   updated_at: string;
   school_id?: string;
+  avatar_url?: string;
+  consultant_calendar_url?: string;
+  consultant_whatsapp?: string;
 }
+
 interface Environment {
   id: string;
   user_id: string;
@@ -36,14 +42,14 @@ interface Environment {
   settings: any;
   is_active: boolean;
 }
+
 interface SchoolCustomization {
   id: string;
   school_name: string;
-  theme_color: string;
+  primary_color: string;
+  secondary_color: string;
   logo_url?: string;
-  consultant_name?: string;
-  consultant_photo_url?: string;
-  consultant_calendar_url?: string;
+  consultant_id?: string;
   zendesk_integration_url?: string;
   metabase_integration_url?: string;
   dashboard_links?: any;
@@ -51,6 +57,7 @@ interface SchoolCustomization {
   updated_at: string;
   created_by: string;
 }
+
 const AdminDashboard = () => {
   const [users, setUsers] = useState<User[]>([]);
   const [environments, setEnvironments] = useState<Environment[]>([]);
@@ -60,6 +67,7 @@ const AdminDashboard = () => {
   const [schoolDialogOpen, setSchoolDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editSchoolDialogOpen, setEditSchoolDialogOpen] = useState(false);
+  const [profileDialogOpen, setProfileDialogOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [editingSchool, setEditingSchool] = useState<SchoolCustomization | null>(null);
   const [newUser, setNewUser] = useState({
@@ -86,15 +94,25 @@ const AdminDashboard = () => {
       pedagogico: ''
     }
   });
-  const {
-    toast
-  } = useToast();
-  const {
-    userRole
-  } = useAuth();
+
+  // Admin profile states
+  const [adminProfile, setAdminProfile] = useState({
+    name: '',
+    email: '',
+    avatar_url: '',
+    consultant_whatsapp: '',
+    consultant_calendar_url: ''
+  });
+  const [loadingProfile, setLoadingProfile] = useState(false);
+  const [savingProfile, setSavingProfile] = useState(false);
+  const [adminNewPassword, setAdminNewPassword] = useState('');
+  const [adminConfirmPassword, setAdminConfirmPassword] = useState('');
+
+  const { toast } = useToast();
+  const { user, userRole } = useAuth();
   const [minimized, setMinimized] = useState(false);
 
-  // Reautenticação para exclusão de escola (sem trocar a sessão atual)
+  // Delete school states
   const [deleteSchoolDialogOpen, setDeleteSchoolDialogOpen] = useState(false);
   const [schoolToDelete, setSchoolToDelete] = useState<SchoolCustomization | null>(null);
   const [confirmEmail, setConfirmEmail] = useState('');
@@ -104,11 +122,10 @@ const AdminDashboard = () => {
   const [schoolSearch, setSchoolSearch] = useState('');
   const TEMP_SUPABASE_URL = "https://yzlbtfhjohjhnqjbtmjn.supabase.co";
   const TEMP_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl6bGJ0Zmhqb2hqaG5xamJ0bWpuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQ0MjI4MzgsImV4cCI6MjA2OTk5ODgzOH0.wfdPLyebymkk34wW6GVm-fzq9zLO9-4xJQDSf3zEnTY";
+
   // Upload states for images
   const [uploadingLogoNew, setUploadingLogoNew] = useState(false);
-  const [uploadingConsultantNew, setUploadingConsultantNew] = useState(false);
   const [uploadingLogoEdit, setUploadingLogoEdit] = useState(false);
-  const [uploadingConsultantEdit, setUploadingConsultantEdit] = useState(false);
 
   // Banner upload dialog state
   const [bannerDialogOpen, setBannerDialogOpen] = useState(false);
@@ -142,10 +159,93 @@ const AdminDashboard = () => {
     }
   };
 
+  const handleAvatarChange = async (file: File) => {
+    if (!user || !file) return;
+    setLoadingProfile(true);
+    const path = `${user.id}/${Date.now()}-${file.name}`;
+    const { error: uploadError } = await supabase.storage
+      .from("avatars")
+      .upload(path, file, { upsert: true });
+    if (uploadError) {
+      toast({
+        title: "Erro ao enviar imagem",
+        description: uploadError.message,
+        variant: "destructive",
+      });
+      setLoadingProfile(false);
+      return;
+    }
+    const { data: publicUrlData } = supabase.storage
+      .from("avatars")
+      .getPublicUrl(path);
+    const url = publicUrlData.publicUrl;
+    setAdminProfile(prev => ({ ...prev, avatar_url: url }));
+    setLoadingProfile(false);
+    toast({ title: "Foto atualizada" });
+  };
+
+  const openAdminProfile = async () => {
+    if (!user) return;
+    setProfileDialogOpen(true);
+    setLoadingProfile(true);
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("name,email,avatar_url,consultant_whatsapp,consultant_calendar_url")
+      .eq("user_id", user.id)
+      .single();
+    setAdminProfile({
+      name: profile?.name ?? "",
+      email: profile?.email ?? user.email ?? "",
+      avatar_url: profile?.avatar_url ?? "",
+      consultant_whatsapp: profile?.consultant_whatsapp ?? "",
+      consultant_calendar_url: profile?.consultant_calendar_url ?? ""
+    });
+    setLoadingProfile(false);
+  };
+
+  const saveAdminProfile = async () => {
+    if (!user) return;
+    if (adminNewPassword && adminNewPassword !== adminConfirmPassword) {
+      toast({ title: "Senhas não conferem", variant: "destructive" });
+      return;
+    }
+    setSavingProfile(true);
+    try {
+      const updates: { email?: string; password?: string } = {};
+      if (adminProfile.email && adminProfile.email !== user.email) updates.email = adminProfile.email;
+      if (adminNewPassword) updates.password = adminNewPassword;
+      if (updates.email || updates.password) {
+        const { error: authErr } = await supabase.auth.updateUser(updates);
+        if (authErr) throw authErr;
+      }
+      const { error: profErr } = await supabase
+        .from("profiles")
+        .update({ 
+          name: adminProfile.name, 
+          email: adminProfile.email, 
+          avatar_url: adminProfile.avatar_url,
+          consultant_whatsapp: adminProfile.consultant_whatsapp,
+          consultant_calendar_url: adminProfile.consultant_calendar_url
+        })
+        .eq("user_id", user.id);
+      if (profErr) throw profErr;
+      toast({ title: "Perfil atualizado com sucesso" });
+      setProfileDialogOpen(false);
+      setAdminNewPassword("");
+      setAdminConfirmPassword("");
+    } catch (e: any) {
+      toast({
+        title: "Erro ao atualizar perfil",
+        description: e.message,
+        variant: "destructive",
+      });
+    } finally {
+      setSavingProfile(false);
+    }
+  };
+
   const handleBannerUpload = async () => {
     try {
-      console.log('🚀 Iniciando upload de banner');
-      
       if (!bannerFile) {
         toast({ title: 'Selecione uma imagem', variant: 'destructive' });
         return;
@@ -161,19 +261,7 @@ const AdminDashboard = () => {
 
       setUploadingBanner(true);
       
-      // Verificar usuário atual e role
       const { data: userData } = await supabase.auth.getUser();
-      console.log('👤 Usuário atual:', userData.user?.id);
-      
-      // Verificar role do usuário
-      const { data: roleData, error: roleError } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('user_id', userData.user?.id)
-        .single();
-      
-      console.log('🔑 Role do usuário:', roleData, 'Erro:', roleError);
-      
       const imageUrl = await uploadImage(bannerFile, 'banners');
       if (!imageUrl) return;
 
@@ -184,15 +272,11 @@ const AdminDashboard = () => {
         created_by: userData.user?.id ?? null,
       };
       
-      console.log('📝 Dados do banner a serem inseridos:', bannerData);
-      
       const { data: insertResult, error } = await supabase
         .from('school_banners')
         .insert([bannerData])
         .select();
         
-      console.log('💾 Resultado da inserção:', insertResult, 'Erro:', error);
-      
       if (error) throw error;
 
       toast({ title: 'Banner enviado com sucesso' });
@@ -202,7 +286,6 @@ const AdminDashboard = () => {
       setBannerSchoolId('');
       setBannerScope('global');
     } catch (e: any) {
-      console.error('❌ Erro completo no upload:', e);
       toast({ title: 'Erro', description: e.message || 'Falha ao enviar banner', variant: 'destructive' });
     } finally {
       setUploadingBanner(false);
@@ -212,15 +295,14 @@ const AdminDashboard = () => {
   useEffect(() => {
     fetchData();
   }, []);
+
   const fetchData = async () => {
     try {
-      const [usersResponse, environmentsResponse, schoolsResponse] = await Promise.all([supabase.from('profiles').select('*').order('created_at', {
-        ascending: false
-      }), supabase.from('environments').select('*').order('created_at', {
-        ascending: false
-      }), supabase.from('school_customizations').select('*').order('created_at', {
-        ascending: false
-      })]);
+      const [usersResponse, environmentsResponse, schoolsResponse] = await Promise.all([
+        supabase.from('profiles').select('*').order('created_at', { ascending: false }),
+        supabase.from('environments').select('*').order('created_at', { ascending: false }),
+        supabase.from('school_customizations').select('*').order('created_at', { ascending: false })
+      ]);
       if (usersResponse.data) setUsers(usersResponse.data);
       if (environmentsResponse.data) setEnvironments(environmentsResponse.data);
       if (schoolsResponse.data) setSchools(schoolsResponse.data);
@@ -235,12 +317,10 @@ const AdminDashboard = () => {
       setLoading(false);
     }
   };
+
   const createSchool = async () => {
     try {
-      const {
-        data,
-        error
-      } = await supabase.from('school_customizations').insert([{
+      const { data, error } = await supabase.from('school_customizations').insert([{
         ...newSchool,
         created_by: (await supabase.auth.getUser()).data.user?.id
       }]).select().single();
@@ -274,15 +354,12 @@ const AdminDashboard = () => {
       });
     }
   };
+
   const createUser = async () => {
     try {
       setLoading(true);
 
-      // Create user in Supabase Auth
-      const {
-        data: authData,
-        error: authError
-      } = await supabase.auth.signUp({
+      const { data: authData, error: authError } = await supabase.auth.signUp({
         email: newUser.email,
         password: newUser.password,
         options: {
@@ -294,14 +371,12 @@ const AdminDashboard = () => {
       });
       if (authError) throw authError;
 
-      // If it's a gestor, link to school
       if (authData.user && newUser.role === 'gestor' && newUser.schoolId) {
         await supabase.from('profiles').update({
           school_id: newUser.schoolId
         }).eq('user_id', authData.user.id);
       }
 
-      // Update environment name and theme if needed
       if (authData.user) {
         await supabase.from('environments').update({
           name: newUser.environmentName || 'Meu Ambiente',
@@ -334,11 +409,10 @@ const AdminDashboard = () => {
       setLoading(false);
     }
   };
+
   const toggleUserStatus = async (userId: string, currentStatus: boolean) => {
     try {
-      const {
-        error
-      } = await supabase.from('profiles').update({
+      const { error } = await supabase.from('profiles').update({
         is_active: !currentStatus
       }).eq('user_id', userId);
       if (error) throw error;
@@ -358,16 +432,12 @@ const AdminDashboard = () => {
       });
     }
   };
+
   const deleteUser = async (userId: string) => {
     if (!confirm('Tem certeza que deseja excluir este usuário?')) return;
     try {
-      const {
-        data,
-        error
-      } = await supabase.functions.invoke('delete-auth-user', {
-        body: {
-          user_id: userId
-        }
+      const { data, error } = await supabase.functions.invoke('delete-auth-user', {
+        body: { user_id: userId }
       });
       if (error) throw error;
       toast({
@@ -383,12 +453,14 @@ const AdminDashboard = () => {
       });
     }
   };
+
   const openDeleteSchoolDialog = (school: SchoolCustomization) => {
     setSchoolToDelete(school);
     setConfirmEmail('');
     setConfirmPassword('');
     setDeleteSchoolDialogOpen(true);
   };
+
   const confirmDeleteSchool = async () => {
     if (!schoolToDelete) return;
     try {
@@ -399,17 +471,12 @@ const AdminDashboard = () => {
           autoRefreshToken: false
         }
       });
-      const {
-        data: signInData,
-        error: signInError
-      } = await tempClient.auth.signInWithPassword({
+      const { data: signInData, error: signInError } = await tempClient.auth.signInWithPassword({
         email: confirmEmail,
         password: confirmPassword
       });
       if (signInError || !signInData?.user) throw new Error('Credenciais inválidas');
-      const {
-        error: delError
-      } = await tempClient.from('school_customizations').delete().eq('id', schoolToDelete.id);
+      const { error: delError } = await tempClient.from('school_customizations').delete().eq('id', schoolToDelete.id);
       if (delError) throw delError;
       toast({
         title: 'Sucesso',
@@ -428,28 +495,37 @@ const AdminDashboard = () => {
       setDeletingSchool(false);
     }
   };
+
   const getUserEnvironment = (userId: string) => {
     return environments.find(env => env.user_id === userId);
   };
+
   const getSchoolName = (schoolId: string | undefined) => {
     if (!schoolId) return '';
     const school = schools.find(s => s.id === schoolId);
     return school?.school_name || '';
   };
+
+  const getConsultantName = (consultantId: string | undefined) => {
+    if (!consultantId) return 'Não atribuído';
+    const consultant = users.find(u => u.user_id === consultantId);
+    return consultant?.name || 'Não encontrado';
+  };
+
   const editUser = (user: User) => {
     setEditingUser(user);
     setEditDialogOpen(true);
   };
+
   const editSchool = (school: SchoolCustomization) => {
     setEditingSchool(school);
     setEditSchoolDialogOpen(true);
   };
+
   const updateUser = async () => {
     if (!editingUser) return;
     try {
-      const {
-        error
-      } = await supabase.from('profiles').update({
+      const { error } = await supabase.from('profiles').update({
         name: editingUser.name,
         email: editingUser.email,
         role: editingUser.role,
@@ -471,18 +547,16 @@ const AdminDashboard = () => {
       });
     }
   };
+
   const updateSchool = async () => {
     if (!editingSchool) return;
     try {
-      const {
-        error
-      } = await supabase.from('school_customizations').update({
+      const { error } = await supabase.from('school_customizations').update({
         school_name: editingSchool.school_name,
-        theme_color: editingSchool.theme_color,
+        primary_color: editingSchool.primary_color,
+        secondary_color: editingSchool.secondary_color,
         logo_url: editingSchool.logo_url,
-        consultant_name: editingSchool.consultant_name,
-        consultant_photo_url: editingSchool.consultant_photo_url,
-        consultant_calendar_url: editingSchool.consultant_calendar_url,
+        consultant_id: editingSchool.consultant_id,
         zendesk_integration_url: editingSchool.zendesk_integration_url,
         metabase_integration_url: editingSchool.metabase_integration_url,
         dashboard_links: editingSchool.dashboard_links
@@ -503,21 +577,93 @@ const AdminDashboard = () => {
       });
     }
   };
+
   if (loading) {
-    return <div className="flex items-center justify-center min-h-screen">
+    return (
+      <div className="flex items-center justify-center min-h-screen">
         <div className="text-lg">Carregando...</div>
-      </div>;
+      </div>
+    );
   }
-  return <div className="container mx-auto p-6 space-y-6">
+
+  return (
+    <div className="container mx-auto p-6 space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">Painel Administrativo</h1>
           <p className="text-muted-foreground">Gerencie usuários e escolas do sistema</p>
         </div>
-        {userRole === 'admin'}
+        <div className="flex items-center gap-2">
+          <Button onClick={openAdminProfile} variant="outline">
+            <User className="w-4 h-4 mr-2" />
+            Meu Perfil
+          </Button>
+        </div>
       </div>
 
-      {!minimized && <Tabs defaultValue="users" className="space-y-4">
+      {/* Admin Profile Dialog */}
+      <Dialog open={profileDialogOpen} onOpenChange={setProfileDialogOpen}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Meu Perfil - Admin</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="flex items-center gap-4">
+              <Avatar className="h-16 w-16">
+                <AvatarImage src={adminProfile.avatar_url} alt="Foto do perfil" />
+                <AvatarFallback>
+                  {adminProfile.name?.charAt(0).toUpperCase() || 'A'}
+                </AvatarFallback>
+              </Avatar>
+              <div>
+                <Label htmlFor="avatar">Foto do perfil</Label>
+                <Input
+                  id="avatar"
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => e.target.files && handleAvatarChange(e.target.files[0])}
+                  disabled={loadingProfile}
+                />
+              </div>
+            </div>
+            <div className="space-y-3">
+              <div className="space-y-2">
+                <Label htmlFor="name">Nome</Label>
+                <Input id="name" value={adminProfile.name} onChange={(e) => setAdminProfile(prev => ({ ...prev, name: e.target.value }))} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="email">E-mail</Label>
+                <Input id="email" type="email" value={adminProfile.email} onChange={(e) => setAdminProfile(prev => ({ ...prev, email: e.target.value }))} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="whatsapp">WhatsApp</Label>
+                <Input id="whatsapp" value={adminProfile.consultant_whatsapp} onChange={(e) => setAdminProfile(prev => ({ ...prev, consultant_whatsapp: e.target.value }))} placeholder="(11) 99999-9999" />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="calendar">Link de incorporação da agenda</Label>
+                <Input id="calendar" value={adminProfile.consultant_calendar_url} onChange={(e) => setAdminProfile(prev => ({ ...prev, consultant_calendar_url: e.target.value }))} placeholder="https://calendar.google.com/calendar/embed?..." />
+              </div>
+              <div className="grid md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="password">Nova senha</Label>
+                  <Input id="password" type="password" value={adminNewPassword} onChange={(e) => setAdminNewPassword(e.target.value)} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="confirmPassword">Confirmar senha</Label>
+                  <Input id="confirmPassword" type="password" value={adminConfirmPassword} onChange={(e) => setAdminConfirmPassword(e.target.value)} />
+                </div>
+              </div>
+            </div>
+          </div>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button variant="ghost" onClick={() => setProfileDialogOpen(false)}>Cancelar</Button>
+            <Button onClick={saveAdminProfile} disabled={savingProfile}>{savingProfile ? 'Salvando...' : 'Salvar'}</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {!minimized && (
+        <Tabs defaultValue="users" className="space-y-4">
           <div className="flex items-center justify-between">
             <TabsList>
               <TabsTrigger value="users">Usuários</TabsTrigger>
@@ -597,30 +743,30 @@ const AdminDashboard = () => {
                     <div className="space-y-2">
                       <Label htmlFor="name">Nome</Label>
                       <Input id="name" value={newUser.name} onChange={e => setNewUser({
-                    ...newUser,
-                    name: e.target.value
-                  })} placeholder="Nome do usuário" />
+                        ...newUser,
+                        name: e.target.value
+                      })} placeholder="Nome do usuário" />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="email">Email</Label>
                       <Input id="email" type="email" value={newUser.email} onChange={e => setNewUser({
-                    ...newUser,
-                    email: e.target.value
-                  })} placeholder="email@exemplo.com" />
+                        ...newUser,
+                        email: e.target.value
+                      })} placeholder="email@exemplo.com" />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="password">Senha</Label>
                       <Input id="password" type="password" value={newUser.password} onChange={e => setNewUser({
-                    ...newUser,
-                    password: e.target.value
-                  })} placeholder="Senha" />
+                        ...newUser,
+                        password: e.target.value
+                      })} placeholder="Senha" />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="role">Tipo de Usuário</Label>
                       <Select value={newUser.role} onValueChange={(value: 'admin' | 'user' | 'gestor') => setNewUser({
-                    ...newUser,
-                    role: value
-                  })}>
+                        ...newUser,
+                        role: value
+                      })}>
                         <SelectTrigger>
                           <SelectValue placeholder="Selecione o tipo" />
                         </SelectTrigger>
@@ -632,36 +778,40 @@ const AdminDashboard = () => {
                       </Select>
                     </div>
                     
-                    {newUser.role === 'gestor' && <div className="space-y-2">
+                    {newUser.role === 'gestor' && (
+                      <div className="space-y-2">
                         <Label htmlFor="school">Escola</Label>
                         <Select value={newUser.schoolId} onValueChange={value => setNewUser({
-                    ...newUser,
-                    schoolId: value
-                  })}>
+                          ...newUser,
+                          schoolId: value
+                        })}>
                           <SelectTrigger>
                             <SelectValue placeholder="Selecione a escola" />
                           </SelectTrigger>
                           <SelectContent>
-                            {schools.map(school => <SelectItem key={school.id} value={school.id}>
+                            {schools.map(school => (
+                              <SelectItem key={school.id} value={school.id}>
                                 {school.school_name}
-                              </SelectItem>)}
+                              </SelectItem>
+                            ))}
                           </SelectContent>
                         </Select>
-                      </div>}
+                      </div>
+                    )}
                     
                     <div className="space-y-2">
                       <Label htmlFor="environmentName">Nome do Ambiente</Label>
                       <Input id="environmentName" value={newUser.environmentName} onChange={e => setNewUser({
-                    ...newUser,
-                    environmentName: e.target.value
-                  })} placeholder="Meu Ambiente" />
+                        ...newUser,
+                        environmentName: e.target.value
+                      })} placeholder="Meu Ambiente" />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="themeColor">Cor do Tema</Label>
                       <Input id="themeColor" type="color" value={newUser.themeColor} onChange={e => setNewUser({
-                    ...newUser,
-                    themeColor: e.target.value
-                  })} />
+                        ...newUser,
+                        themeColor: e.target.value
+                      })} />
                     </div>
                     <Button onClick={createUser} className="w-full" disabled={loading}>
                       {loading ? 'Criando...' : 'Criar Usuário'}
@@ -682,59 +832,77 @@ const AdminDashboard = () => {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                {/* Busca de Usuários */}
                 <div className="flex gap-2 items-center mb-4">
-                  <Input placeholder="Procurar usuários (nome, email, função, escola)" value={userSearch} onChange={e => setUserSearch(e.target.value)} />
-                  <Button type="button">Procurar</Button>
+                  <Input 
+                    placeholder="Procurar usuários (nome, email, função, escola)" 
+                    value={userSearch} 
+                    onChange={e => setUserSearch(e.target.value)} 
+                  />
                 </div>
 
                 <div className="space-y-4">
                   {users.filter(u => {
-                const q = userSearch.trim().toLowerCase();
-                if (!q) return true;
-                const roleLabel = u.role;
-                const schoolName = u.role === 'gestor' && u.school_id ? getSchoolName(u.school_id).toLowerCase() : '';
-                return u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q) || roleLabel.toLowerCase().includes(q) || schoolName.includes(q);
-              }).map(user => {
-                const environment = getUserEnvironment(user.user_id);
-                return <div key={user.id} className="flex items-center justify-between p-4 border rounded-lg">
-                          <div className="flex items-center space-x-4">
-                            <div className="w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold" style={{
-                      backgroundColor: environment?.theme_color || '#3b82f6'
-                    }}>
-                              {user.name.charAt(0).toUpperCase()}
-                            </div>
-                            <div>
-                              <div className="flex items-center gap-2">
-                                <p className="font-medium">{user.name}</p>
-                                <Badge variant={user.role === 'admin' ? 'default' : user.role === 'gestor' ? 'secondary' : 'outline'}>
-                                  {user.role === 'admin' ? 'Admin' : user.role === 'gestor' ? 'Gestor' : 'Usuário'}
-                                </Badge>
-                                <Badge variant={user.is_active ? 'default' : 'destructive'}>
-                                  {user.is_active ? 'Ativo' : 'Inativo'}
-                                </Badge>
-                              </div>
-                              <p className="text-sm text-muted-foreground">{user.email}</p>
-                              {user.role === 'gestor' && user.school_id && <p className="text-xs text-muted-foreground">
-                                  Escola: {getSchoolName(user.school_id)}
-                                </p>}
-                              {environment && <p className="text-xs text-muted-foreground">
-                                  Ambiente: {environment.name}
-                                </p>}
-                            </div>
+                    const q = userSearch.trim().toLowerCase();
+                    if (!q) return true;
+                    const roleLabel = u.role;
+                    const schoolName = u.role === 'gestor' && u.school_id ? getSchoolName(u.school_id).toLowerCase() : '';
+                    return u.name.toLowerCase().includes(q) || 
+                           u.email.toLowerCase().includes(q) || 
+                           roleLabel.toLowerCase().includes(q) || 
+                           schoolName.includes(q);
+                  }).map(user => {
+                    const environment = getUserEnvironment(user.user_id);
+                    return (
+                      <div key={user.id} className="flex items-center justify-between p-4 border rounded-lg">
+                        <div className="flex items-center space-x-4">
+                          <div 
+                            className="w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold" 
+                            style={{ backgroundColor: environment?.theme_color || '#3b82f6' }}
+                          >
+                            {user.name.charAt(0).toUpperCase()}
                           </div>
-                          
-                          <div className="flex items-center space-x-2">
-                            <Button variant="outline" size="sm" onClick={() => editUser(user)}>
-                              <Edit3 className="w-4 h-4" />
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <p className="font-medium">{user.name}</p>
+                              <Badge variant={user.role === 'admin' ? 'default' : user.role === 'gestor' ? 'secondary' : 'outline'}>
+                                {user.role === 'admin' ? 'Admin' : user.role === 'gestor' ? 'Gestor' : 'Usuário'}
+                              </Badge>
+                              <Badge variant={user.is_active ? 'default' : 'destructive'}>
+                                {user.is_active ? 'Ativo' : 'Inativo'}
+                              </Badge>
+                            </div>
+                            <p className="text-sm text-muted-foreground">{user.email}</p>
+                            {user.role === 'gestor' && user.school_id && (
+                              <p className="text-xs text-muted-foreground">
+                                Escola: {getSchoolName(user.school_id)}
+                              </p>
+                            )}
+                            {environment && (
+                              <p className="text-xs text-muted-foreground">
+                                Ambiente: {environment.name}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                        
+                        <div className="flex items-center space-x-2">
+                          <Button variant="outline" size="sm" onClick={() => editUser(user)}>
+                            <Edit3 className="w-4 h-4" />
+                          </Button>
+                          <Switch 
+                            checked={user.is_active} 
+                            onCheckedChange={() => toggleUserStatus(user.user_id, user.is_active)} 
+                            disabled={user.role === 'admin'} 
+                          />
+                          {user.role !== 'admin' && (
+                            <Button variant="destructive" size="sm" onClick={() => deleteUser(user.user_id)}>
+                              <Trash2 className="w-4 h-4" />
                             </Button>
-                            <Switch checked={user.is_active} onCheckedChange={() => toggleUserStatus(user.user_id, user.is_active)} disabled={user.role === 'admin'} />
-                            {user.role !== 'admin' && <Button variant="destructive" size="sm" onClick={() => deleteUser(user.user_id)}>
-                                <Trash2 className="w-4 h-4" />
-                              </Button>}
-                          </div>
-                        </div>;
-              })}
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </CardContent>
             </Card>
@@ -752,7 +920,7 @@ const AdminDashboard = () => {
                 </DialogTrigger>
                 <DialogContent className="sm:max-w-lg max-h-[80vh] overflow-y-auto">
                   <DialogHeader>
-                    <DialogTitle>Personalizar Nova Escola</DialogTitle>
+                    <DialogTitle>Criar Nova Escola</DialogTitle>
                     <DialogDescription>
                       Configure as personalizações da escola para os gestores
                     </DialogDescription>
@@ -760,40 +928,70 @@ const AdminDashboard = () => {
                   <div className="space-y-4">
                     <div className="space-y-2">
                       <Label htmlFor="schoolName">Nome da Escola</Label>
-                      <Input id="schoolName" value={newSchool.school_name} onChange={e => setNewSchool({
-                    ...newSchool,
-                    school_name: e.target.value
-                  })} placeholder="Nome da escola" />
+                      <Input 
+                        id="schoolName" 
+                        value={newSchool.school_name} 
+                        onChange={e => setNewSchool({
+                          ...newSchool,
+                          school_name: e.target.value
+                        })} 
+                        placeholder="Nome da escola" 
+                      />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="schoolPrimaryColor">Cor Primária</Label>
-                      <Input id="schoolPrimaryColor" type="color" value={newSchool.primary_color} onChange={e => setNewSchool({
-                    ...newSchool,
-                    primary_color: e.target.value
-                  })} />
+                      <Label htmlFor="schoolPrimaryColor">Cor Primária (Botões)</Label>
+                      <Input 
+                        id="schoolPrimaryColor" 
+                        type="color" 
+                        value={newSchool.primary_color} 
+                        onChange={e => setNewSchool({
+                          ...newSchool,
+                          primary_color: e.target.value
+                        })} 
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="schoolSecondaryColor">Cor Secundária (Textos)</Label>
+                      <Input 
+                        id="schoolSecondaryColor" 
+                        type="color" 
+                        value={newSchool.secondary_color} 
+                        onChange={e => setNewSchool({
+                          ...newSchool,
+                          secondary_color: e.target.value
+                        })} 
+                      />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="logoFile">Logo da Escola</Label>
-                      <Input id="logoFile" type="file" accept="image/*" onChange={async e => {
-                    const file = e.target.files?.[0];
-                    if (!file) return;
-                    setUploadingLogoNew(true);
-                    const url = await uploadImage(file, 'logos');
-                    setUploadingLogoNew(false);
-                    if (url) setNewSchool({
-                      ...newSchool,
-                      logo_url: url
-                    });
-                  }} />
+                      <Input 
+                        id="logoFile" 
+                        type="file" 
+                        accept="image/*" 
+                        onChange={async e => {
+                          const file = e.target.files?.[0];
+                          if (!file) return;
+                          setUploadingLogoNew(true);
+                          const url = await uploadImage(file, 'logos');
+                          setUploadingLogoNew(false);
+                          if (url) setNewSchool({
+                            ...newSchool,
+                            logo_url: url
+                          });
+                        }} 
+                      />
                       {uploadingLogoNew && <p className="text-sm text-muted-foreground">Enviando...</p>}
                       {newSchool.logo_url && <img src={newSchool.logo_url} alt="Logo da escola" className="h-12 rounded" />}
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="consultantSelect">Consultor</Label>
-                      <Select value={newSchool.consultant_id} onValueChange={value => setNewSchool({
-                    ...newSchool,
-                    consultant_id: value
-                  })}>
+                      <Select 
+                        value={newSchool.consultant_id} 
+                        onValueChange={value => setNewSchool({
+                          ...newSchool,
+                          consultant_id: value
+                        })}
+                      >
                         <SelectTrigger>
                           <SelectValue placeholder="Selecione um consultor" />
                         </SelectTrigger>
@@ -807,25 +1005,28 @@ const AdminDashboard = () => {
                       </Select>
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="secondaryColor">Cor Secundária</Label>
-                      <Input id="secondaryColor" type="color" value={newSchool.secondary_color} onChange={e => setNewSchool({
-                    ...newSchool,
-                    secondary_color: e.target.value
-                  })} />
-                    </div>
-                    <div className="space-y-2">
                       <Label htmlFor="zendeskUrl">URL Integração Zendesk</Label>
-                      <Input id="zendeskUrl" value={newSchool.zendesk_integration_url} onChange={e => setNewSchool({
-                    ...newSchool,
-                    zendesk_integration_url: e.target.value
-                  })} placeholder="https://escola.zendesk.com" />
+                      <Input 
+                        id="zendeskUrl" 
+                        value={newSchool.zendesk_integration_url} 
+                        onChange={e => setNewSchool({
+                          ...newSchool,
+                          zendesk_integration_url: e.target.value
+                        })} 
+                        placeholder="https://escola.zendesk.com" 
+                      />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="metabaseUrl">URL Integração Metabase</Label>
-                      <Input id="metabaseUrl" value={newSchool.metabase_integration_url} onChange={e => setNewSchool({
-                    ...newSchool,
-                    metabase_integration_url: e.target.value
-                  })} placeholder="https://metabase.escola.com" />
+                      <Input 
+                        id="metabaseUrl" 
+                        value={newSchool.metabase_integration_url} 
+                        onChange={e => setNewSchool({
+                          ...newSchool,
+                          metabase_integration_url: e.target.value
+                        })} 
+                        placeholder="https://metabase.escola.com" 
+                      />
                     </div>
                     
                     <div className="space-y-4">
@@ -906,95 +1107,117 @@ const AdminDashboard = () => {
                   Escolas ({schools.length})
                 </CardTitle>
                 <CardDescription>
-                  Personalizações configuradas para as escolas
+                  Lista de todas as escolas do sistema
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                {/* Busca de Escolas */}
                 <div className="flex gap-2 items-center mb-4">
-                  <Input placeholder="Procurar escolas (nome, consultor, integrações)" value={schoolSearch} onChange={e => setSchoolSearch(e.target.value)} />
-                  <Button type="button">Procurar</Button>
+                  <Input 
+                    placeholder="Procurar escolas (nome)" 
+                    value={schoolSearch} 
+                    onChange={e => setSchoolSearch(e.target.value)} 
+                  />
                 </div>
 
-                <div className="grid gap-4">
+                <div className="space-y-4">
                   {schools.filter(s => {
-                const q = schoolSearch.trim().toLowerCase();
-                if (!q) return true;
-                const integrations = `${s.zendesk_integration_url ? 'zendesk' : ''} ${s.metabase_integration_url ? 'metabase' : ''}`;
-                return s.school_name.toLowerCase().includes(q) || (s.consultant_name || '').toLowerCase().includes(q) || integrations.includes(q);
-              }).map(school => <div key={school.id} className="p-4 border rounded-lg">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center space-x-4">
-                            <div className="w-12 h-12 rounded-lg flex items-center justify-center text-white font-bold" style={{
-                      backgroundColor: school.theme_color
-                    }}>
-                              {school.school_name.charAt(0).toUpperCase()}
-                            </div>
-                            <div>
-                              <h3 className="font-semibold">{school.school_name}</h3>
-                              {school.consultant_name && <p className="text-sm text-muted-foreground">
-                                  Consultor: {school.consultant_name}
-                                </p>}
-                              <div className="flex gap-2 mt-2">
-                                {school.zendesk_integration_url && <Badge variant="outline">Zendesk</Badge>}
-                                {school.metabase_integration_url && <Badge variant="outline">Metabase</Badge>}
-                              </div>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <Button variant="outline" size="sm" onClick={() => editSchool(school)}>
-                              <Edit3 className="w-4 h-4 mr-2" />
-                              Editar
-                            </Button>
-                            <Button variant="destructive" size="sm" onClick={() => openDeleteSchoolDialog(school)}>
-                              <Trash2 className="w-4 h-4 mr-2" />
-                              Excluir
-                            </Button>
-                          </div>
+                    const q = schoolSearch.trim().toLowerCase();
+                    if (!q) return true;
+                    return s.school_name.toLowerCase().includes(q);
+                  }).map(school => (
+                    <div key={school.id} className="flex items-center justify-between p-4 border rounded-lg">
+                      <div className="flex items-center space-x-4">
+                        <div 
+                          className="w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold" 
+                          style={{ backgroundColor: school.primary_color }}
+                        >
+                          {school.school_name.charAt(0).toUpperCase()}
                         </div>
-                      </div>)}
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <p className="font-medium">{school.school_name}</p>
+                            <div 
+                              className="w-4 h-4 rounded-full border" 
+                              style={{ backgroundColor: school.primary_color }}
+                              title="Cor primária"
+                            />
+                            <div 
+                              className="w-4 h-4 rounded-full border" 
+                              style={{ backgroundColor: school.secondary_color }}
+                              title="Cor secundária"
+                            />
+                          </div>
+                          <p className="text-sm text-muted-foreground">
+                            Consultor: {getConsultantName(school.consultant_id)}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            Criado em: {new Date(school.created_at).toLocaleDateString()}
+                          </p>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-center space-x-2">
+                        <Button variant="outline" size="sm" onClick={() => editSchool(school)}>
+                          <Edit3 className="w-4 h-4" />
+                        </Button>
+                        <Button variant="destructive" size="sm" onClick={() => openDeleteSchoolDialog(school)}>
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </CardContent>
             </Card>
           </TabsContent>
+
           <TabsContent value="banners" className="space-y-4">
             <BannersManager key={bannersReloadKey} />
           </TabsContent>
-        </Tabs>}
-
+        </Tabs>
+      )}
 
       {/* Edit User Dialog */}
       <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-        <DialogContent className="sm:max-w-md max-h-[80vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Editar Usuário</DialogTitle>
-            <DialogDescription>
-              Edite as informações do usuário
-            </DialogDescription>
           </DialogHeader>
-          {editingUser && <div className="space-y-4">
+          {editingUser && (
+            <div className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="edit-name">Nome</Label>
-                <Input id="edit-name" value={editingUser.name} onChange={e => setEditingUser({
-              ...editingUser,
-              name: e.target.value
-            })} placeholder="Nome do usuário" />
+                <Label htmlFor="editName">Nome</Label>
+                <Input 
+                  id="editName" 
+                  value={editingUser.name} 
+                  onChange={e => setEditingUser({
+                    ...editingUser,
+                    name: e.target.value
+                  })} 
+                />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="edit-email">Email</Label>
-                <Input id="edit-email" type="email" value={editingUser.email} onChange={e => setEditingUser({
-              ...editingUser,
-              email: e.target.value
-            })} placeholder="email@exemplo.com" />
+                <Label htmlFor="editEmail">Email</Label>
+                <Input 
+                  id="editEmail" 
+                  value={editingUser.email} 
+                  onChange={e => setEditingUser({
+                    ...editingUser,
+                    email: e.target.value
+                  })} 
+                />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="edit-role">Tipo de Usuário</Label>
-                <Select value={editingUser.role} onValueChange={(value: 'admin' | 'user' | 'gestor') => setEditingUser({
-              ...editingUser,
-              role: value
-            })}>
+                <Label htmlFor="editRole">Tipo de Usuário</Label>
+                <Select 
+                  value={editingUser.role} 
+                  onValueChange={(value: 'admin' | 'user' | 'gestor') => setEditingUser({
+                    ...editingUser,
+                    role: value
+                  })}
+                >
                   <SelectTrigger>
-                    <SelectValue placeholder="Selecione o tipo" />
+                    <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="user">Usuário</SelectItem>
@@ -1004,27 +1227,36 @@ const AdminDashboard = () => {
                 </Select>
               </div>
               
-              {editingUser.role === 'gestor' && <div className="space-y-2">
-                  <Label htmlFor="edit-school">Escola</Label>
-                  <Select value={editingUser.school_id || ''} onValueChange={value => setEditingUser({
-              ...editingUser,
-              school_id: value
-            })}>
+              {editingUser.role === 'gestor' && (
+                <div className="space-y-2">
+                  <Label htmlFor="editSchool">Escola</Label>
+                  <Select 
+                    value={editingUser.school_id || ''} 
+                    onValueChange={value => setEditingUser({
+                      ...editingUser,
+                      school_id: value
+                    })}
+                  >
                     <SelectTrigger>
                       <SelectValue placeholder="Selecione a escola" />
                     </SelectTrigger>
                     <SelectContent>
-                      {schools.map(school => <SelectItem key={school.id} value={school.id}>
+                      {schools.map(school => (
+                        <SelectItem key={school.id} value={school.id}>
                           {school.school_name}
-                        </SelectItem>)}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
-                </div>}
+                </div>
+              )}
               
-              <Button onClick={updateUser} className="w-full">
-                Atualizar Usuário
-              </Button>
-            </div>}
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={() => setEditDialogOpen(false)}>Cancelar</Button>
+                <Button onClick={updateUser}>Salvar</Button>
+              </div>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
 
@@ -1033,92 +1265,115 @@ const AdminDashboard = () => {
         <DialogContent className="sm:max-w-lg max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Editar Escola</DialogTitle>
-            <DialogDescription>
-              Edite as configurações da escola
-            </DialogDescription>
           </DialogHeader>
-          {editingSchool && <div className="space-y-4">
+          {editingSchool && (
+            <div className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="edit-school-name">Nome da Escola</Label>
-                <Input id="edit-school-name" value={editingSchool.school_name} onChange={e => setEditingSchool({
-              ...editingSchool,
-              school_name: e.target.value
-            })} placeholder="Nome da escola" />
+                <Label htmlFor="editSchoolName">Nome da Escola</Label>
+                <Input 
+                  id="editSchoolName" 
+                  value={editingSchool.school_name} 
+                  onChange={e => setEditingSchool({
+                    ...editingSchool,
+                    school_name: e.target.value
+                  })} 
+                />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="edit-school-theme">Cor do Tema</Label>
-                <Input id="edit-school-theme" type="color" value={editingSchool.theme_color} onChange={e => setEditingSchool({
-              ...editingSchool,
-              theme_color: e.target.value
-            })} />
+                <Label htmlFor="editPrimaryColor">Cor Primária (Botões)</Label>
+                <Input 
+                  id="editPrimaryColor" 
+                  type="color" 
+                  value={editingSchool.primary_color} 
+                  onChange={e => setEditingSchool({
+                    ...editingSchool,
+                    primary_color: e.target.value
+                  })} 
+                />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="edit-logo-file">Logo da Escola</Label>
-                <Input id="edit-logo-file" type="file" accept="image/*" onChange={async e => {
-              const file = e.target.files?.[0];
-              if (!file) return;
-              setUploadingLogoEdit(true);
-              const url = await uploadImage(file, 'logos');
-              setUploadingLogoEdit(false);
-              if (url && editingSchool) setEditingSchool({
-                ...editingSchool,
-                logo_url: url
-              });
-            }} />
+                <Label htmlFor="editSecondaryColor">Cor Secundária (Textos)</Label>
+                <Input 
+                  id="editSecondaryColor" 
+                  type="color" 
+                  value={editingSchool.secondary_color} 
+                  onChange={e => setEditingSchool({
+                    ...editingSchool,
+                    secondary_color: e.target.value
+                  })} 
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="editLogoFile">Logo da Escola</Label>
+                <Input 
+                  id="editLogoFile" 
+                  type="file" 
+                  accept="image/*" 
+                  onChange={async e => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    setUploadingLogoEdit(true);
+                    const url = await uploadImage(file, 'logos');
+                    setUploadingLogoEdit(false);
+                    if (url) setEditingSchool({
+                      ...editingSchool,
+                      logo_url: url
+                    });
+                  }} 
+                />
                 {uploadingLogoEdit && <p className="text-sm text-muted-foreground">Enviando...</p>}
                 {editingSchool.logo_url && <img src={editingSchool.logo_url} alt="Logo da escola" className="h-12 rounded" />}
               </div>
               <div className="space-y-2">
-                <Label htmlFor="edit-consultant-name">Nome do Consultor</Label>
-                <Input id="edit-consultant-name" value={editingSchool.consultant_name || ''} onChange={e => setEditingSchool({
-              ...editingSchool,
-              consultant_name: e.target.value
-            })} placeholder="Nome do consultor" />
+                <Label htmlFor="editConsultantSelect">Consultor</Label>
+                <Select 
+                  value={editingSchool.consultant_id || ''} 
+                  onValueChange={value => setEditingSchool({
+                    ...editingSchool,
+                    consultant_id: value
+                  })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione um consultor" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {users.filter(user => user.role === 'admin').map(user => (
+                      <SelectItem key={user.user_id} value={user.user_id}>
+                        {user.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="edit-consultant-photo-file">Foto do Consultor</Label>
-                <Input id="edit-consultant-photo-file" type="file" accept="image/*" onChange={async e => {
-              const file = e.target.files?.[0];
-              if (!file) return;
-              setUploadingConsultantEdit(true);
-              const url = await uploadImage(file, 'consultants');
-              setUploadingConsultantEdit(false);
-              if (url && editingSchool) setEditingSchool({
-                ...editingSchool,
-                consultant_photo_url: url
-              });
-            }} />
-                {uploadingConsultantEdit && <p className="text-sm text-muted-foreground">Enviando...</p>}
-                {editingSchool.consultant_photo_url && <img src={editingSchool.consultant_photo_url} alt="Foto do consultor" className="h-12 rounded" />}
+                <Label htmlFor="editZendeskUrl">URL Integração Zendesk</Label>
+                <Input 
+                  id="editZendeskUrl" 
+                  value={editingSchool.zendesk_integration_url || ''} 
+                  onChange={e => setEditingSchool({
+                    ...editingSchool,
+                    zendesk_integration_url: e.target.value
+                  })} 
+                />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="edit-calendar-url">Link de incorporação do Google Calendar</Label>
-                <Input id="edit-calendar-url" value={editingSchool.consultant_calendar_url || ''} onChange={e => setEditingSchool({
-              ...editingSchool,
-              consultant_calendar_url: e.target.value
-            })} placeholder="https://calendar.google.com/calendar/embed?..." />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="edit-zendesk-url">URL Integração Zendesk</Label>
-                <Input id="edit-zendesk-url" value={editingSchool.zendesk_integration_url || ''} onChange={e => setEditingSchool({
-              ...editingSchool,
-              zendesk_integration_url: e.target.value
-            })} placeholder="https://escola.zendesk.com" />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="edit-metabase-url">URL Integração Metabase</Label>
-                <Input id="edit-metabase-url" value={editingSchool.metabase_integration_url || ''} onChange={e => setEditingSchool({
-              ...editingSchool,
-              metabase_integration_url: e.target.value
-            })} placeholder="https://metabase.escola.com" />
+                <Label htmlFor="editMetabaseUrl">URL Integração Metabase</Label>
+                <Input 
+                  id="editMetabaseUrl" 
+                  value={editingSchool.metabase_integration_url || ''} 
+                  onChange={e => setEditingSchool({
+                    ...editingSchool,
+                    metabase_integration_url: e.target.value
+                  })} 
+                />
               </div>
               
               <div className="space-y-4">
                 <h4 className="font-medium">Links dos Dashboards (Metabase)</h4>
                 <div className="space-y-2">
-                  <Label htmlFor="edit-dash-financeiro">Dashboard Financeiro</Label>
+                  <Label htmlFor="editDashFinanceiro">Dashboard Financeiro</Label>
                   <Input 
-                    id="edit-dash-financeiro" 
+                    id="editDashFinanceiro" 
                     value={editingSchool.dashboard_links?.financeiro || ''} 
                     onChange={e => setEditingSchool({
                       ...editingSchool,
@@ -1127,13 +1382,12 @@ const AdminDashboard = () => {
                         financeiro: e.target.value
                       }
                     })} 
-                    placeholder="https://metabase.escola.com/public/dashboard/..." 
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="edit-dash-agenda">Dashboard Agenda</Label>
+                  <Label htmlFor="editDashAgenda">Dashboard Agenda</Label>
                   <Input 
-                    id="edit-dash-agenda" 
+                    id="editDashAgenda" 
                     value={editingSchool.dashboard_links?.agenda || ''} 
                     onChange={e => setEditingSchool({
                       ...editingSchool,
@@ -1142,13 +1396,12 @@ const AdminDashboard = () => {
                         agenda: e.target.value
                       }
                     })} 
-                    placeholder="https://metabase.escola.com/public/dashboard/..." 
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="edit-dash-secretaria">Dashboard Secretaria</Label>
+                  <Label htmlFor="editDashSecretaria">Dashboard Secretaria</Label>
                   <Input 
-                    id="edit-dash-secretaria" 
+                    id="editDashSecretaria" 
                     value={editingSchool.dashboard_links?.secretaria || ''} 
                     onChange={e => setEditingSchool({
                       ...editingSchool,
@@ -1157,13 +1410,12 @@ const AdminDashboard = () => {
                         secretaria: e.target.value
                       }
                     })} 
-                    placeholder="https://metabase.escola.com/public/dashboard/..." 
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="edit-dash-pedagogico">Dashboard Pedagógico</Label>
+                  <Label htmlFor="editDashPedagogico">Dashboard Pedagógico</Label>
                   <Input 
-                    id="edit-dash-pedagogico" 
+                    id="editDashPedagogico" 
                     value={editingSchool.dashboard_links?.pedagogico || ''} 
                     onChange={e => setEditingSchool({
                       ...editingSchool,
@@ -1172,40 +1424,64 @@ const AdminDashboard = () => {
                         pedagogico: e.target.value
                       }
                     })} 
-                    placeholder="https://metabase.escola.com/public/dashboard/..." 
                   />
                 </div>
               </div>
-              <Button onClick={updateSchool} className="w-full">
-                Atualizar Escola
-              </Button>
-            </div>}
+              
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={() => setEditSchoolDialogOpen(false)}>Cancelar</Button>
+                <Button onClick={updateSchool}>Salvar</Button>
+              </div>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
 
       {/* Delete School Dialog */}
       <Dialog open={deleteSchoolDialogOpen} onOpenChange={setDeleteSchoolDialogOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent>
           <DialogHeader>
             <DialogTitle>Confirmar Exclusão</DialogTitle>
-            <DialogDescription>Para excluir a escola, autentique-se novamente.</DialogDescription>
+            <DialogDescription>
+              Esta ação é irreversível. Digite suas credenciais para confirmar a exclusão da escola "{schoolToDelete?.school_name}".
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="confirm-email">Email</Label>
-              <Input id="confirm-email" type="email" value={confirmEmail} onChange={e => setConfirmEmail(e.target.value)} placeholder="email@exemplo.com" />
+              <Label htmlFor="confirmEmail">Email</Label>
+              <Input 
+                id="confirmEmail" 
+                type="email" 
+                value={confirmEmail} 
+                onChange={e => setConfirmEmail(e.target.value)} 
+                placeholder="Seu email" 
+              />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="confirm-password">Senha</Label>
-              <Input id="confirm-password" type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} placeholder="Sua senha" />
+              <Label htmlFor="confirmPassword">Senha</Label>
+              <Input 
+                id="confirmPassword" 
+                type="password" 
+                value={confirmPassword} 
+                onChange={e => setConfirmPassword(e.target.value)} 
+                placeholder="Sua senha" 
+              />
             </div>
-            <Button onClick={confirmDeleteSchool} disabled={deletingSchool} variant="destructive" className="w-full">
-              {deletingSchool ? 'Excluindo...' : 'Confirmar Exclusão'}
-            </Button>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => setDeleteSchoolDialogOpen(false)}>Cancelar</Button>
+              <Button 
+                variant="destructive" 
+                onClick={confirmDeleteSchool} 
+                disabled={deletingSchool || !confirmEmail || !confirmPassword}
+              >
+                {deletingSchool ? 'Excluindo...' : 'Excluir Escola'}
+              </Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>
-
-    </div>;
+    </div>
+  );
 };
+
 export default AdminDashboard;

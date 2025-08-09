@@ -150,15 +150,15 @@ const GestorDashboard = () => {
       </div>;
   }
   return <div className="min-h-screen" style={{
-    background: `linear-gradient(135deg, ${schoolData.theme_color}10 0%, ${schoolData.theme_color}05 100%)`
+    background: `linear-gradient(135deg, ${schoolData.primary_color}10 0%, ${schoolData.primary_color}05 100%)`
   }}>
       <div className="container mx-auto p-6 space-y-6">
         {/* Welcome Message */}
         <div className="text-center py-8">
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent mb-2">
+          <h1 className="text-4xl font-bold mb-2" style={{ color: schoolData.primary_color }}>
             Bem-vindo ao seu Portal Prime
           </h1>
-          <p className="text-lg text-muted-foreground">
+          <p className="text-lg" style={{ color: schoolData.secondary_color }}>
             {schoolData.school_name} - Gerencie sua escola com excelência
           </p>
         </div>

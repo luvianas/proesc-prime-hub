@@ -56,6 +56,8 @@ export type Database = {
       profiles: {
         Row: {
           avatar_url: string | null
+          consultant_calendar_url: string | null
+          consultant_whatsapp: string | null
           created_at: string
           email: string
           id: string
@@ -68,6 +70,8 @@ export type Database = {
         }
         Insert: {
           avatar_url?: string | null
+          consultant_calendar_url?: string | null
+          consultant_whatsapp?: string | null
           created_at?: string
           email: string
           id?: string
@@ -80,6 +84,8 @@ export type Database = {
         }
         Update: {
           avatar_url?: string | null
+          consultant_calendar_url?: string | null
+          consultant_whatsapp?: string | null
           created_at?: string
           email?: string
           id?: string
@@ -151,8 +157,10 @@ export type Database = {
           id: string
           logo_url: string | null
           metabase_integration_url: string | null
+          primary_color: string | null
           school_id: string | null
           school_name: string
+          secondary_color: string | null
           theme_color: string | null
           updated_at: string
           zendesk_integration_url: string | null
@@ -168,8 +176,10 @@ export type Database = {
           id?: string
           logo_url?: string | null
           metabase_integration_url?: string | null
+          primary_color?: string | null
           school_id?: string | null
           school_name: string
+          secondary_color?: string | null
           theme_color?: string | null
           updated_at?: string
           zendesk_integration_url?: string | null
@@ -185,8 +195,10 @@ export type Database = {
           id?: string
           logo_url?: string | null
           metabase_integration_url?: string | null
+          primary_color?: string | null
           school_id?: string | null
           school_name?: string
+          secondary_color?: string | null
           theme_color?: string | null
           updated_at?: string
           zendesk_integration_url?: string | null
