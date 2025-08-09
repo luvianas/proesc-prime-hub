@@ -106,6 +106,7 @@ export type Database = {
           created_by: string | null
           id: string
           image_url: string
+          is_global: boolean
           link_url: string | null
           order_index: number | null
           school_id: string | null
@@ -117,6 +118,7 @@ export type Database = {
           created_by?: string | null
           id?: string
           image_url: string
+          is_global?: boolean
           link_url?: string | null
           order_index?: number | null
           school_id?: string | null
@@ -128,6 +130,7 @@ export type Database = {
           created_by?: string | null
           id?: string
           image_url?: string
+          is_global?: boolean
           link_url?: string | null
           order_index?: number | null
           school_id?: string | null
@@ -206,6 +209,10 @@ export type Database = {
       get_current_user_role: {
         Args: Record<PropertyKey, never>
         Returns: Database["public"]["Enums"]["user_role"]
+      }
+      get_current_user_school_id: {
+        Args: Record<PropertyKey, never>
+        Returns: string
       }
       is_admin: {
         Args: Record<PropertyKey, never>
