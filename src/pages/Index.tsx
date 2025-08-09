@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Navigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { LogOut } from "lucide-react";
+import { LogOut, User } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { useAuth } from "@/hooks/useAuth";
 import AdminDashboard from "@/components/AdminDashboard";
@@ -24,6 +24,11 @@ import QuickActions from "@/components/QuickActions";
 import DashboardGrid from "@/components/DashboardGrid";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { useToast } from "@/hooks/use-toast";
 const Index = () => {
   const [showAI, setShowAI] = useState(false);
   const [activeSection, setActiveSection] = useState("dashboard");
@@ -42,6 +47,92 @@ const Index = () => {
     userName?: string;
   } | null>(null);
 
+  const [profileDialogOpen, setProfileDialogOpen] = useState(false);
+  const [profileName, setProfileName] = useState<string>("");
+  const [profileEmail, setProfileEmail] = useState<string>("");
+  const [newPassword, setNewPassword] = useState<string>("");
+  const [confirmPassword, setConfirmPassword] = useState<string>("");
+  const [avatarUrl, setAvatarUrl] = useState<string>("");
+  const [loadingProfile, setLoadingProfile] = useState(false);
+  const [savingProfile, setSavingProfile] = useState(false);
+
+  const { toast } = useToast();
+
+  const openProfile = async () => {
+    if (!user) return;
+    setProfileDialogOpen(true);
+    setLoadingProfile(true);
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("name,email,avatar_url")
+      .eq("user_id", user.id)
+      .single();
+    setProfileName(profile?.name ?? "");
+    setProfileEmail(profile?.email ?? user.email ?? "");
+    setAvatarUrl(profile?.avatar_url ?? "");
+    setLoadingProfile(false);
+  };
+
+  const handleAvatarChange = async (file: File) => {
+    if (!user || !file) return;
+    setLoadingProfile(true);
+    const path = `${user.id}/${Date.now()}-${file.name}`;
+    const { error: uploadError } = await supabase.storage
+      .from("avatars")
+      .upload(path, file, { upsert: true });
+    if (uploadError) {
+      toast({
+        title: "Erro ao enviar imagem",
+        description: uploadError.message,
+        variant: "destructive",
+      });
+      setLoadingProfile(false);
+      return;
+    }
+    const { data: publicUrlData } = supabase.storage
+      .from("avatars")
+      .getPublicUrl(path);
+    const url = publicUrlData.publicUrl;
+    setAvatarUrl(url);
+    await supabase.from("profiles").update({ avatar_url: url }).eq("user_id", user.id);
+    setLoadingProfile(false);
+    toast({ title: "Foto atualizada" });
+  };
+
+  const saveProfile = async () => {
+    if (!user) return;
+    if (newPassword && newPassword !== confirmPassword) {
+      toast({ title: "Senhas não conferem", variant: "destructive" });
+      return;
+    }
+    setSavingProfile(true);
+    try {
+      const updates: { email?: string; password?: string } = {};
+      if (profileEmail && profileEmail !== user.email) updates.email = profileEmail;
+      if (newPassword) updates.password = newPassword;
+      if (updates.email || updates.password) {
+        const { error: authErr } = await supabase.auth.updateUser(updates);
+        if (authErr) throw authErr;
+      }
+      const { error: profErr } = await supabase
+        .from("profiles")
+        .update({ name: profileName, email: profileEmail, avatar_url: avatarUrl })
+        .eq("user_id", user.id);
+      if (profErr) throw profErr;
+      toast({ title: "Perfil atualizado com sucesso" });
+      setProfileDialogOpen(false);
+      setNewPassword("");
+      setConfirmPassword("");
+    } catch (e: any) {
+      toast({
+        title: "Erro ao atualizar perfil",
+        description: e.message,
+        variant: "destructive",
+      });
+    } finally {
+      setSavingProfile(false);
+    }
+  };
   // Convert HEX like #c41133 to "h s% l%" for CSS variables
   const hexToHsl = (hex: string): {
     h: number;
@@ -147,14 +238,22 @@ const Index = () => {
   if (userRole === 'gestor') {
     return <div className="min-h-screen">
         <div className="flex items-center justify-between p-4 border-b bg-card/50 backdrop-blur">
-          <div className="flex items-center gap-3">
-            {schoolHeader?.logoUrl ? <img src={schoolHeader.logoUrl} alt={`Logo ${schoolHeader.schoolName}`} className="w-12 h-12 object-contain rounded" loading="lazy" /> : <div className="w-12 h-12 rounded bg-primary text-primary-foreground flex items-center justify-center font-bold">
+          <div className="flex items-center gap-4">
+            {schoolHeader?.logoUrl ? (
+              <img
+                src={schoolHeader.logoUrl}
+                alt={`Logo ${schoolHeader.schoolName}`}
+                className="w-16 h-16 object-contain rounded"
+                loading="lazy"
+              />
+            ) : (
+              <div className="w-16 h-16 rounded bg-primary text-primary-foreground flex items-center justify-center font-bold">
                 {schoolHeader?.schoolName?.charAt(0).toUpperCase()}
-              </div>}
+              </div>
+            )}
             <div>
               <h1 className="text-lg font-semibold">
                 Prime Hub - {schoolHeader?.schoolName ?? 'Escola'}
-                {schoolHeader?.userName ? ` - ${schoolHeader.userName}` : ''}
               </h1>
               <div className="flex items-center gap-3 text-sm text-muted-foreground">
                 <Badge className="bg-primary text-primary-foreground">Gestor</Badge>
@@ -162,14 +261,72 @@ const Index = () => {
               </div>
             </div>
           </div>
-          <Button variant="outline" onClick={signOut}>
-            <LogOut className="w-4 h-4 mr-2" />
-            Sair
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button onClick={openProfile}>
+              <User className="w-4 h-4 mr-2" />
+              Perfil
+            </Button>
+            <Button onClick={signOut}>
+              <LogOut className="w-4 h-4 mr-2" />
+              Sair
+            </Button>
+          </div>
         </div>
+        <Dialog open={profileDialogOpen} onOpenChange={setProfileDialogOpen}>
+          <DialogContent className="sm:max-w-lg">
+            <DialogHeader>
+              <DialogTitle>Meu Perfil</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="flex items-center gap-4">
+                <Avatar className="h-16 w-16">
+                  <AvatarImage src={avatarUrl} alt="Foto do perfil" />
+                  <AvatarFallback>
+                    {schoolHeader?.schoolName?.charAt(0).toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+                <div>
+                  <Label htmlFor="avatar">Foto do perfil</Label>
+                  <Input
+                    id="avatar"
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => e.target.files && handleAvatarChange(e.target.files[0])}
+                    disabled={loadingProfile}
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">Use uma imagem quadrada (PNG ou JPG).</p>
+                </div>
+              </div>
+              <div className="space-y-3">
+                <div className="space-y-2">
+                  <Label htmlFor="name">Nome</Label>
+                  <Input id="name" value={profileName} onChange={(e) => setProfileName(e.target.value)} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="email">E-mail</Label>
+                  <Input id="email" type="email" value={profileEmail} onChange={(e) => setProfileEmail(e.target.value)} />
+                </div>
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="password">Nova senha</Label>
+                    <Input id="password" type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="confirmPassword">Confirmar senha</Label>
+                    <Input id="confirmPassword" type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} />
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button variant="ghost" onClick={() => setProfileDialogOpen(false)}>Cancelar</Button>
+              <Button onClick={saveProfile} disabled={savingProfile}>{savingProfile ? 'Salvando...' : 'Salvar'}</Button>
+            </div>
+          </DialogContent>
+        </Dialog>
         <GestorDashboard />
       </div>;
-  }
+    }
 
   // Render user dashboard for regular users
   if (userRole === 'user') {
