@@ -150,12 +150,12 @@ const GestorDashboard = () => {
   return <div className="min-h-screen bg-gradient-to-br from-background via-muted to-background">
       <div className="container mx-auto p-6 space-y-6">
         {/* Welcome Message */}
-        <div className="text-center py-8">
+        <div className="text-left py-8">
           <h1 className="text-4xl font-bold mb-2 text-primary">
             Bem-vindo ao seu Portal Prime
           </h1>
           <p className="text-lg text-foreground">
-            {schoolData.school_name} - Gerencie sua escola com excelência
+            Gerencie sua escola com excelência
           </p>
         </div>
 
@@ -164,28 +164,18 @@ const GestorDashboard = () => {
 
         {/* Destaques */}
         <section className="grid md:grid-cols-2 gap-6">
-          <Card className="hover:shadow-md transition-shadow">
+          <Card className="hover:shadow-lg hover:scale-105 transition-all duration-200 cursor-pointer" onClick={() => setActiveSection('tickets')}>
             <CardHeader>
               <CardTitle className="flex items-center gap-2"><ClipboardList className="h-5 w-5" /> Acompanhar Tickets</CardTitle>
               <CardDescription>Crie e acompanhe solicitações de suporte</CardDescription>
             </CardHeader>
-            <CardContent>
-              <Button className="w-full" onClick={() => setActiveSection('tickets')}>
-                Abrir
-              </Button>
-            </CardContent>
           </Card>
 
-          <Card className="hover:shadow-md transition-shadow">
+          <Card className="hover:shadow-lg hover:scale-105 transition-all duration-200 cursor-pointer" onClick={() => setActiveSection('consultor-agenda')}>
             <CardHeader>
               <CardTitle className="flex items-center gap-2"><CalendarDays className="h-5 w-5" /> Agenda do Consultor</CardTitle>
-              
+              <CardDescription>Agende reuniões e converse no WhatsApp</CardDescription>
             </CardHeader>
-            <CardContent>
-              <Button className="w-full" onClick={() => setActiveSection('consultor-agenda')}>
-                Abrir Agenda
-              </Button>
-            </CardContent>
           </Card>
         </section>
 
@@ -194,52 +184,32 @@ const GestorDashboard = () => {
           <h2 className="text-xl font-semibold">Dashboards</h2>
           <div className="grid md:grid-cols-2 gap-6">
 
-            <Card className="hover:shadow-md transition-shadow">
+            <Card className="hover:shadow-lg hover:scale-105 transition-all duration-200 cursor-pointer" onClick={() => setActiveSection('dash-financeiro')}>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2"><Wallet className="h-5 w-5" /> Dashboard Financeiro</CardTitle>
                 <CardDescription>Receitas, inadimplência e projeções</CardDescription>
               </CardHeader>
-              <CardContent>
-                <Button className="w-full" onClick={() => setActiveSection('dash-financeiro')}>
-                  Abrir
-                </Button>
-              </CardContent>
             </Card>
 
-            <Card className="hover:shadow-md transition-shadow">
+            <Card className="hover:shadow-lg hover:scale-105 transition-all duration-200 cursor-pointer" onClick={() => setActiveSection('dash-agenda')}>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2"><CalendarDays className="h-5 w-5" /> Proesc Agenda</CardTitle>
                 <CardDescription>Compromissos e lembretes acadêmicos</CardDescription>
               </CardHeader>
-              <CardContent>
-                <Button className="w-full" onClick={() => setActiveSection('dash-agenda')}>
-                  Abrir
-                </Button>
-              </CardContent>
             </Card>
 
-            <Card className="hover:shadow-md transition-shadow">
+            <Card className="hover:shadow-lg hover:scale-105 transition-all duration-200 cursor-pointer" onClick={() => setActiveSection('dash-pedagogico')}>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2"><GraduationCap className="h-5 w-5" /> Dashboard Pedagógico</CardTitle>
                 <CardDescription>Avaliações e desempenho acadêmico</CardDescription>
               </CardHeader>
-              <CardContent>
-                <Button className="w-full" onClick={() => setActiveSection('dash-pedagogico')}>
-                  Abrir
-                </Button>
-              </CardContent>
             </Card>
 
-            <Card className="hover:shadow-md transition-shadow">
+            <Card className="hover:shadow-lg hover:scale-105 transition-all duration-200 cursor-pointer" onClick={() => setActiveSection('dash-secretaria')}>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2"><ClipboardCheck className="h-5 w-5" /> Dashboard Secretaria</CardTitle>
                 <CardDescription>Gestão documental e processos</CardDescription>
               </CardHeader>
-              <CardContent>
-                <Button className="w-full" onClick={() => setActiveSection('dash-secretaria')}>
-                  Abrir
-                </Button>
-              </CardContent>
             </Card>
 
           </div>
