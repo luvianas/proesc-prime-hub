@@ -78,8 +78,8 @@ const NovidadesCarousel = ({ schoolId }: NovidadesCarouselProps) => {
   if (!banners?.length) return null;
 
   return (
-    <section aria-label="Novidades" className="space-y-4">
-      <h2 className="text-xl font-semibold">Novidades</h2>
+    <section aria-label="Novidades" className="space-y-6 animate-slide-up">
+      <h2 className="text-2xl font-bold text-foreground">Novidades</h2>
       <div className="relative">
         <Carousel 
           opts={{ loop: true, align: 'start' }} 
@@ -89,19 +89,31 @@ const NovidadesCarousel = ({ schoolId }: NovidadesCarouselProps) => {
           <CarouselContent>
             {banners.map((banner) => {
               const img = (
-                <AspectRatio ratio={2480/520} className="overflow-hidden rounded-md border bg-muted">
-                  <img
-                    src={banner.image_url}
-                    alt={banner.title ? `Novidade: ${banner.title}` : 'Banner de novidades do Proesc'}
-                    loading="lazy"
-                    className="h-full w-full object-cover"
-                  />
+                <AspectRatio ratio={2480/520} className="overflow-hidden rounded-xl border bg-muted shadow-large hover-glow group">
+                  <div className="relative w-full h-full">
+                    <img
+                      src={banner.image_url}
+                      alt={banner.title ? `Novidade: ${banner.title}` : 'Banner de novidades do Proesc'}
+                      loading="lazy"
+                      className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                    {banner.title && (
+                      <div className="absolute bottom-4 left-4 right-4">
+                        <h3 className="text-white text-lg font-semibold drop-shadow-lg">
+                          {banner.title}
+                        </h3>
+                      </div>
+                    )}
+                  </div>
                 </AspectRatio>
               );
               return (
                 <CarouselItem key={banner.id}>
                   {banner.link_url ? (
-                    <a href={banner.link_url} target="_blank" rel="noopener noreferrer" aria-label={banner.title || 'Abrir novidade em nova aba'}>
+                    <a href={banner.link_url} target="_blank" rel="noopener noreferrer" 
+                       aria-label={banner.title || 'Abrir novidade em nova aba'}
+                       className="block transition-transform duration-300 hover:scale-[1.02]">
                       {img}
                     </a>
                   ) : (
@@ -111,8 +123,8 @@ const NovidadesCarousel = ({ schoolId }: NovidadesCarouselProps) => {
               );
             })}
           </CarouselContent>
-          <CarouselPrevious className="bg-background/80 backdrop-blur border" />
-          <CarouselNext className="bg-background/80 backdrop-blur border" />
+          <CarouselPrevious className="btn-elegant bg-background/90 backdrop-blur border shadow-medium hover-glow" />
+          <CarouselNext className="btn-elegant bg-background/90 backdrop-blur border shadow-medium hover-glow" />
         </Carousel>
       </div>
     </section>

@@ -147,14 +147,14 @@ const GestorDashboard = () => {
         {showAssistant && <AIAssistant onClose={() => setShowAssistant(false)} />}
       </div>;
   }
-  return <div className="min-h-screen bg-gradient-to-br from-background via-muted to-background">
-      <div className="container mx-auto p-6 space-y-6">
+  return <div className="min-h-screen bg-hero">
+      <div className="container mx-auto p-6 space-y-8">
         {/* Welcome Message */}
-        <div className="text-left py-8">
-          <h1 className="text-4xl font-bold mb-2 text-primary">
+        <div className="text-left py-8 animate-fade-in">
+          <h1 className="text-5xl font-bold mb-4 text-gradient">
             Bem-vindo ao seu Portal Prime
           </h1>
-          <p className="text-lg text-foreground">
+          <p className="text-xl text-muted-foreground">
             Gerencie sua escola com excelência
           </p>
         </div>
@@ -163,52 +163,76 @@ const GestorDashboard = () => {
         <NovidadesCarousel schoolId={userProfile.school_id} />
 
         {/* Destaques */}
-        <section className="grid md:grid-cols-2 gap-6">
-          <Card className="hover:shadow-lg hover:scale-105 transition-all duration-200 cursor-pointer" onClick={() => setActiveSection('tickets')}>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2"><ClipboardList className="h-5 w-5" /> Acompanhar Tickets</CardTitle>
-              <CardDescription>Crie e acompanhe solicitações de suporte</CardDescription>
+        <section className="grid md:grid-cols-2 gap-8">
+          <Card className="card-elegant card-interactive rounded-xl animate-scale-in" 
+                onClick={() => setActiveSection('tickets')}>
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-3 text-xl">
+                <ClipboardList className="h-6 w-6 text-primary" /> 
+                Acompanhar Tickets
+              </CardTitle>
+              <CardDescription className="text-base">Crie e acompanhe solicitações de suporte</CardDescription>
             </CardHeader>
           </Card>
 
-          <Card className="hover:shadow-lg hover:scale-105 transition-all duration-200 cursor-pointer" onClick={() => setActiveSection('consultor-agenda')}>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2"><CalendarDays className="h-5 w-5" /> Agenda do Consultor</CardTitle>
-              <CardDescription>Agende reuniões e converse no WhatsApp</CardDescription>
+          <Card className="card-elegant card-interactive rounded-xl animate-scale-in" 
+                onClick={() => setActiveSection('consultor-agenda')}>
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-3 text-xl">
+                <CalendarDays className="h-6 w-6 text-primary" /> 
+                Agenda do Consultor
+              </CardTitle>
+              <CardDescription className="text-base">Agende reuniões e converse no WhatsApp</CardDescription>
             </CardHeader>
           </Card>
         </section>
 
         {/* Dashboards */}
-        <section className="space-y-4">
-          <h2 className="text-xl font-semibold">Dashboards</h2>
-          <div className="grid md:grid-cols-2 gap-6">
+        <section className="space-y-6">
+          <h2 className="text-2xl font-semibold text-foreground">Dashboards</h2>
+          <div className="grid md:grid-cols-2 gap-8">
 
-            <Card className="hover:shadow-lg hover:scale-105 transition-all duration-200 cursor-pointer" onClick={() => setActiveSection('dash-financeiro')}>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2"><Wallet className="h-5 w-5" /> Dashboard Financeiro</CardTitle>
-                <CardDescription>Receitas, inadimplência e projeções</CardDescription>
+            <Card className="card-elegant card-interactive rounded-xl animate-scale-in" 
+                  onClick={() => setActiveSection('dash-financeiro')}>
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-3 text-xl">
+                  <Wallet className="h-6 w-6 text-primary" /> 
+                  Dashboard Financeiro
+                </CardTitle>
+                <CardDescription className="text-base">Receitas, inadimplência e projeções</CardDescription>
               </CardHeader>
             </Card>
 
-            <Card className="hover:shadow-lg hover:scale-105 transition-all duration-200 cursor-pointer" onClick={() => setActiveSection('dash-agenda')}>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2"><CalendarDays className="h-5 w-5" /> Proesc Agenda</CardTitle>
-                <CardDescription>Compromissos e lembretes acadêmicos</CardDescription>
+            <Card className="card-elegant card-interactive rounded-xl animate-scale-in" 
+                  onClick={() => setActiveSection('dash-agenda')}>
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-3 text-xl">
+                  <CalendarDays className="h-6 w-6 text-primary" /> 
+                  Proesc Agenda
+                </CardTitle>
+                <CardDescription className="text-base">Compromissos e lembretes acadêmicos</CardDescription>
               </CardHeader>
             </Card>
 
-            <Card className="hover:shadow-lg hover:scale-105 transition-all duration-200 cursor-pointer" onClick={() => setActiveSection('dash-pedagogico')}>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2"><GraduationCap className="h-5 w-5" /> Dashboard Pedagógico</CardTitle>
-                <CardDescription>Avaliações e desempenho acadêmico</CardDescription>
+            <Card className="card-elegant card-interactive rounded-xl animate-scale-in" 
+                  onClick={() => setActiveSection('dash-pedagogico')}>
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-3 text-xl">
+                  <GraduationCap className="h-6 w-6 text-primary" /> 
+                  Dashboard Pedagógico
+                </CardTitle>
+                <CardDescription className="text-base">Avaliações e desempenho acadêmico</CardDescription>
               </CardHeader>
             </Card>
 
-            <Card className="hover:shadow-lg hover:scale-105 transition-all duration-200 cursor-pointer" onClick={() => setActiveSection('dash-secretaria')}>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2"><ClipboardCheck className="h-5 w-5" /> Dashboard Secretaria</CardTitle>
-                <CardDescription>Gestão documental e processos</CardDescription>
+            <Card className="card-elegant card-interactive rounded-xl animate-scale-in" 
+                  onClick={() => setActiveSection('dash-secretaria')}>
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-3 text-xl">
+                  <ClipboardCheck className="h-6 w-6 text-primary" /> 
+                  Dashboard Secretaria
+                </CardTitle>
+                <CardDescription className="text-base">Gestão documental e processos</CardDescription>
               </CardHeader>
             </Card>
 

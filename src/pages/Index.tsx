@@ -178,9 +178,9 @@ const Index = () => {
 
   // Render gestor dashboard for gestor users
   if (userRole === 'gestor') {
-    return <div className="min-h-screen">
-        <div className="flex items-center justify-between p-4 border-b bg-card/50 backdrop-blur">
-          <div className="flex items-center gap-4">
+    return <div className="min-h-screen bg-hero">
+        <div className="flex items-center justify-between p-6 border-b bg-card/80 backdrop-blur-lg shadow-medium">
+          <div className="flex items-center gap-6">
             {schoolHeader?.logoUrl ? (
               <img
                 src={schoolHeader.logoUrl}
@@ -212,16 +212,17 @@ const Index = () => {
               />
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <Button onClick={openProfile} variant="outline" className="rounded-full w-10 h-10 p-0">
-              <Avatar className="w-8 h-8">
+          <div className="flex items-center gap-3">
+            <Button onClick={openProfile} variant="outline" 
+                    className="rounded-full w-12 h-12 p-0 btn-elegant hover-glow">
+              <Avatar className="w-10 h-10">
                 <AvatarImage src={avatarUrl} alt="Foto do perfil" />
-                <AvatarFallback>
+                <AvatarFallback className="bg-primary text-primary-foreground">
                   {schoolHeader?.schoolName?.charAt(0).toUpperCase()}
                 </AvatarFallback>
               </Avatar>
             </Button>
-            <Button onClick={signOut}>
+            <Button onClick={signOut} className="btn-elegant shadow-medium">
               <LogOut className="w-4 h-4 mr-2" />
               Sair
             </Button>
