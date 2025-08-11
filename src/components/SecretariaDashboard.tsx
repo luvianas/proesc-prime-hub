@@ -43,13 +43,13 @@ const SecretariaDashboard = ({ onBack, dashboardUrl }: SecretariaDashboardProps)
           <ArrowLeft className="h-4 w-4" />
           <span>Voltar</span>
         </Button>
-        <h2 className="text-3xl font-bold text-gray-900">Dashboard de Secretaria</h2>
+        <h2 className="text-3xl font-bold text-brand">Dashboard de Secretaria</h2>
       </div>
 
       <Card className="w-full">
         <CardHeader>
           <CardTitle className="flex items-center space-x-2">
-            <span>Relatórios de Secretaria - Red House Internacional School</span>
+            <span>Relatórios de Secretaria</span>
             {isLoading && <Loader2 className="h-5 w-5 animate-spin text-red-600" />}
           </CardTitle>
         </CardHeader>
@@ -101,7 +101,7 @@ const SecretariaDashboard = ({ onBack, dashboardUrl }: SecretariaDashboardProps)
       </Card>
 
       <div className="text-sm text-gray-600 bg-blue-50 p-4 rounded-lg">
-        <p><strong>Dashboard de Secretaria:</strong> Visualização integrada dos relatórios administrativos e documentos da Red House Internacional School.</p>
+        <p><strong>Dashboard de Secretaria:</strong> Visualização integrada dos relatórios administrativos e documentos.</p>
       </div>
     </div>
   );

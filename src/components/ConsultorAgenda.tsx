@@ -85,7 +85,7 @@ const ConsultorAgenda = ({ onBack, schoolData }: ConsultorAgendaProps) => {
             <ArrowLeft className="h-4 w-4" />
             <span>Voltar</span>
           </Button>
-          <h2 className="text-3xl font-bold text-gray-900">Agenda com Consultor</h2>
+          <h2 className="text-3xl font-bold text-brand">Agenda com Consultor</h2>
         </div>
         <div className="text-center py-8">Carregando dados do consultor...</div>
       </div>
@@ -103,7 +103,7 @@ const ConsultorAgenda = ({ onBack, schoolData }: ConsultorAgendaProps) => {
           <ArrowLeft className="h-4 w-4" />
           <span>Voltar</span>
         </Button>
-        <h2 className="text-3xl font-bold text-gray-900">Agenda com Consultor</h2>
+        <h2 className="text-3xl font-bold text-brand">Agenda com Consultor</h2>
         <link rel="canonical" href={window.location.href} />
       </div>
 
@@ -147,32 +147,6 @@ const ConsultorAgenda = ({ onBack, schoolData }: ConsultorAgendaProps) => {
           </CardContent>
         </Card>
 
-        {/* Calendar and Meetings */}
-        <Card className="lg:col-span-2">
-          <CardHeader>
-            <CardTitle>Próximas Reuniões</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {upcomingMeetings.map((meeting, index) => (
-              <div key={index} className="flex items-center justify-between p-4 border rounded-lg">
-                <div className="flex items-center space-x-4">
-                  <div className="flex items-center space-x-2">
-                    <Calendar className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-sm font-medium">{meeting.date}</span>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Clock className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-sm">{meeting.time}</span>
-                  </div>
-                  <span className="text-sm">{meeting.type}</span>
-                </div>
-                <Badge variant={meeting.status === 'confirmado' ? 'default' : 'secondary'}>
-                  {meeting.status}
-                </Badge>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
       </div>
 
       {/* Google Calendar Integration */}

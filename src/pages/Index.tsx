@@ -53,9 +53,11 @@ const Index = () => {
   const [profileDialogOpen, setProfileDialogOpen] = useState(false);
   const [profileName, setProfileName] = useState<string>("");
   const [profileEmail, setProfileEmail] = useState<string>("");
-  const [newPassword, setNewPassword] = useState<string>("");
+  const [newPassword, setNewPassword] = useState<string]("");
   const [confirmPassword, setConfirmPassword] = useState<string>("");
   const [avatarUrl, setAvatarUrl] = useState<string>("");
+  const [adminWhatsApp, setAdminWhatsApp] = useState<string>("");
+  const [adminCalendarUrl, setAdminCalendarUrl] = useState<string>("");
   const [loadingProfile, setLoadingProfile] = useState(false);
   const [savingProfile, setSavingProfile] = useState(false);
   const [forceNewPassword, setForceNewPassword] = useState("");
@@ -75,12 +77,14 @@ const Index = () => {
     setLoadingProfile(true);
     const { data: profile } = await supabase
       .from("profiles")
-      .select("name,email,avatar_url")
+      .select("name,email,avatar_url,consultant_whatsapp,consultant_calendar_url")
       .eq("user_id", user.id)
       .single();
     setProfileName(profile?.name ?? "");
     setProfileEmail(profile?.email ?? user.email ?? "");
     setAvatarUrl(profile?.avatar_url ?? "");
+    setAdminWhatsApp(profile?.consultant_whatsapp ?? "");
+    setAdminCalendarUrl(profile?.consultant_calendar_url ?? "");
     setLoadingProfile(false);
   };
 
@@ -128,7 +132,7 @@ const Index = () => {
       }
       const { error: profErr } = await supabase
         .from("profiles")
-        .update({ name: profileName, email: profileEmail, avatar_url: avatarUrl })
+        .update({ name: profileName, email: profileEmail, avatar_url: avatarUrl, ...(userRole === 'admin' ? { consultant_whatsapp: adminWhatsApp, consultant_calendar_url: adminCalendarUrl } : {}) })
         .eq("user_id", user.id);
       if (profErr) throw profErr;
       toast({ title: "Perfil atualizado com sucesso" });
@@ -255,6 +259,20 @@ const Index = () => {
                   <Label htmlFor="email-admin">E-mail</Label>
                   <Input id="email-admin" type="email" value={profileEmail} onChange={(e) => setProfileEmail(e.target.value)} />
                 </div>
+
+                {userRole === 'admin' && (
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="wa-admin">WhatsApp do Consultor</Label>
+                      <Input id="wa-admin" placeholder="5599999999999" value={adminWhatsApp} onChange={(e)=>setAdminWhatsApp(e.target.value)} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="cal-admin">Link de incorporação do Google Calendar</Label>
+                      <Input id="cal-admin" placeholder="<iframe ...> ou URL" value={adminCalendarUrl} onChange={(e)=>setAdminCalendarUrl(e.target.value)} />
+                    </div>
+                  </div>
+                )}
+
                 <div className="grid md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="password-admin">Nova senha</Label>

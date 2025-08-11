@@ -5,7 +5,11 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowDown, ArrowUp, Trash2 } from 'lucide-react';
+import { ArrowDown, ArrowUp, Trash2, Pencil, Plus } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 
 interface BannerRow {
   id: string;
@@ -13,6 +17,7 @@ interface BannerRow {
   title?: string | null;
   link_url?: string | null;
   order_index?: number | null;
+  duration_seconds?: number | null;
   created_at?: string;
   is_global: boolean;
   school_id?: string | null;
@@ -26,6 +31,12 @@ const BannersManager = () => {
   const [loading, setLoading] = useState(true);
   const [scope, setScope] = useState<'all' | 'global' | 'school'>('all');
   const { toast } = useToast();
+
+  // Dialog/edit state
+  const [editOpen, setEditOpen] = useState(false);
+  const [createOpen, setCreateOpen] = useState(false);
+  const [current, setCurrent] = useState<BannerRow | null>(null);
+  const [form, setForm] = useState<{ title?: string; link_url?: string | null; image_url?: string; is_global?: boolean; school_id?: string | null; duration_seconds?: number | null; useDefault?: boolean }>({ useDefault: true });
 
   useEffect(() => {
     const load = async () => {
@@ -118,12 +129,15 @@ const BannersManager = () => {
         <div className="flex items-center justify-between">
           <div>
             <CardTitle>Gerenciar Banners</CardTitle>
-            <CardDescription>Veja, reordene e exclua banners ativos.</CardDescription>
+            <CardDescription>Veja, reordene, edite e exclua banners. Também é possível adicionar novos.</CardDescription>
           </div>
           <div className="flex gap-2">
             <Button variant={scope==='all' ? 'default' : 'outline'} onClick={() => setScope('all')}>Todos</Button>
             <Button variant={scope==='global' ? 'default' : 'outline'} onClick={() => setScope('global')}>Globais</Button>
             <Button variant={scope==='school' ? 'default' : 'outline'} onClick={() => setScope('school')}>Por escola</Button>
+            <Button onClick={() => { setCreateOpen(true); setForm({ useDefault: true, is_global: true, duration_seconds: null }); }}>
+              <Plus className="w-4 h-4 mr-2" /> Adicionar
+            </Button>
           </div>
         </div>
       </CardHeader>
@@ -143,22 +157,117 @@ const BannersManager = () => {
                 {b.title && <div className="text-sm truncate">{b.title}</div>}
                 {b.link_url && <a href={b.link_url} target="_blank" rel="noreferrer" className="text-xs underline truncate">{b.link_url}</a>}
               </div>
-              <div className="flex items-center gap-2">
-                <Button variant="outline" size="icon" onClick={() => move(b.id, -1)} aria-label="Subir">
-                  <ArrowUp className="w-4 h-4" />
-                </Button>
-                <Button variant="outline" size="icon" onClick={() => move(b.id, 1)} aria-label="Descer">
-                  <ArrowDown className="w-4 h-4" />
-                </Button>
-                <Separator orientation="vertical" className="h-6" />
-                <Button variant="destructive" size="icon" onClick={() => remove(b.id)} aria-label="Excluir">
-                  <Trash2 className="w-4 h-4" />
-                </Button>
-              </div>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="icon" onClick={() => move(b.id, -1)} aria-label="Subir">
+                <ArrowUp className="w-4 h-4" />
+              </Button>
+              <Button variant="outline" size="icon" onClick={() => move(b.id, 1)} aria-label="Descer">
+                <ArrowDown className="w-4 h-4" />
+              </Button>
+              <Separator orientation="vertical" className="h-6" />
+              <Button variant="outline" size="icon" aria-label="Editar" onClick={() => { setCurrent(b); setForm({ title: b.title || '', link_url: b.link_url || '', image_url: b.image_url, is_global: b.is_global, school_id: b.school_id || null, duration_seconds: b.duration_seconds ?? null, useDefault: (b.duration_seconds == null) }); setEditOpen(true); }}>
+                <Pencil className="w-4 h-4" />
+              </Button>
+              <Button variant="destructive" size="icon" onClick={() => remove(b.id)} aria-label="Excluir">
+                <Trash2 className="w-4 h-4" />
+              </Button>
+            </div>
             </div>
           ))}
         </div>
       </CardContent>
+
+      {/* Edit Dialog */}
+      <Dialog open={editOpen} onOpenChange={setEditOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Editar Banner</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label>Título</Label>
+              <Input value={form.title || ''} onChange={(e)=>setForm(prev=>({...prev, title: e.target.value}))} />
+            </div>
+            <div>
+              <Label>Link de redirecionamento</Label>
+              <Input placeholder="https://..." value={form.link_url || ''} onChange={(e)=>setForm(prev=>({...prev, link_url: e.target.value}))} />
+            </div>
+            <div>
+              <Label>Imagem (URL)</Label>
+              <Input placeholder="https://..." value={form.image_url || ''} onChange={(e)=>setForm(prev=>({...prev, image_url: e.target.value}))} />
+            </div>
+            <div className="flex items-center gap-3">
+              <Switch checked={!!form.useDefault} onCheckedChange={(v)=>setForm(prev=>({...prev, useDefault: v, duration_seconds: v ? null : (prev.duration_seconds ?? 6)}))} />
+              <span className="text-sm">Usar duração padrão do sistema (6s)</span>
+            </div>
+            {!form.useDefault && (
+              <div>
+                <Label>Duração personalizada (segundos)</Label>
+                <Input type="number" min={1} max={120} value={form.duration_seconds ?? 6} onChange={(e)=>setForm(prev=>({...prev, duration_seconds: Number(e.target.value)}))} />
+              </div>
+            )}
+          </div>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button variant="ghost" onClick={()=>setEditOpen(false)}>Cancelar</Button>
+            <Button onClick={async()=>{
+              if (!current) return;
+              const payload:any = { title: form.title || null, link_url: form.link_url || null, image_url: form.image_url, duration_seconds: form.useDefault ? null : (form.duration_seconds ?? 6) };
+              const { error } = await supabase.from('school_banners').update(payload).eq('id', current.id);
+              if (error) { toast({ title: 'Erro', description: error.message, variant: 'destructive' }); return; }
+              setBanners(prev => prev.map(b => b.id === current.id ? { ...b, ...payload } : b));
+              toast({ title: 'Banner atualizado' });
+              setEditOpen(false);
+            }}>Salvar</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Create Dialog */}
+      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Novo Banner</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label>Título</Label>
+              <Input value={form.title || ''} onChange={(e)=>setForm(prev=>({...prev, title: e.target.value}))} />
+            </div>
+            <div>
+              <Label>Link de redirecionamento</Label>
+              <Input placeholder="https://..." value={form.link_url || ''} onChange={(e)=>setForm(prev=>({...prev, link_url: e.target.value}))} />
+            </div>
+            <div>
+              <Label>Imagem (URL)</Label>
+              <Input placeholder="https://..." value={form.image_url || ''} onChange={(e)=>setForm(prev=>({...prev, image_url: e.target.value}))} />
+            </div>
+            <div className="flex items-center gap-3">
+              <Switch checked={!!form.useDefault} onCheckedChange={(v)=>setForm(prev=>({...prev, useDefault: v, duration_seconds: v ? null : (prev.duration_seconds ?? 6)}))} />
+              <span className="text-sm">Usar duração padrão do sistema (6s)</span>
+            </div>
+            {!form.useDefault && (
+              <div>
+                <Label>Duração personalizada (segundos)</Label>
+                <Input type="number" min={1} max={120} value={form.duration_seconds ?? 6} onChange={(e)=>setForm(prev=>({...prev, duration_seconds: Number(e.target.value)}))} />
+              </div>
+            )}
+          </div>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button variant="ghost" onClick={()=>setCreateOpen(false)}>Cancelar</Button>
+            <Button onClick={async()=>{
+              if (!form.image_url) { toast({ title: 'Imagem obrigatória', variant: 'destructive' }); return; }
+              const nextIndex = (banners.reduce((m, b) => Math.max(m, b.order_index ?? -1), -1) + 1);
+              const payload:any = { title: form.title || null, link_url: form.link_url || null, image_url: form.image_url, is_global: form.is_global ?? true, school_id: form.school_id ?? null, order_index: nextIndex, duration_seconds: form.useDefault ? null : (form.duration_seconds ?? 6) };
+              const { data, error } = await supabase.from('school_banners').insert(payload).select('*').single();
+              if (error) { toast({ title: 'Erro', description: error.message, variant: 'destructive' }); return; }
+              setBanners(prev => [...prev, data as any].sort((a,b)=> (a.order_index??0)-(b.order_index??0)));
+              toast({ title: 'Banner criado' });
+              setCreateOpen(false);
+              setForm({ useDefault: true });
+            }}>Salvar</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 };

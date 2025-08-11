@@ -43,13 +43,13 @@ const AgendaDashboard = ({ onBack, dashboardUrl }: AgendaDashboardProps) => {
           <ArrowLeft className="h-4 w-4" />
           <span>Voltar</span>
         </Button>
-        <h2 className="text-3xl font-bold text-gray-900">Dashboard Proesc Agenda</h2>
+        <h2 className="text-3xl font-bold text-brand">Dashboard Proesc Agenda</h2>
       </div>
 
       <Card className="w-full">
         <CardHeader>
           <CardTitle className="flex items-center space-x-2">
-            <span>Sistema de Agendamentos - Red House Internacional School</span>
+            <span>Sistema de Agendamentos</span>
             {isLoading && <Loader2 className="h-5 w-5 animate-spin text-red-600" />}
           </CardTitle>
         </CardHeader>
@@ -101,7 +101,7 @@ const AgendaDashboard = ({ onBack, dashboardUrl }: AgendaDashboardProps) => {
       </Card>
 
       <div className="text-sm text-gray-600 bg-blue-50 p-4 rounded-lg">
-        <p><strong>Dashboard Proesc Agenda:</strong> Visualização integrada do sistema de agendamentos da Red House Internacional School.</p>
+        <p><strong>Dashboard Proesc Agenda:</strong> Visualização integrada do sistema de agendamentos.</p>
       </div>
     </div>
   );

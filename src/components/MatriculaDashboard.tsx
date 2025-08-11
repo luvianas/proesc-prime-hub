@@ -50,7 +50,7 @@ const MatriculaDashboard = ({ onBack }: MatriculaDashboardProps) => {
           <ArrowLeft className="h-4 w-4" />
           <span>Voltar</span>
         </Button>
-        <h2 className="text-3xl font-bold text-gray-900">Dashboard de Matrícula</h2>
+        <h2 className="text-3xl font-bold text-brand">Dashboard de Matrícula</h2>
       </div>
 
       {/* Statistics Cards */}
@@ -74,7 +74,7 @@ const MatriculaDashboard = ({ onBack }: MatriculaDashboardProps) => {
       {/* Main Dashboard Content */}
       <Card className="w-full">
         <CardHeader>
-          <CardTitle>Sistema de Matrículas - Red House Internacional School</CardTitle>
+          <CardTitle>Sistema de Matrículas</CardTitle>
         </CardHeader>
         <CardContent className="p-0">
           <iframe

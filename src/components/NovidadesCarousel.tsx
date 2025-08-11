@@ -10,6 +10,7 @@ interface SchoolBanner {
   title?: string | null;
   link_url?: string | null;
   order_index?: number | null;
+  duration_seconds?: number | null;
   created_at?: string;
 }
 
@@ -28,14 +29,14 @@ const NovidadesCarousel = ({ schoolId }: NovidadesCarouselProps) => {
       
       const globalRes = await sb
         .from('school_banners')
-        .select('id, image_url, title, link_url, order_index, created_at')
+        .select('id, image_url, title, link_url, order_index, duration_seconds, created_at')
         .eq('is_global', true);
       
       console.log('🌍 Banners globais encontrados:', globalRes.data, 'Erro:', globalRes.error);
       
       const schoolRes = await sb
         .from('school_banners')
-        .select('id, image_url, title, link_url, order_index, created_at')
+        .select('id, image_url, title, link_url, order_index, duration_seconds, created_at')
         .eq('school_id', schoolId);
 
       console.log('🏫 Banners da escola encontrados:', schoolRes.data, 'Erro:', schoolRes.error);
@@ -64,22 +65,33 @@ const NovidadesCarousel = ({ schoolId }: NovidadesCarouselProps) => {
     fetchBanners();
   }, [schoolId]);
 
-  // Auto-scroll carousel every 5 seconds
+  // Auto-scroll carousel with per-banner duration (default 6s)
   useEffect(() => {
-    if (!api) return;
+    if (!api || !banners.length) return;
 
-    const interval = setInterval(() => {
-      api.scrollNext();
-    }, 5000);
+    let timeoutId: any;
+    const setupAutoplay = () => {
+      clearTimeout(timeoutId);
+      const idx = api.selectedScrollSnap();
+      const secs = banners[idx]?.duration_seconds ?? 6; // default 6s
+      timeoutId = setTimeout(() => {
+        api.scrollNext();
+      }, Math.max(1, secs) * 1000);
+    };
 
-    return () => clearInterval(interval);
-  }, [api]);
+    setupAutoplay();
+    api.on('select', setupAutoplay);
+
+    return () => {
+      clearTimeout(timeoutId);
+    };
+  }, [api, banners]);
 
   if (!banners?.length) return null;
 
   return (
     <section aria-label="Novidades" className="space-y-6 animate-slide-up">
-      <h2 className="text-2xl font-bold text-foreground">Novidades</h2>
+      <h2 className="text-2xl font-bold text-brand">Novidades</h2>
       <div className="relative">
         <Carousel 
           opts={{ loop: true, align: 'start' }} 

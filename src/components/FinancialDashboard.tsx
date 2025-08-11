@@ -43,13 +43,13 @@ const FinancialDashboard = ({ onBack, dashboardUrl }: FinancialDashboardProps) =
           <ArrowLeft className="h-4 w-4" />
           <span>Voltar</span>
         </Button>
-        <h2 className="text-3xl font-bold text-gray-900">Dashboard Financeira</h2>
+        <h2 className="text-3xl font-bold text-brand">Dashboard Financeira</h2>
       </div>
 
       <Card className="w-full">
         <CardHeader>
           <CardTitle className="flex items-center space-x-2">
-            <span>Relatórios Financeiros - Red House Internacional School</span>
+            <span>Relatórios Financeiros</span>
             {isLoading && <Loader2 className="h-5 w-5 animate-spin text-red-600" />}
           </CardTitle>
         </CardHeader>
@@ -101,7 +101,7 @@ const FinancialDashboard = ({ onBack, dashboardUrl }: FinancialDashboardProps) =
       </Card>
 
       <div className="text-sm text-gray-600 bg-blue-50 p-4 rounded-lg">
-        <p><strong>Dashboard Financeira:</strong> Visualização integrada dos relatórios financeiros e receitas da Red House Internacional School.</p>
+        <p><strong>Dashboard Financeira:</strong> Visualização integrada dos relatórios financeiros e receitas.</p>
       </div>
     </div>
   );

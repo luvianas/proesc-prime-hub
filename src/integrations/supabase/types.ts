@@ -62,6 +62,7 @@ export type Database = {
           email: string
           id: string
           is_active: boolean
+          must_change_password: boolean
           name: string
           role: Database["public"]["Enums"]["user_role"]
           school_id: string | null
@@ -76,6 +77,7 @@ export type Database = {
           email: string
           id?: string
           is_active?: boolean
+          must_change_password?: boolean
           name: string
           role?: Database["public"]["Enums"]["user_role"]
           school_id?: string | null
@@ -90,6 +92,7 @@ export type Database = {
           email?: string
           id?: string
           is_active?: boolean
+          must_change_password?: boolean
           name?: string
           role?: Database["public"]["Enums"]["user_role"]
           school_id?: string | null
@@ -110,6 +113,7 @@ export type Database = {
         Row: {
           created_at: string
           created_by: string | null
+          duration_seconds: number | null
           id: string
           image_url: string
           is_global: boolean
@@ -122,6 +126,7 @@ export type Database = {
         Insert: {
           created_at?: string
           created_by?: string | null
+          duration_seconds?: number | null
           id?: string
           image_url: string
           is_global?: boolean
@@ -134,6 +139,7 @@ export type Database = {
         Update: {
           created_at?: string
           created_by?: string | null
+          duration_seconds?: number | null
           id?: string
           image_url?: string
           is_global?: boolean
