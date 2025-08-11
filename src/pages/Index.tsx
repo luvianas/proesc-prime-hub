@@ -182,12 +182,20 @@ const Index = () => {
             <h1 className="text-xl font-semibold">Sistema de Controle - Admin</h1>
           </div>
           <div className="justify-self-center">
-            <img
-              src="/lovable-uploads/31be6a89-85b7-486f-b156-ebe5b3557c02.png"
-              alt="Proesc Prime"
-              className="h-10 mx-auto"
-              loading="lazy"
-            />
+            <a
+              href="https://app.proesc.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Abrir Proesc em nova aba"
+              className="inline-block"
+            >
+              <img
+                src="/lovable-uploads/31be6a89-85b7-486f-b156-ebe5b3557c02.png"
+                alt="Proesc Prime"
+                className="h-10 mx-auto"
+                loading="lazy"
+              />
+            </a>
           </div>
           <div className="justify-self-end flex items-center gap-3">
             <ThemeToggle />
@@ -330,12 +338,20 @@ const Index = () => {
             </div>
           </div>
           <div className="justify-self-center">
-            <img 
-              src="/lovable-uploads/31be6a89-85b7-486f-b156-ebe5b3557c02.png" 
-              alt="Proesc Prime" 
-              className="h-10 mx-auto"
-              loading="lazy"
-            />
+            <a
+              href="https://app.proesc.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Abrir Proesc em nova aba"
+              className="inline-block"
+            >
+              <img 
+                src="/lovable-uploads/31be6a89-85b7-486f-b156-ebe5b3557c02.png" 
+                alt="Proesc Prime" 
+                className="h-10 mx-auto"
+                loading="lazy"
+              />
+            </a>
           </div>
           <div className="justify-self-end flex items-center gap-3">
             <ThemeToggle />
