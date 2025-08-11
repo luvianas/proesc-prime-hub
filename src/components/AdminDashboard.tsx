@@ -17,7 +17,7 @@ import { createClient } from '@supabase/supabase-js';
 import BannersManager from '@/components/BannersManager';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
-
+import ImageCropperDialog from '@/components/ImageCropperDialog';
 interface User {
   id: string;
   user_id: string;
@@ -137,6 +137,9 @@ const AdminDashboard = () => {
   // Additional states for consultant preview
   const [consultantPreview, setConsultantPreview] = useState<any>(null);
 
+  // Avatar cropper state
+  const [cropOpen, setCropOpen] = useState(false);
+  const [cropSrc, setCropSrc] = useState<string>('');
   const uploadImage = async (file: File, folder: string) => {
     try {
       const ext = file.name.split('.').pop() || 'png';
@@ -161,25 +164,19 @@ const AdminDashboard = () => {
     }
   };
 
-  const handleAvatarChange = async (file: File) => {
-    if (!user || !file) return;
+  const uploadCroppedAvatar = async (blob: Blob) => {
+    if (!user || !blob) return;
     setLoadingProfile(true);
-    const path = `${user.id}/${Date.now()}-${file.name}`;
+    const path = `${user.id}/${Date.now()}-avatar.png`;
     const { error: uploadError } = await supabase.storage
       .from("avatars")
-      .upload(path, file, { upsert: true });
+      .upload(path, blob, { upsert: true, contentType: 'image/png' });
     if (uploadError) {
-      toast({
-        title: "Erro ao enviar imagem",
-        description: uploadError.message,
-        variant: "destructive",
-      });
+      toast({ title: "Erro ao enviar imagem", description: uploadError.message, variant: "destructive" });
       setLoadingProfile(false);
       return;
     }
-    const { data: publicUrlData } = supabase.storage
-      .from("avatars")
-      .getPublicUrl(path);
+    const { data: publicUrlData } = supabase.storage.from("avatars").getPublicUrl(path);
     const url = publicUrlData.publicUrl;
     setAdminProfile(prev => ({ ...prev, avatar_url: url }));
     setLoadingProfile(false);
@@ -659,16 +656,22 @@ const AdminDashboard = () => {
                   {adminProfile.name?.charAt(0).toUpperCase() || 'A'}
                 </AvatarFallback>
               </Avatar>
-              <div>
-                <Label htmlFor="avatar">Foto do perfil</Label>
-                <Input
-                  id="avatar"
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => e.target.files && handleAvatarChange(e.target.files[0])}
-                  disabled={loadingProfile}
-                />
-              </div>
+                <div>
+                  <Label htmlFor="avatar">Foto do perfil</Label>
+                  <Input
+                    id="avatar"
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => {
+                      const f = e.target.files?.[0];
+                      if (!f) return;
+                      const url = URL.createObjectURL(f);
+                      setCropSrc(url);
+                      setCropOpen(true);
+                    }}
+                    disabled={loadingProfile}
+                  />
+                </div>
             </div>
             <div className="space-y-3">
               <div className="space-y-2">
@@ -1440,6 +1443,7 @@ const AdminDashboard = () => {
           </div>
         </DialogContent>
       </Dialog>
+      <ImageCropperDialog open={cropOpen} onOpenChange={setCropOpen} imageSrc={cropSrc} onConfirm={uploadCroppedAvatar} />
     </div>
   );
 };

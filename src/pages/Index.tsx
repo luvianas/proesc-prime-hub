@@ -30,6 +30,7 @@ import { Label } from "@/components/ui/label";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
+import ImageCropperDialog from "@/components/ImageCropperDialog";
 const Index = () => {
   const [showAI, setShowAI] = useState(false);
   const [activeSection, setActiveSection] = useState("dashboard");
@@ -61,6 +62,10 @@ const Index = () => {
   const [forcingChange, setForcingChange] = useState(false);
   const [forceDismissed, setForceDismissed] = useState(false);
 
+  // Avatar cropper state
+  const [cropOpen, setCropOpen] = useState(false);
+  const [cropSrc, setCropSrc] = useState<string>("");
+
   const { toast } = useToast();
 
   const openProfile = async () => {
@@ -80,23 +85,24 @@ const Index = () => {
 
   const handleAvatarChange = async (file: File) => {
     if (!user || !file) return;
+    const url = URL.createObjectURL(file);
+    setCropSrc(url);
+    setCropOpen(true);
+  };
+
+  const uploadCroppedAvatar = async (blob: Blob) => {
+    if (!user) return;
     setLoadingProfile(true);
-    const path = `${user.id}/${Date.now()}-${file.name}`;
+    const path = `${user.id}/${Date.now()}-avatar.png`;
     const { error: uploadError } = await supabase.storage
       .from("avatars")
-      .upload(path, file, { upsert: true });
+      .upload(path, blob, { upsert: true, contentType: 'image/png' });
     if (uploadError) {
-      toast({
-        title: "Erro ao enviar imagem",
-        description: uploadError.message,
-        variant: "destructive",
-      });
+      toast({ title: "Erro ao enviar imagem", description: uploadError.message, variant: "destructive" });
       setLoadingProfile(false);
       return;
     }
-    const { data: publicUrlData } = supabase.storage
-      .from("avatars")
-      .getPublicUrl(path);
+    const { data: publicUrlData } = supabase.storage.from("avatars").getPublicUrl(path);
     const url = publicUrlData.publicUrl;
     setAvatarUrl(url);
     await supabase.from("profiles").update({ avatar_url: url }).eq("user_id", user.id);
