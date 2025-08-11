@@ -293,6 +293,27 @@ const AdminDashboard = () => {
     }
   };
 
+  const fetchConsultantPreview = async (consultantId: string) => {
+    if (!consultantId) {
+      setConsultantPreview(null);
+      return;
+    }
+    
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('name, consultant_whatsapp, consultant_calendar_url, avatar_url')
+      .eq('id', consultantId)
+      .single();
+    
+    if (error) {
+      console.error('Error fetching consultant:', error);
+      setConsultantPreview(null);
+      return;
+    }
+    
+    setConsultantPreview(data);
+  };
+
   useEffect(() => {
     fetchData();
   }, []);

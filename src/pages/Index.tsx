@@ -210,7 +210,7 @@ const Index = () => {
                     setForcingChange(true);
                     const { error: authErr } = await supabase.auth.updateUser({ password: forceNewPassword });
                     if (authErr) throw authErr;
-                    await supabase.from('profiles').update({ must_change_password: false }).eq('user_id', user!.id);
+                    await supabase.from('profiles').update({ must_change_password: false } as any).eq('user_id', user!.id);
                     toast({ title: 'Senha alterada com sucesso' });
                     setForceDismissed(true);
                   } catch (e:any) {
@@ -359,7 +359,7 @@ const Index = () => {
                     setForcingChange(true);
                     const { error: authErr } = await supabase.auth.updateUser({ password: forceNewPassword });
                     if (authErr) throw authErr;
-                    await supabase.from('profiles').update({ must_change_password: false }).eq('user_id', user!.id);
+                    await supabase.from('profiles').update({ must_change_password: false } as any).eq('user_id', user!.id);
                     toast({ title: 'Senha alterada com sucesso' });
                     setForceDismissed(true);
                   } catch (e:any) {
@@ -413,7 +413,7 @@ const Index = () => {
                     setForcingChange(true);
                     const { error: authErr } = await supabase.auth.updateUser({ password: forceNewPassword });
                     if (authErr) throw authErr;
-                    await supabase.from('profiles').update({ must_change_password: false }).eq('user_id', user!.id);
+                    await supabase.from('profiles').update({ must_change_password: false } as any).eq('user_id', user!.id);
                     toast({ title: 'Senha alterada com sucesso' });
                     setForceDismissed(true);
                   } catch (e:any) {
