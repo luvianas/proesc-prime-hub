@@ -177,16 +177,87 @@ const Index = () => {
   // Render admin dashboard for admin users
   if (userRole === 'admin') {
     return <div className="min-h-screen bg-gradient-to-br from-background via-muted to-background">
-        <div className="flex items-center justify-between p-4 border-b">
-          <h1 className="text-xl font-semibold">Sistema de Controle - Admin</h1>
-          <div className="flex items-center gap-2">
+        <div className="grid grid-cols-3 items-center p-4 border-b">
+          <div className="justify-self-start">
+            <h1 className="text-xl font-semibold">Sistema de Controle - Admin</h1>
+          </div>
+          <div className="justify-self-center">
+            <img
+              src="/lovable-uploads/31be6a89-85b7-486f-b156-ebe5b3557c02.png"
+              alt="Proesc Prime"
+              className="h-10 mx-auto"
+              loading="lazy"
+            />
+          </div>
+          <div className="justify-self-end flex items-center gap-3">
             <ThemeToggle />
+            <Button onClick={openProfile} variant="outline" className="rounded-full w-12 h-12 p-0 btn-elegant hover-glow">
+              <Avatar className="w-10 h-10">
+                <AvatarImage src={avatarUrl} alt="Foto do perfil" />
+                <AvatarFallback className="bg-primary text-primary-foreground">
+                  {(profileName || user.email || '').charAt(0).toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+            </Button>
             <Button variant="outline" onClick={signOut}>
               <LogOut className="w-4 h-4 mr-2" />
               Sair
             </Button>
           </div>
         </div>
+        <Dialog open={profileDialogOpen} onOpenChange={setProfileDialogOpen}>
+          <DialogContent className="sm:max-w-lg">
+            <DialogHeader>
+              <DialogTitle>Meu Perfil</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="flex items-center gap-4">
+                <Avatar className="h-16 w-16">
+                  <AvatarImage src={avatarUrl} alt="Foto do perfil" />
+                  <AvatarFallback>
+                    {(profileName || user.email || '').charAt(0).toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+                <div>
+                  <Label htmlFor="avatar-admin">Foto do perfil</Label>
+                  <Input
+                    id="avatar-admin"
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => e.target.files && handleAvatarChange(e.target.files[0])}
+                    disabled={loadingProfile}
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">Use uma imagem quadrada (PNG ou JPG).</p>
+                </div>
+              </div>
+              <div className="space-y-3">
+                <div className="space-y-2">
+                  <Label htmlFor="name-admin">Nome</Label>
+                  <Input id="name-admin" value={profileName} onChange={(e) => setProfileName(e.target.value)} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="email-admin">E-mail</Label>
+                  <Input id="email-admin" type="email" value={profileEmail} onChange={(e) => setProfileEmail(e.target.value)} />
+                </div>
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="password-admin">Nova senha</Label>
+                    <Input id="password-admin" type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="confirmPassword-admin">Confirmar senha</Label>
+                    <Input id="confirmPassword-admin" type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} />
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button variant="ghost" onClick={() => setProfileDialogOpen(false)}>Cancelar</Button>
+              <Button onClick={saveProfile} disabled={savingProfile}>{savingProfile ? 'Salvando...' : 'Salvar'}</Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+        <ImageCropperDialog open={cropOpen} onOpenChange={setCropOpen} imageSrc={cropSrc} onConfirm={uploadCroppedAvatar} />
         {/* Force password change dialog */}
         {mustChangePassword && !forceDismissed && (
           <Dialog open onOpenChange={() => {}}>
@@ -234,8 +305,8 @@ const Index = () => {
   // Render gestor dashboard for gestor users
   if (userRole === 'gestor') {
     return <div className="min-h-screen bg-hero">
-        <div className="flex items-center justify-between p-6 border-b bg-card/80 backdrop-blur-lg shadow-medium">
-          <div className="flex items-center gap-6">
+        <div className="grid grid-cols-3 items-center p-6 border-b bg-card/80 backdrop-blur-lg shadow-medium">
+          <div className="flex items-center gap-6 justify-self-start">
             {schoolHeader?.logoUrl ? (
               <img
                 src={schoolHeader.logoUrl}
@@ -257,17 +328,16 @@ const Index = () => {
                 {schoolHeader?.consultantName}
               </div>
             </div>
-            
-            {/* Proesc Prime Logo in the center */}
-            <div className="flex-1 flex justify-center">
-              <img 
-                src="/lovable-uploads/72aa872c-a403-45a6-a89f-d1c8ce13777b.png" 
-                alt="Proesc Prime" 
-                className="h-12"
-              />
-            </div>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="justify-self-center">
+            <img 
+              src="/lovable-uploads/31be6a89-85b7-486f-b156-ebe5b3557c02.png" 
+              alt="Proesc Prime" 
+              className="h-10 mx-auto"
+              loading="lazy"
+            />
+          </div>
+          <div className="justify-self-end flex items-center gap-3">
             <ThemeToggle />
             <Button onClick={openProfile} variant="outline" 
                     className="rounded-full w-12 h-12 p-0 btn-elegant hover-glow">

@@ -633,12 +633,9 @@ const AdminDashboard = () => {
           <h1 className="text-3xl font-bold">Painel Administrativo</h1>
           <p className="text-muted-foreground">Gerencie usuários e escolas do sistema</p>
         </div>
-        <div className="flex items-center gap-2">
-          <ThemeToggle />
-          <Button onClick={openAdminProfile} variant="ghost" size="icon" aria-label="Meu perfil">
-            <User className="w-5 h-5" />
-          </Button>
-        </div>
+        {/* Tema e perfil movidos para o cabeçalho global */}
+      </div>
+        <div className="flex items-center gap-2"></div>
       </div>
 
       {/* Admin Profile Dialog */}
@@ -838,12 +835,12 @@ const AdminDashboard = () => {
                     return (
                       <div key={user.id} className="flex items-center justify-between p-4 border rounded-lg">
                         <div className="flex items-center space-x-4">
-                          <div 
-                            className="w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold" 
-                            style={{ backgroundColor: environment?.theme_color || '#3b82f6' }}
-                          >
-                            {user.name.charAt(0).toUpperCase()}
-                          </div>
+                          <Avatar className="h-10 w-10">
+                            <AvatarImage src={user.avatar_url || ''} alt={`Foto de ${user.name}`} />
+                            <AvatarFallback>
+                              {user.name.charAt(0).toUpperCase()}
+                            </AvatarFallback>
+                          </Avatar>
                           <div>
                             <div className="flex items-center gap-2">
                               <p className="font-medium">{user.name}</p>
@@ -1075,9 +1072,12 @@ const AdminDashboard = () => {
                   }).map(school => (
                     <div key={school.id} className="flex items-center justify-between p-4 border rounded-lg">
                        <div className="flex items-center space-x-4">
-                         <div className="w-10 h-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-semibold">
-                           {school.school_name.charAt(0).toUpperCase()}
-                         </div>
+                         <Avatar className="h-10 w-10">
+                           <AvatarImage src={school.logo_url || ''} alt={`Logo ${school.school_name}`} />
+                           <AvatarFallback className="bg-primary text-primary-foreground">
+                             {school.school_name.charAt(0).toUpperCase()}
+                           </AvatarFallback>
+                         </Avatar>
                          <div>
                            <p className="font-medium">{school.school_name}</p>
                           <p className="text-sm text-muted-foreground">
