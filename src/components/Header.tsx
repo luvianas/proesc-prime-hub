@@ -32,7 +32,7 @@ const Header = ({ showAI, setShowAI }: HeaderProps) => {
           {/* Central Logo - Centered */}
           <div className="flex items-center justify-center flex-1">
             <img 
-              src="/src/assets/network-icon.svg" 
+              src="/lovable-uploads/acebbdfd-931e-4b04-af8c-a6951b7e1088.png" 
               alt="Portal Prime" 
               className="h-12"
             />
