@@ -31,6 +31,7 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import ImageCropperDialog from "@/components/ImageCropperDialog";
+import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip";
 const Index = () => {
   const [showAI, setShowAI] = useState(false);
   const [activeSection, setActiveSection] = useState("dashboard");
@@ -182,20 +183,27 @@ const Index = () => {
             <h1 className="text-xl font-semibold">Sistema de Controle - Admin</h1>
           </div>
           <div className="justify-self-center">
-            <a
-              href="https://app.proesc.com"
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label="Abrir Proesc em nova aba"
-              className="inline-block"
-            >
-              <img
-                src="/lovable-uploads/31be6a89-85b7-486f-b156-ebe5b3557c02.png"
-                alt="Proesc Prime"
-                className="h-10 mx-auto"
-                loading="lazy"
-              />
-            </a>
+<TooltipProvider delayDuration={150}>
+  <Tooltip>
+    <TooltipTrigger asChild>
+      <a
+        href="https://app.proesc.com"
+        target="_blank"
+        rel="noopener noreferrer"
+        aria-label="Abrir Proesc em nova aba"
+        className="inline-flex items-center justify-center rounded-md px-2 py-1 hover:bg-accent/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ring-offset-background transition hover-scale cursor-pointer"
+      >
+        <img
+          src="/lovable-uploads/31be6a89-85b7-486f-b156-ebe5b3557c02.png"
+          alt="Proesc Prime"
+          className="h-10 mx-auto select-none pointer-events-none"
+          loading="lazy"
+        />
+      </a>
+    </TooltipTrigger>
+    <TooltipContent side="bottom">Retornar ao Proesc</TooltipContent>
+  </Tooltip>
+</TooltipProvider>
           </div>
           <div className="justify-self-end flex items-center gap-3">
             <ThemeToggle />
@@ -338,20 +346,27 @@ const Index = () => {
             </div>
           </div>
           <div className="justify-self-center">
-            <a
-              href="https://app.proesc.com"
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label="Abrir Proesc em nova aba"
-              className="inline-block"
-            >
-              <img 
-                src="/lovable-uploads/31be6a89-85b7-486f-b156-ebe5b3557c02.png" 
-                alt="Proesc Prime" 
-                className="h-10 mx-auto"
-                loading="lazy"
-              />
-            </a>
+<TooltipProvider delayDuration={150}>
+  <Tooltip>
+    <TooltipTrigger asChild>
+      <a
+        href="https://app.proesc.com"
+        target="_blank"
+        rel="noopener noreferrer"
+        aria-label="Abrir Proesc em nova aba"
+        className="inline-flex items-center justify-center rounded-md px-2 py-1 hover:bg-accent/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ring-offset-background transition hover-scale cursor-pointer"
+      >
+        <img 
+          src="/lovable-uploads/31be6a89-85b7-486f-b156-ebe5b3557c02.png" 
+          alt="Proesc Prime" 
+          className="h-10 mx-auto select-none pointer-events-none"
+          loading="lazy"
+        />
+      </a>
+    </TooltipTrigger>
+    <TooltipContent side="bottom">Retornar ao Proesc</TooltipContent>
+  </Tooltip>
+</TooltipProvider>
           </div>
           <div className="justify-self-end flex items-center gap-3">
             <ThemeToggle />
