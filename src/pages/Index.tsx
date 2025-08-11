@@ -406,6 +406,7 @@ const Index = () => {
             </div>
           </DialogContent>
         </Dialog>
+        <ImageCropperDialog open={cropOpen} onOpenChange={setCropOpen} imageSrc={cropSrc} onConfirm={uploadCroppedAvatar} />
         {/* Force password change dialog */}
         {mustChangePassword && !forceDismissed && (
           <Dialog open onOpenChange={() => {}}>
