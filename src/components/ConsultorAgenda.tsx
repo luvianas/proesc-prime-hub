@@ -24,7 +24,7 @@ const ConsultorAgenda = ({ onBack, schoolData }: ConsultorAgendaProps) => {
       try {
         const { data: consultant, error } = await supabase
           .from('profiles')
-          .select('name, consultant_whatsapp, consultant_calendar_url, consultant_photo_url')
+          .select('name, consultant_whatsapp, consultant_calendar_url, avatar_url')
           .eq('user_id', schoolData.consultant_id)
           .single();
 
@@ -112,10 +112,10 @@ const ConsultorAgenda = ({ onBack, schoolData }: ConsultorAgendaProps) => {
         <Card className="lg:col-span-1">
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
-              {consultantData?.consultant_photo_url && (
+              {consultantData?.avatar_url && (
                 <div className="w-12 h-12 rounded-full overflow-hidden">
                   <img 
-                    src={consultantData.consultant_photo_url} 
+                    src={consultantData.avatar_url} 
                     alt={consultantData?.name || "Consultor"} 
                     className="w-full h-full object-cover" 
                   />

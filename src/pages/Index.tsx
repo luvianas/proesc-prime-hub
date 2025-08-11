@@ -51,9 +51,9 @@ const Index = () => {
   } | null>(null);
 
   const [profileDialogOpen, setProfileDialogOpen] = useState(false);
-  const [profileName, setProfileName] = useState<string>("");
-  const [profileEmail, setProfileEmail] = useState<string>("");
-  const [newPassword, setNewPassword] = useState<string]("");
+  const [profileName, setProfileName] = useState("");
+  const [profileEmail, setProfileEmail] = useState("");
+  const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState<string>("");
   const [avatarUrl, setAvatarUrl] = useState<string>("");
   const [adminWhatsApp, setAdminWhatsApp] = useState<string>("");
