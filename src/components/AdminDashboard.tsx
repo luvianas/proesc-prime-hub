@@ -133,6 +133,10 @@ const AdminDashboard = () => {
   const [bannerSchoolId, setBannerSchoolId] = useState<string>('');
   const [uploadingBanner, setUploadingBanner] = useState(false);
   const [bannersReloadKey, setBannersReloadKey] = useState(0);
+  const [bannerTitle, setBannerTitle] = useState('');
+  const [bannerLink, setBannerLink] = useState('');
+  const [bannerUseDefault, setBannerUseDefault] = useState(true);
+  const [bannerDuration, setBannerDuration] = useState<number>(6);
   
   // Additional states for consultant preview
   const [consultantPreview, setConsultantPreview] = useState<any>(null);
@@ -269,6 +273,9 @@ const AdminDashboard = () => {
         is_global: bannerScope === 'global',
         school_id: bannerScope === 'school' ? bannerSchoolId : null,
         created_by: userData.user?.id ?? null,
+        title: bannerTitle || null,
+        link_url: bannerLink || null,
+        duration_seconds: bannerUseDefault ? null : bannerDuration,
       };
       
       const { data: insertResult, error } = await supabase
@@ -284,6 +291,10 @@ const AdminDashboard = () => {
       setBannerFile(null);
       setBannerSchoolId('');
       setBannerScope('global');
+      setBannerTitle('');
+      setBannerLink('');
+      setBannerUseDefault(true);
+      setBannerDuration(6);
     } catch (e: any) {
       toast({ title: 'Erro', description: e.message || 'Falha ao enviar banner', variant: 'destructive' });
     } finally {
@@ -300,8 +311,8 @@ const AdminDashboard = () => {
     const { data, error } = await supabase
       .from('profiles')
       .select('name, consultant_whatsapp, consultant_calendar_url, avatar_url')
-      .eq('id', consultantId)
-      .single();
+      .or(`id.eq.${consultantId},user_id.eq.${consultantId}`)
+      .maybeSingle();
     
     if (error) {
       console.error('Error fetching consultant:', error);
@@ -1106,17 +1117,25 @@ const AdminDashboard = () => {
             <div className="flex justify-end">
               <Dialog open={bannerDialogOpen} onOpenChange={setBannerDialogOpen}>
                 <DialogTrigger asChild>
-                  <Button>Enviar Banner</Button>
+                  <Button>+ Adicionar Banner</Button>
                 </DialogTrigger>
                 <DialogContent className="sm:max-w-md">
                   <DialogHeader>
-                    <DialogTitle>Enviar Banner</DialogTitle>
+                    <DialogTitle>Adicionar Banner</DialogTitle>
                     <DialogDescription>Envie imagens JPG ou PNG e defina o escopo.</DialogDescription>
                   </DialogHeader>
                   <div className="space-y-4">
                     <div className="space-y-2">
                       <Label>Imagem (JPG ou PNG)</Label>
                       <Input type="file" accept="image/png, image/jpeg" onChange={(e) => setBannerFile(e.target.files?.[0] || null)} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Título</Label>
+                      <Input placeholder="Título do banner" value={bannerTitle} onChange={(e)=>setBannerTitle(e.target.value)} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Link de redirecionamento</Label>
+                      <Input placeholder="https://..." value={bannerLink} onChange={(e)=>setBannerLink(e.target.value)} />
                     </div>
                     <div className="space-y-2">
                       <Label>Escopo</Label>
@@ -1145,10 +1164,20 @@ const AdminDashboard = () => {
                         </Select>
                       </div>
                     )}
+                    <div className="flex items-center gap-3">
+                      <Switch checked={bannerUseDefault} onCheckedChange={(v)=>setBannerUseDefault(v)} />
+                      <span className="text-sm">Usar duração padrão do sistema (6s)</span>
+                    </div>
+                    {!bannerUseDefault && (
+                      <div>
+                        <Label>Duração personalizada (segundos)</Label>
+                        <Input type="number" min={1} max={120} value={bannerDuration} onChange={(e)=>setBannerDuration(Number(e.target.value))} />
+                      </div>
+                    )}
                     <div className="flex justify-end gap-2">
                       <Button variant="ghost" onClick={() => setBannerDialogOpen(false)}>Cancelar</Button>
                       <Button onClick={handleBannerUpload} disabled={uploadingBanner || (bannerScope==='school' && !bannerSchoolId)}>
-                        {uploadingBanner ? 'Enviando...' : 'Enviar'}
+                        {uploadingBanner ? 'Enviando...' : 'Adicionar'}
                       </Button>
                     </div>
                   </div>

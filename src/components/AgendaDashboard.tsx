@@ -49,7 +49,6 @@ const AgendaDashboard = ({ onBack, dashboardUrl }: AgendaDashboardProps) => {
       <Card className="w-full">
         <CardHeader>
           <CardTitle className="flex items-center space-x-2">
-            <span>Sistema de Agendamentos</span>
             {isLoading && <Loader2 className="h-5 w-5 animate-spin text-red-600" />}
           </CardTitle>
         </CardHeader>

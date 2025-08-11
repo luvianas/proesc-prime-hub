@@ -135,9 +135,6 @@ const BannersManager = () => {
             <Button variant={scope==='all' ? 'default' : 'outline'} onClick={() => setScope('all')}>Todos</Button>
             <Button variant={scope==='global' ? 'default' : 'outline'} onClick={() => setScope('global')}>Globais</Button>
             <Button variant={scope==='school' ? 'default' : 'outline'} onClick={() => setScope('school')}>Por escola</Button>
-            <Button onClick={() => { setCreateOpen(true); setForm({ useDefault: true, is_global: true, duration_seconds: null }); }}>
-              <Plus className="w-4 h-4 mr-2" /> Adicionar
-            </Button>
           </div>
         </div>
       </CardHeader>

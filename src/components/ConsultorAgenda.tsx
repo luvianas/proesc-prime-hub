@@ -22,14 +22,21 @@ const ConsultorAgenda = ({ onBack, schoolData }: ConsultorAgendaProps) => {
       }
 
       try {
+        const consultantId = String(schoolData.consultant_id);
         const { data: consultant, error } = await supabase
           .from('profiles')
           .select('name, consultant_whatsapp, consultant_calendar_url, avatar_url')
-          .eq('user_id', schoolData.consultant_id)
-          .single();
+          .or(`user_id.eq.${consultantId},id.eq.${consultantId}`)
+          .maybeSingle();
 
         if (error) throw error;
-        setConsultantData(consultant);
+        const merged = {
+          name: consultant?.name || schoolData?.consultant_name,
+          consultant_whatsapp: consultant?.consultant_whatsapp || schoolData?.consultant_whatsapp,
+          consultant_calendar_url: consultant?.consultant_calendar_url || schoolData?.consultant_calendar_url,
+          avatar_url: consultant?.avatar_url || schoolData?.consultant_photo_url,
+        };
+        setConsultantData(merged);
       } catch (error) {
         console.error('Error fetching consultant data:', error);
       } finally {
@@ -139,7 +146,7 @@ const ConsultorAgenda = ({ onBack, schoolData }: ConsultorAgendaProps) => {
                   WhatsApp
                 </Button>
               )}
-              <Button variant="outline" className="w-full">
+              <Button variant="outline" className="w-full" onClick={() => calendarSrc ? window.open(calendarSrc, '_blank') : undefined} disabled={!calendarSrc}>
                 <Calendar className="h-4 w-4 mr-2" />
                 Agendar Reunião
               </Button>
