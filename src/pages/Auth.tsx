@@ -101,12 +101,12 @@ const Auth = () => {
     <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-background via-muted to-background p-4">
       <div className="w-full max-w-3xl mb-6 flex items-center justify-center" aria-hidden="false">
         <img
-          src="/src/assets/network-icon.svg"
-          alt="Portal Prime"
+          src="/lovable-uploads/44ae6822-899c-4fb5-9009-871015494dd9.png"
+          alt="Logomarca Proesc Prime"
           className="h-16 md:h-20 object-contain"
           loading="eager"
-          width={64}
-          height={64}
+          width={512}
+          height={128}
         />
       </div>
       <Card className="w-full max-w-md">
