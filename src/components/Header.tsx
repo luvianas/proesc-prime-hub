@@ -2,6 +2,7 @@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Bot, Bell } from "lucide-react";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 
 interface HeaderProps {
   showAI: boolean;
@@ -10,7 +11,7 @@ interface HeaderProps {
 
 const Header = ({ showAI, setShowAI }: HeaderProps) => {
   return (
-    <header className="bg-white shadow-sm border-b border-red-100">
+    <header className="bg-surface/80 backdrop-blur-sm shadow-elegant border-b border-border/50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-20">
           <div className="flex items-center space-x-6">
@@ -38,19 +39,20 @@ const Header = ({ showAI, setShowAI }: HeaderProps) => {
           </div>
           
           <div className="flex items-center space-x-4">
+            <ThemeToggle />
             <Button
               variant="outline"
               size="sm"
               onClick={() => setShowAI(!showAI)}
-              className="flex items-center space-x-2 border-red-200 hover:bg-red-50"
+              className="btn-elegant hover-glow flex items-center space-x-2"
               style={{ borderColor: '#c41133', color: '#c41133' }}
             >
               <Bot className="h-4 w-4" />
               <span>IA Assistente</span>
             </Button>
             <div className="flex items-center space-x-2">
-              <Bell className="h-5 w-5 text-gray-500" />
-              <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ backgroundColor: '#c41133' }}>
+              <Bell className="h-5 w-5 text-muted-foreground hover:text-foreground transition-colors" />
+              <div className="w-8 h-8 rounded-full flex items-center justify-center hover-lift" style={{ backgroundColor: '#c41133' }}>
                 <span className="text-white font-medium text-sm">R</span>
               </div>
             </div>
