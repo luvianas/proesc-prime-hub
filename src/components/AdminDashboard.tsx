@@ -135,6 +135,9 @@ const AdminDashboard = () => {
   const [bannerSchoolId, setBannerSchoolId] = useState<string>('');
   const [uploadingBanner, setUploadingBanner] = useState(false);
   const [bannersReloadKey, setBannersReloadKey] = useState(0);
+  
+  // Additional states for consultant preview
+  const [consultantPreview, setConsultantPreview] = useState<any>(null);
 
   const uploadImage = async (file: File, folder: string) => {
     try {
