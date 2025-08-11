@@ -9,7 +9,7 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
-import { Plus, Users, Settings, Trash2, School, Edit3, Minimize2, Maximize2, User, ShieldAlert } from 'lucide-react';
+import { Plus, Users, Settings, Trash2, School, Edit3, Minimize2, Maximize2, User, Key } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
@@ -75,9 +75,7 @@ const AdminDashboard = () => {
     email: '',
     password: '',
     name: '',
-    role: 'user' as 'admin' | 'user' | 'gestor',
-    environmentName: '',
-    themeColor: '#3b82f6',
+    role: 'gestor' as 'admin' | 'gestor',
     schoolId: ''
   });
   const [newSchool, setNewSchool] = useState({
@@ -352,6 +350,10 @@ const AdminDashboard = () => {
   };
 
   const createSchool = async () => {
+    if (!newSchool.school_name.trim()) {
+      toast({ title: 'Campo obrigatório', description: 'Nome da Escola é obrigatório.', variant: 'destructive' });
+      return;
+    }
     try {
       const { data, error } = await supabase.from('school_customizations').insert([{
         school_name: newSchool.school_name,
@@ -394,6 +396,11 @@ const AdminDashboard = () => {
   const createUser = async () => {
     try {
       setLoading(true);
+      if (!newUser.name.trim() || !newUser.email.trim() || !newUser.password.trim() || !newUser.role) {
+        toast({ title: 'Campos obrigatórios', description: 'Preencha Nome, E-mail, Senha e Tipo de Usuário.', variant: 'destructive' });
+        setLoading(false);
+        return;
+      }
 
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: newUser.email,
@@ -413,12 +420,6 @@ const AdminDashboard = () => {
         }).eq('user_id', authData.user.id);
       }
 
-      if (authData.user) {
-        await supabase.from('environments').update({
-          name: newUser.environmentName || 'Meu Ambiente',
-          theme_color: newUser.themeColor
-        }).eq('user_id', authData.user.id);
-      }
       toast({
         title: "Sucesso",
         description: "Usuário criado com sucesso!"
@@ -428,9 +429,7 @@ const AdminDashboard = () => {
         email: '',
         password: '',
         name: '',
-        role: 'user' as 'admin' | 'user' | 'gestor',
-        environmentName: '',
-        themeColor: '#3b82f6',
+        role: 'gestor',
         schoolId: ''
       });
       fetchData();
@@ -487,6 +486,16 @@ const AdminDashboard = () => {
         description: error.message || "Erro ao excluir usuário",
         variant: "destructive"
       });
+    }
+  };
+
+  const resetUserPassword = async (targetUserId: string) => {
+    try {
+      const { error } = await supabase.functions.invoke('reset-user-password', { body: { user_id: targetUserId } });
+      if (error) throw error;
+      toast({ title: 'Senha redefinida', description: 'Senha padrão definida e troca obrigatória no próximo login.' });
+    } catch (e: any) {
+      toast({ title: 'Erro', description: e.message || 'Falha ao redefinir senha', variant: 'destructive' });
     }
   };
 
@@ -629,13 +638,8 @@ const AdminDashboard = () => {
         </div>
         <div className="flex items-center gap-2">
           <ThemeToggle />
-          <Button variant="destructive" onClick={() => setResetDialogOpen(true)}>
-            <ShieldAlert className="w-4 h-4 mr-2" />
-            Redefinir senhas
-          </Button>
-          <Button onClick={openAdminProfile} variant="outline">
-            <User className="w-4 h-4 mr-2" />
-            Meu Perfil
+          <Button onClick={openAdminProfile} variant="ghost" size="icon" aria-label="Meu perfil">
+            <User className="w-5 h-5" />
           </Button>
         </div>
       </div>
@@ -702,31 +706,6 @@ const AdminDashboard = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Security Reset Dialog */}
-      <Dialog open={resetDialogOpen} onOpenChange={setResetDialogOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Redefinir todas as senhas</DialogTitle>
-            <DialogDescription>
-              Isto irá definir a senha de todos os usuários para "proesc123" e obrigá-los a trocá-la no próximo login.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="flex justify-end gap-2">
-            <Button variant="ghost" onClick={() => setResetDialogOpen(false)}>Cancelar</Button>
-            <Button variant="destructive" disabled={resetting} onClick={async ()=>{
-              try {
-                setResetting(true);
-                const { error } = await supabase.functions.invoke('reset-all-passwords');
-                if (error) throw error;
-                toast({ title: 'Solicitação enviada', description: 'As senhas serão redefinidas em instantes.' });
-                setResetDialogOpen(false);
-              } catch (e:any) {
-                toast({ title: 'Erro', description: e.message || 'Falha ao acionar a função.', variant: 'destructive' });
-              } finally { setResetting(false); }
-            }}>{resetting ? 'Processando...' : 'Confirmar'}</Button>
-          </div>
-        </DialogContent>
-      </Dialog>
 
       {!minimized && (
         <Tabs defaultValue="users" className="space-y-4">
@@ -736,56 +715,6 @@ const AdminDashboard = () => {
               <TabsTrigger value="schools">Instituições</TabsTrigger>
               <TabsTrigger value="banners">Novidades</TabsTrigger>
             </TabsList>
-            <Dialog open={bannerDialogOpen} onOpenChange={setBannerDialogOpen}>
-              <DialogTrigger asChild>
-                <Button>Enviar Banner</Button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-md">
-                <DialogHeader>
-                  <DialogTitle>Enviar Banner</DialogTitle>
-                  <DialogDescription>Envie imagens JPG ou PNG e defina o escopo.</DialogDescription>
-                </DialogHeader>
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label>Imagem (JPG ou PNG)</Label>
-                    <Input type="file" accept="image/png, image/jpeg" onChange={(e) => setBannerFile(e.target.files?.[0] || null)} />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Escopo</Label>
-                    <Select value={bannerScope} onValueChange={(v: 'global' | 'school') => setBannerScope(v)}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione o escopo" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="global">Global (todas as escolas)</SelectItem>
-                        <SelectItem value="school">Por escola</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  {bannerScope === 'school' && (
-                    <div className="space-y-2">
-                      <Label>Escolha a escola</Label>
-                      <Select value={bannerSchoolId} onValueChange={(v) => setBannerSchoolId(v)}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecione a escola" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {schools.map((s) => (
-                            <SelectItem key={s.id} value={s.id}>{s.school_name}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  )}
-                  <div className="flex justify-end gap-2">
-                    <Button variant="ghost" onClick={() => setBannerDialogOpen(false)}>Cancelar</Button>
-                    <Button onClick={handleBannerUpload} disabled={uploadingBanner || (bannerScope==='school' && !bannerSchoolId)}>
-                      {uploadingBanner ? 'Enviando...' : 'Enviar'}
-                    </Button>
-                  </div>
-                </div>
-              </DialogContent>
-            </Dialog>
           </div>
 
           <TabsContent value="users" className="space-y-4">
@@ -807,29 +736,29 @@ const AdminDashboard = () => {
                   </DialogHeader>
                   <div className="space-y-4">
                     <div className="space-y-2">
-                      <Label htmlFor="name">Nome</Label>
-                      <Input id="name" value={newUser.name} onChange={e => setNewUser({
+                      <Label htmlFor="name">Nome <span className="text-destructive">*</span></Label>
+                      <Input id="name" required value={newUser.name} onChange={e => setNewUser({
                         ...newUser,
                         name: e.target.value
                       })} placeholder="Nome do usuário" />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="email">Email</Label>
-                      <Input id="email" type="email" value={newUser.email} onChange={e => setNewUser({
+                      <Label htmlFor="email">Email <span className="text-destructive">*</span></Label>
+                      <Input id="email" required type="email" value={newUser.email} onChange={e => setNewUser({
                         ...newUser,
                         email: e.target.value
                       })} placeholder="email@exemplo.com" />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="password">Senha</Label>
-                      <Input id="password" type="password" value={newUser.password} onChange={e => setNewUser({
+                      <Label htmlFor="password">Senha <span className="text-destructive">*</span></Label>
+                      <Input id="password" required type="password" value={newUser.password} onChange={e => setNewUser({
                         ...newUser,
                         password: e.target.value
                       })} placeholder="Senha" />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="role">Tipo de Usuário</Label>
-                      <Select value={newUser.role} onValueChange={(value: 'admin' | 'user' | 'gestor') => setNewUser({
+                      <Label htmlFor="role">Tipo de Usuário <span className="text-destructive">*</span></Label>
+                      <Select value={newUser.role} onValueChange={(value: 'admin' | 'gestor') => setNewUser({
                         ...newUser,
                         role: value
                       })}>
@@ -837,7 +766,6 @@ const AdminDashboard = () => {
                           <SelectValue placeholder="Selecione o tipo" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="user">Usuário</SelectItem>
                           <SelectItem value="gestor">Gestor</SelectItem>
                           <SelectItem value="admin">Admin</SelectItem>
                         </SelectContent>
@@ -865,20 +793,6 @@ const AdminDashboard = () => {
                       </div>
                     )}
                     
-                    <div className="space-y-2">
-                      <Label htmlFor="environmentName">Nome do Ambiente</Label>
-                      <Input id="environmentName" value={newUser.environmentName} onChange={e => setNewUser({
-                        ...newUser,
-                        environmentName: e.target.value
-                      })} placeholder="Meu Ambiente" />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="themeColor">Cor do Tema</Label>
-                      <Input id="themeColor" type="color" value={newUser.themeColor} onChange={e => setNewUser({
-                        ...newUser,
-                        themeColor: e.target.value
-                      })} />
-                    </div>
                     <Button onClick={createUser} className="w-full" disabled={loading}>
                       {loading ? 'Criando...' : 'Criar Usuário'}
                     </Button>
@@ -960,6 +874,9 @@ const AdminDashboard = () => {
                             onCheckedChange={() => toggleUserStatus(user.user_id, user.is_active)} 
                             disabled={user.role === 'admin'} 
                           />
+                          <Button variant="secondary" size="sm" onClick={() => resetUserPassword(user.user_id)} title="Redefinir senha">
+                            <Key className="w-4 h-4" />
+                          </Button>
                           {user.role !== 'admin' && (
                             <Button variant="destructive" size="sm" onClick={() => deleteUser(user.user_id)}>
                               <Trash2 className="w-4 h-4" />
@@ -993,9 +910,10 @@ const AdminDashboard = () => {
                   </DialogHeader>
                   <div className="space-y-4">
                     <div className="space-y-2">
-                      <Label htmlFor="schoolName">Nome da Escola</Label>
+                      <Label htmlFor="schoolName">Nome da Escola <span className="text-destructive">*</span></Label>
                       <Input 
                         id="schoolName" 
+                        required
                         value={newSchool.school_name} 
                         onChange={e => setNewSchool({
                           ...newSchool,
@@ -1053,18 +971,6 @@ const AdminDashboard = () => {
                           zendesk_integration_url: e.target.value
                         })} 
                         placeholder="https://escola.zendesk.com" 
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="metabaseUrl">URL Integração Metabase</Label>
-                      <Input 
-                        id="metabaseUrl" 
-                        value={newSchool.metabase_integration_url} 
-                        onChange={e => setNewSchool({
-                          ...newSchool,
-                          metabase_integration_url: e.target.value
-                        })} 
-                        placeholder="https://metabase.escola.com" 
                       />
                     </div>
                     
@@ -1196,6 +1102,58 @@ const AdminDashboard = () => {
           </TabsContent>
 
           <TabsContent value="banners" className="space-y-4">
+            <div className="flex justify-end">
+              <Dialog open={bannerDialogOpen} onOpenChange={setBannerDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button>Enviar Banner</Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-md">
+                  <DialogHeader>
+                    <DialogTitle>Enviar Banner</DialogTitle>
+                    <DialogDescription>Envie imagens JPG ou PNG e defina o escopo.</DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label>Imagem (JPG ou PNG)</Label>
+                      <Input type="file" accept="image/png, image/jpeg" onChange={(e) => setBannerFile(e.target.files?.[0] || null)} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Escopo</Label>
+                      <Select value={bannerScope} onValueChange={(v: 'global' | 'school') => setBannerScope(v)}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione o escopo" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="global">Global (todas as escolas)</SelectItem>
+                          <SelectItem value="school">Por escola</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    {bannerScope === 'school' && (
+                      <div className="space-y-2">
+                        <Label>Escolha a escola</Label>
+                        <Select value={bannerSchoolId} onValueChange={(v) => setBannerSchoolId(v)}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecione a escola" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {schools.map((s) => (
+                              <SelectItem key={s.id} value={s.id}>{s.school_name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
+                    <div className="flex justify-end gap-2">
+                      <Button variant="ghost" onClick={() => setBannerDialogOpen(false)}>Cancelar</Button>
+                      <Button onClick={handleBannerUpload} disabled={uploadingBanner || (bannerScope==='school' && !bannerSchoolId)}>
+                        {uploadingBanner ? 'Enviando...' : 'Enviar'}
+                      </Button>
+                    </div>
+                  </div>
+                </DialogContent>
+              </Dialog>
+            </div>
             <BannersManager key={bannersReloadKey} />
           </TabsContent>
         </Tabs>
@@ -1236,7 +1194,7 @@ const AdminDashboard = () => {
                 <Label htmlFor="editRole">Tipo de Usuário</Label>
                 <Select 
                   value={editingUser.role} 
-                  onValueChange={(value: 'admin' | 'user' | 'gestor') => setEditingUser({
+                  onValueChange={(value: 'admin' | 'gestor') => setEditingUser({
                     ...editingUser,
                     role: value
                   })}
@@ -1245,9 +1203,8 @@ const AdminDashboard = () => {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="user">Usuário</SelectItem>
-                    <SelectItem value="gestor">Gestor</SelectItem>
-                    <SelectItem value="admin">Admin</SelectItem>
+                  <SelectItem value="gestor">Gestor</SelectItem>
+                  <SelectItem value="admin">Admin</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -1367,17 +1324,6 @@ const AdminDashboard = () => {
                   onChange={e => setEditingSchool({
                     ...editingSchool,
                     zendesk_integration_url: e.target.value
-                  })} 
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="editMetabaseUrl">URL Integração Metabase</Label>
-                <Input 
-                  id="editMetabaseUrl" 
-                  value={editingSchool.metabase_integration_url || ''} 
-                  onChange={e => setEditingSchool({
-                    ...editingSchool,
-                    metabase_integration_url: e.target.value
                   })} 
                 />
               </div>
