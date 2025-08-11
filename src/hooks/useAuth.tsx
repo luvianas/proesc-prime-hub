@@ -7,6 +7,7 @@ interface AuthContextType {
   user: User | null;
   session: Session | null;
   userRole: 'admin' | 'user' | 'gestor' | null;
+  mustChangePassword: boolean;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signUp: (email: string, password: string, name: string) => Promise<{ error: any }>;
@@ -20,6 +21,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [userRole, setUserRole] = useState<'admin' | 'user' | 'gestor' | null>(null);
   const [loading, setLoading] = useState(true);
+  const [mustChangePassword, setMustChangePassword] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -33,13 +35,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           // Defer Supabase calls to prevent deadlock
           setTimeout(async () => {
             try {
-              const { data: profile } = await supabase
+              const { data: profile } = await (supabase as any)
                 .from('profiles')
-                .select('role')
+                .select('role, must_change_password')
                 .eq('user_id', session.user.id)
                 .maybeSingle();
               
               setUserRole(profile?.role || 'user');
+              setMustChangePassword(Boolean(profile?.must_change_password));
             } catch (error) {
               console.error('Error fetching user role:', error);
               setUserRole('user');
@@ -48,6 +51,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           }, 0);
         } else {
           setUserRole(null);
+          setMustChangePassword(false);
           setLoading(false);
         }
       }
@@ -61,13 +65,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       if (session?.user) {
         setTimeout(async () => {
           try {
-            const { data: profile } = await supabase
+            const { data: profile } = await (supabase as any)
               .from('profiles')
-              .select('role')
+              .select('role, must_change_password')
               .eq('user_id', session.user.id)
               .maybeSingle();
             
             setUserRole(profile?.role || 'user');
+            setMustChangePassword(Boolean(profile?.must_change_password));
           } catch (error) {
             console.error('Error fetching user role:', error);
             setUserRole('user');
@@ -76,6 +81,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         }, 0);
       } else {
         setLoading(false);
+        setMustChangePassword(false);
       }
     });
 
@@ -134,6 +140,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     setUser(null);
     setSession(null);
     setUserRole(null);
+    setMustChangePassword(false);
   };
 
   return (
@@ -141,6 +148,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       user,
       session,
       userRole,
+      mustChangePassword,
       loading,
       signIn,
       signUp,

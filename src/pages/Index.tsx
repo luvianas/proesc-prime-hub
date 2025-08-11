@@ -29,6 +29,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 const Index = () => {
   const [showAI, setShowAI] = useState(false);
   const [activeSection, setActiveSection] = useState("dashboard");
@@ -37,7 +38,8 @@ const Index = () => {
     user,
     userRole,
     loading,
-    signOut
+    signOut,
+    mustChangePassword,
   } = useAuth();
   const [schoolHeader, setSchoolHeader] = useState<{
     schoolName: string;
@@ -54,6 +56,10 @@ const Index = () => {
   const [avatarUrl, setAvatarUrl] = useState<string>("");
   const [loadingProfile, setLoadingProfile] = useState(false);
   const [savingProfile, setSavingProfile] = useState(false);
+  const [forceNewPassword, setForceNewPassword] = useState("");
+  const [forceConfirmPassword, setForceConfirmPassword] = useState("");
+  const [forcingChange, setForcingChange] = useState(false);
+  const [forceDismissed, setForceDismissed] = useState(false);
 
   const { toast } = useToast();
 
@@ -167,11 +173,54 @@ const Index = () => {
     return <div className="min-h-screen bg-gradient-to-br from-background via-muted to-background">
         <div className="flex items-center justify-between p-4 border-b">
           <h1 className="text-xl font-semibold">Sistema de Controle - Admin</h1>
-          <Button variant="outline" onClick={signOut}>
-            <LogOut className="w-4 h-4 mr-2" />
-            Sair
-          </Button>
+          <div className="flex items-center gap-2">
+            <ThemeToggle />
+            <Button variant="outline" onClick={signOut}>
+              <LogOut className="w-4 h-4 mr-2" />
+              Sair
+            </Button>
+          </div>
         </div>
+        {/* Force password change dialog */}
+        {mustChangePassword && !forceDismissed && (
+          <Dialog open onOpenChange={() => {}}>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle>Defina uma nova senha</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-3">
+                <div>
+                  <Label htmlFor="newpass-admin">Nova senha</Label>
+                  <Input id="newpass-admin" type="password" value={forceNewPassword} onChange={(e)=>setForceNewPassword(e.target.value)} />
+                </div>
+                <div>
+                  <Label htmlFor="confpass-admin">Confirmar senha</Label>
+                  <Input id="confpass-admin" type="password" value={forceConfirmPassword} onChange={(e)=>setForceConfirmPassword(e.target.value)} />
+                </div>
+                <Button disabled={forcingChange} onClick={async ()=>{
+                  if (forceNewPassword.length < 8 || !/[A-Z]/.test(forceNewPassword) || !/[a-z]/.test(forceNewPassword) || !/\d/.test(forceNewPassword)) {
+                    toast({ title: 'Senha fraca', description: 'Use 8+ caracteres com maiúscula, minúscula e número.', variant: 'destructive' });
+                    return;
+                  }
+                  if (forceNewPassword !== forceConfirmPassword) {
+                    toast({ title: 'Senhas não conferem', variant: 'destructive' });
+                    return;
+                  }
+                  try {
+                    setForcingChange(true);
+                    const { error: authErr } = await supabase.auth.updateUser({ password: forceNewPassword });
+                    if (authErr) throw authErr;
+                    await supabase.from('profiles').update({ must_change_password: false }).eq('user_id', user!.id);
+                    toast({ title: 'Senha alterada com sucesso' });
+                    setForceDismissed(true);
+                  } catch (e:any) {
+                    toast({ title: 'Erro ao alterar senha', description: e.message, variant: 'destructive' });
+                  } finally { setForcingChange(false); }
+                }}>{forcingChange ? 'Salvando...' : 'Salvar'}</Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+        )}
         <AdminDashboard />
       </div>;
   }
@@ -213,6 +262,7 @@ const Index = () => {
             </div>
           </div>
           <div className="flex items-center gap-3">
+            <ThemeToggle />
             <Button onClick={openProfile} variant="outline" 
                     className="rounded-full w-12 h-12 p-0 btn-elegant hover-glow">
               <Avatar className="w-10 h-10">
@@ -280,6 +330,46 @@ const Index = () => {
             </div>
           </DialogContent>
         </Dialog>
+        {/* Force password change dialog */}
+        {mustChangePassword && !forceDismissed && (
+          <Dialog open onOpenChange={() => {}}>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle>Defina uma nova senha</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-3">
+                <div>
+                  <Label htmlFor="newpass-gestor">Nova senha</Label>
+                  <Input id="newpass-gestor" type="password" value={forceNewPassword} onChange={(e)=>setForceNewPassword(e.target.value)} />
+                </div>
+                <div>
+                  <Label htmlFor="confpass-gestor">Confirmar senha</Label>
+                  <Input id="confpass-gestor" type="password" value={forceConfirmPassword} onChange={(e)=>setForceConfirmPassword(e.target.value)} />
+                </div>
+                <Button disabled={forcingChange} onClick={async ()=>{
+                  if (forceNewPassword.length < 8 || !/[A-Z]/.test(forceNewPassword) || !/[a-z]/.test(forceNewPassword) || !/\d/.test(forceNewPassword)) {
+                    toast({ title: 'Senha fraca', description: 'Use 8+ caracteres com maiúscula, minúscula e número.', variant: 'destructive' });
+                    return;
+                  }
+                  if (forceNewPassword !== forceConfirmPassword) {
+                    toast({ title: 'Senhas não conferem', variant: 'destructive' });
+                    return;
+                  }
+                  try {
+                    setForcingChange(true);
+                    const { error: authErr } = await supabase.auth.updateUser({ password: forceNewPassword });
+                    if (authErr) throw authErr;
+                    await supabase.from('profiles').update({ must_change_password: false }).eq('user_id', user!.id);
+                    toast({ title: 'Senha alterada com sucesso' });
+                    setForceDismissed(true);
+                  } catch (e:any) {
+                    toast({ title: 'Erro ao alterar senha', description: e.message, variant: 'destructive' });
+                  } finally { setForcingChange(false); }
+                }}>{forcingChange ? 'Salvando...' : 'Salvar'}</Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+        )}
         <GestorDashboard />
       </div>;
     }
@@ -287,12 +377,53 @@ const Index = () => {
   // Render user dashboard for regular users
   if (userRole === 'user') {
     return <div className="min-h-screen">
-        <div className="absolute top-4 right-4 z-10">
+        <div className="absolute top-4 right-4 z-10 flex items-center gap-2">
+          <ThemeToggle />
           <Button variant="outline" onClick={signOut} className="bg-white/90 backdrop-blur">
             <LogOut className="w-4 h-4 mr-2" />
             Sair
           </Button>
         </div>
+        {/* Force password change dialog */}
+        {mustChangePassword && !forceDismissed && (
+          <Dialog open onOpenChange={() => {}}>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle>Defina uma nova senha</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-3">
+                <div>
+                  <Label htmlFor="newpass-user">Nova senha</Label>
+                  <Input id="newpass-user" type="password" value={forceNewPassword} onChange={(e)=>setForceNewPassword(e.target.value)} />
+                </div>
+                <div>
+                  <Label htmlFor="confpass-user">Confirmar senha</Label>
+                  <Input id="confpass-user" type="password" value={forceConfirmPassword} onChange={(e)=>setForceConfirmPassword(e.target.value)} />
+                </div>
+                <Button disabled={forcingChange} onClick={async ()=>{
+                  if (forceNewPassword.length < 8 || !/[A-Z]/.test(forceNewPassword) || !/[a-z]/.test(forceNewPassword) || !/\d/.test(forceNewPassword)) {
+                    toast({ title: 'Senha fraca', description: 'Use 8+ caracteres com maiúscula, minúscula e número.', variant: 'destructive' });
+                    return;
+                  }
+                  if (forceNewPassword !== forceConfirmPassword) {
+                    toast({ title: 'Senhas não conferem', variant: 'destructive' });
+                    return;
+                  }
+                  try {
+                    setForcingChange(true);
+                    const { error: authErr } = await supabase.auth.updateUser({ password: forceNewPassword });
+                    if (authErr) throw authErr;
+                    await supabase.from('profiles').update({ must_change_password: false }).eq('user_id', user!.id);
+                    toast({ title: 'Senha alterada com sucesso' });
+                    setForceDismissed(true);
+                  } catch (e:any) {
+                    toast({ title: 'Erro ao alterar senha', description: e.message, variant: 'destructive' });
+                  } finally { setForcingChange(false); }
+                }}>{forcingChange ? 'Salvando...' : 'Salvar'}</Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+        )}
         <UserDashboard />
       </div>;
   }

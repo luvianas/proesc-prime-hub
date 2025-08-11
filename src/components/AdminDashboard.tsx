@@ -9,13 +9,14 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
-import { Plus, Users, Settings, Trash2, School, Edit3, Minimize2, Maximize2, User } from 'lucide-react';
+import { Plus, Users, Settings, Trash2, School, Edit3, Minimize2, Maximize2, User, ShieldAlert } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { createClient } from '@supabase/supabase-js';
 import BannersManager from '@/components/BannersManager';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import { ThemeToggle } from '@/components/ui/theme-toggle';
 
 interface User {
   id: string;
@@ -109,6 +110,8 @@ const AdminDashboard = () => {
   const { toast } = useToast();
   const { user, userRole } = useAuth();
   const [minimized, setMinimized] = useState(false);
+  const [resetDialogOpen, setResetDialogOpen] = useState(false);
+  const [resetting, setResetting] = useState(false);
 
   // Delete school states
   const [deleteSchoolDialogOpen, setDeleteSchoolDialogOpen] = useState(false);
@@ -293,6 +296,12 @@ const AdminDashboard = () => {
   useEffect(() => {
     fetchData();
   }, []);
+
+  useEffect(() => {
+    if (editSchoolDialogOpen && editingSchool?.consultant_id) {
+      fetchConsultantPreview(editingSchool.consultant_id);
+    }
+  }, [editSchoolDialogOpen, editingSchool?.consultant_id]);
 
   const fetchData = async () => {
     try {
@@ -595,6 +604,11 @@ const AdminDashboard = () => {
           <p className="text-muted-foreground">Gerencie usuários e escolas do sistema</p>
         </div>
         <div className="flex items-center gap-2">
+          <ThemeToggle />
+          <Button variant="destructive" onClick={() => setResetDialogOpen(true)}>
+            <ShieldAlert className="w-4 h-4 mr-2" />
+            Redefinir senhas
+          </Button>
           <Button onClick={openAdminProfile} variant="outline">
             <User className="w-4 h-4 mr-2" />
             Meu Perfil
@@ -660,6 +674,32 @@ const AdminDashboard = () => {
           <div className="flex justify-end gap-2 pt-2">
             <Button variant="ghost" onClick={() => setProfileDialogOpen(false)}>Cancelar</Button>
             <Button onClick={saveAdminProfile} disabled={savingProfile}>{savingProfile ? 'Salvando...' : 'Salvar'}</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Security Reset Dialog */}
+      <Dialog open={resetDialogOpen} onOpenChange={setResetDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Redefinir todas as senhas</DialogTitle>
+            <DialogDescription>
+              Isto irá definir a senha de todos os usuários para "proesc123" e obrigá-los a trocá-la no próximo login.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-end gap-2">
+            <Button variant="ghost" onClick={() => setResetDialogOpen(false)}>Cancelar</Button>
+            <Button variant="destructive" disabled={resetting} onClick={async ()=>{
+              try {
+                setResetting(true);
+                const { error } = await supabase.functions.invoke('reset-all-passwords');
+                if (error) throw error;
+                toast({ title: 'Solicitação enviada', description: 'As senhas serão redefinidas em instantes.' });
+                setResetDialogOpen(false);
+              } catch (e:any) {
+                toast({ title: 'Erro', description: e.message || 'Falha ao acionar a função.', variant: 'destructive' });
+              } finally { setResetting(false); }
+            }}>{resetting ? 'Processando...' : 'Confirmar'}</Button>
           </div>
         </DialogContent>
       </Dialog>
@@ -1266,7 +1306,7 @@ const AdminDashboard = () => {
                 <Label htmlFor="editConsultantId">Consultor Responsável</Label>
                 <Select
                   value={editingSchool.consultant_id || ''}
-                  onValueChange={(value) => setEditingSchool(prev => ({ ...prev, consultant_id: value }))}
+                  onValueChange={(value) => { setEditingSchool(prev => ({ ...prev, consultant_id: value })); fetchConsultantPreview(value); }}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione um consultor" />
@@ -1279,6 +1319,21 @@ const AdminDashboard = () => {
                     ))}
                   </SelectContent>
                 </Select>
+                {consultantPreview && (
+                  <div className="mt-3 p-3 border rounded-md text-sm">
+                    <div className="flex items-center gap-3">
+                      <Avatar className="h-10 w-10">
+                        <AvatarImage src={consultantPreview.avatar_url} />
+                        <AvatarFallback>{consultantPreview.name?.charAt(0)?.toUpperCase() || 'C'}</AvatarFallback>
+                      </Avatar>
+                      <div>
+                        <div className="font-medium">{consultantPreview.name}</div>
+                        <div className="text-muted-foreground">WhatsApp: {consultantPreview.consultant_whatsapp || '—'}</div>
+                        <div className="text-muted-foreground truncate">Agenda: {consultantPreview.consultant_calendar_url || '—'}</div>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="editZendeskUrl">URL Integração Zendesk</Label>

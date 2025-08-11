@@ -14,6 +14,7 @@ import SecretariaDashboard from '@/components/SecretariaDashboard';
 import PedagogicoDashboard from '@/components/PedagogicoDashboard';
 import AgendaDashboard from '@/components/AgendaDashboard';
 import NovidadesCarousel from '@/components/NovidadesCarousel';
+import { ThemeToggle } from '@/components/ui/theme-toggle';
 interface SchoolCustomization {
   id: string;
   school_name: string;
@@ -161,6 +162,11 @@ const GestorDashboard = () => {
 
         {/* Novidades - Carrossel de Banners */}
         <NovidadesCarousel schoolId={userProfile.school_id} />
+
+        {/* Alternar tema */}
+        <div className="flex justify-end">
+          <ThemeToggle />
+        </div>
 
         {/* Destaques */}
         <section className="grid md:grid-cols-2 gap-8">
