@@ -635,8 +635,6 @@ const AdminDashboard = () => {
         </div>
         {/* Tema e perfil movidos para o cabeçalho global */}
       </div>
-        <div className="flex items-center gap-2"></div>
-      </div>
 
       {/* Admin Profile Dialog */}
       <Dialog open={profileDialogOpen} onOpenChange={setProfileDialogOpen}>
