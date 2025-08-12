@@ -32,6 +32,7 @@ import { useToast } from "@/hooks/use-toast";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import ImageCropperDialog from "@/components/ImageCropperDialog";
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip";
+import MobileActionsMenu from "@/components/MobileActionsMenu";
 const Index = () => {
   const [showAI, setShowAI] = useState(false);
   const [activeSection, setActiveSection] = useState("dashboard");
@@ -210,19 +211,24 @@ const Index = () => {
 </TooltipProvider>
           </div>
           <div className="justify-self-end flex items-center gap-3">
-            <ThemeToggle />
-            <Button onClick={openProfile} variant="outline" className="rounded-full w-12 h-12 p-0 btn-elegant hover-glow">
-              <Avatar className="w-10 h-10">
-                <AvatarImage src={avatarUrl} alt="Foto do perfil" />
-                <AvatarFallback className="bg-primary text-primary-foreground">
-                  {(profileName || user.email || '').charAt(0).toUpperCase()}
-                </AvatarFallback>
-              </Avatar>
-            </Button>
-            <Button variant="outline" onClick={signOut}>
-              <LogOut className="w-4 h-4 mr-2" />
-              Sair
-            </Button>
+            <div className="hidden md:flex items-center gap-3">
+              <ThemeToggle />
+              <Button onClick={openProfile} variant="outline" className="rounded-full w-12 h-12 p-0 btn-elegant hover-glow">
+                <Avatar className="w-10 h-10">
+                  <AvatarImage src={avatarUrl} alt="Foto do perfil" />
+                  <AvatarFallback className="bg-primary text-primary-foreground">
+                    {(profileName || user.email || '').charAt(0).toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+              </Button>
+              <Button variant="outline" onClick={signOut}>
+                <LogOut className="w-4 h-4 mr-2" />
+                Sair
+              </Button>
+            </div>
+            <div className="md:hidden">
+              <MobileActionsMenu onOpenProfile={openProfile} />
+            </div>
           </div>
         </div>
         <Dialog open={profileDialogOpen} onOpenChange={setProfileDialogOpen}>
@@ -387,20 +393,25 @@ const Index = () => {
 </TooltipProvider>
           </div>
           <div className="justify-self-end flex items-center gap-3">
-            <ThemeToggle />
-            <Button onClick={openProfile} variant="outline" 
-                    className="rounded-full w-12 h-12 p-0 btn-elegant hover-glow">
-              <Avatar className="w-10 h-10">
-                <AvatarImage src={avatarUrl} alt="Foto do perfil" />
-                <AvatarFallback className="bg-primary text-primary-foreground">
-                  {schoolHeader?.schoolName?.charAt(0).toUpperCase()}
-                </AvatarFallback>
-              </Avatar>
-            </Button>
-            <Button onClick={signOut} className="btn-elegant shadow-medium">
-              <LogOut className="w-4 h-4 mr-2" />
-              Sair
-            </Button>
+            <div className="hidden md:flex items-center gap-3">
+              <ThemeToggle />
+              <Button onClick={openProfile} variant="outline" 
+                      className="rounded-full w-12 h-12 p-0 btn-elegant hover-glow">
+                <Avatar className="w-10 h-10">
+                  <AvatarImage src={avatarUrl} alt="Foto do perfil" />
+                  <AvatarFallback className="bg-primary text-primary-foreground">
+                    {schoolHeader?.schoolName?.charAt(0).toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+              </Button>
+              <Button onClick={signOut} className="btn-elegant shadow-medium">
+                <LogOut className="w-4 h-4 mr-2" />
+                Sair
+              </Button>
+            </div>
+            <div className="md:hidden">
+              <MobileActionsMenu onOpenProfile={openProfile} />
+            </div>
           </div>
         </div>
         <Dialog open={profileDialogOpen} onOpenChange={setProfileDialogOpen}>
