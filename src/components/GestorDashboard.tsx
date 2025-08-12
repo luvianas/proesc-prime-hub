@@ -15,6 +15,7 @@ import PedagogicoDashboard from '@/components/PedagogicoDashboard';
 import AgendaDashboard from '@/components/AgendaDashboard';
 import NovidadesCarousel from '@/components/NovidadesCarousel';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
+import { logEvent } from '@/lib/analytics';
 interface SchoolCustomization {
   id: string;
   school_name: string;
@@ -67,6 +68,19 @@ const GestorDashboard = () => {
     }
     canonical.setAttribute('href', window.location.href);
   }, []);
+
+  // Track page views for the home section
+  useEffect(() => {
+    if (activeSection === 'home') {
+      logEvent({ event_type: 'page_view', event_name: 'gestor_dashboard_home' });
+    }
+  }, [activeSection]);
+
+  const navigateTo = (section: typeof activeSection) => {
+    setActiveSection(section);
+    logEvent({ event_type: 'click', event_name: 'open_section', properties: { section } });
+  };
+
   const fetchSchoolData = async () => {
     if (!user) return;
     try {
@@ -171,7 +185,7 @@ const GestorDashboard = () => {
         {/* Destaques */}
         <section className="grid md:grid-cols-2 gap-8">
           <Card className="card-elegant card-interactive rounded-xl animate-scale-in" 
-                onClick={() => setActiveSection('tickets')}>
+                onClick={() => navigateTo('tickets')}>
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center gap-3 text-xl">
                 <ClipboardList className="h-6 w-6 text-primary" /> 
@@ -182,7 +196,7 @@ const GestorDashboard = () => {
           </Card>
 
           <Card className="card-elegant card-interactive rounded-xl animate-scale-in" 
-                onClick={() => setActiveSection('consultor-agenda')}>
+                onClick={() => navigateTo('consultor-agenda')}>
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center gap-3 text-xl">
                 <CalendarDays className="h-6 w-6 text-primary" /> 
@@ -199,7 +213,7 @@ const GestorDashboard = () => {
           <div className="grid md:grid-cols-2 gap-8">
 
             <Card className="card-elegant card-interactive rounded-xl animate-scale-in" 
-                  onClick={() => setActiveSection('dash-financeiro')}>
+                  onClick={() => navigateTo('dash-financeiro')}>
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center gap-3 text-xl">
                   <Wallet className="h-6 w-6 text-primary" /> 
@@ -210,7 +224,7 @@ const GestorDashboard = () => {
             </Card>
 
             <Card className="card-elegant card-interactive rounded-xl animate-scale-in" 
-                  onClick={() => setActiveSection('dash-agenda')}>
+                  onClick={() => navigateTo('dash-agenda')}>
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center gap-3 text-xl">
                   <CalendarDays className="h-6 w-6 text-primary" /> 
@@ -221,7 +235,7 @@ const GestorDashboard = () => {
             </Card>
 
             <Card className="card-elegant card-interactive rounded-xl animate-scale-in" 
-                  onClick={() => setActiveSection('dash-pedagogico')}>
+                  onClick={() => navigateTo('dash-pedagogico')}>
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center gap-3 text-xl">
                   <GraduationCap className="h-6 w-6 text-primary" /> 
@@ -232,7 +246,7 @@ const GestorDashboard = () => {
             </Card>
 
             <Card className="card-elegant card-interactive rounded-xl animate-scale-in" 
-                  onClick={() => setActiveSection('dash-secretaria')}>
+                  onClick={() => navigateTo('dash-secretaria')}>
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center gap-3 text-xl">
                   <ClipboardCheck className="h-6 w-6 text-primary" /> 

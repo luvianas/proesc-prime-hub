@@ -15,6 +15,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { createClient } from '@supabase/supabase-js';
 import BannersManager from '@/components/BannersManager';
+import UsageDashboard from '@/components/UsageDashboard';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
 import ImageCropperDialog from '@/components/ImageCropperDialog';
@@ -723,6 +724,7 @@ const AdminDashboard = () => {
               <TabsTrigger value="users">Usuários</TabsTrigger>
               <TabsTrigger value="schools">Instituições</TabsTrigger>
               <TabsTrigger value="banners">Novidades</TabsTrigger>
+              <TabsTrigger value="usage">Dados de Uso</TabsTrigger>
             </TabsList>
           </div>
 
@@ -1185,6 +1187,9 @@ const AdminDashboard = () => {
               </Dialog>
             </div>
             <BannersManager key={bannersReloadKey} />
+          </TabsContent>
+          <TabsContent value="usage" className="space-y-4">
+            <UsageDashboard />
           </TabsContent>
         </Tabs>
       )}

@@ -223,6 +223,57 @@ export type Database = {
           },
         ]
       }
+      usage_events: {
+        Row: {
+          browser: string | null
+          created_at: string
+          device: string | null
+          event_name: string
+          event_properties: Json | null
+          event_type: string
+          id: string
+          os: string | null
+          page: string | null
+          referrer: string | null
+          school_id: string | null
+          session_id: string | null
+          user_id: string
+          user_role: Database["public"]["Enums"]["user_role"]
+        }
+        Insert: {
+          browser?: string | null
+          created_at?: string
+          device?: string | null
+          event_name: string
+          event_properties?: Json | null
+          event_type: string
+          id?: string
+          os?: string | null
+          page?: string | null
+          referrer?: string | null
+          school_id?: string | null
+          session_id?: string | null
+          user_id: string
+          user_role: Database["public"]["Enums"]["user_role"]
+        }
+        Update: {
+          browser?: string | null
+          created_at?: string
+          device?: string | null
+          event_name?: string
+          event_properties?: Json | null
+          event_type?: string
+          id?: string
+          os?: string | null
+          page?: string | null
+          referrer?: string | null
+          school_id?: string | null
+          session_id?: string | null
+          user_id?: string
+          user_role?: Database["public"]["Enums"]["user_role"]
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
