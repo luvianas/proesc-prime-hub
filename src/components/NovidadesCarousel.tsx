@@ -89,6 +89,13 @@ const NovidadesCarousel = ({ schoolId }: NovidadesCarouselProps) => {
 
   if (!banners?.length) return null;
 
+  const normalizeUrl = (url?: string | null) => {
+    if (!url) return '#';
+    const trimmed = url.trim();
+    if (/^(https?:|mailto:|tel:)/i.test(trimmed)) return trimmed;
+    return `https://${trimmed}`;
+  };
+
   return (
     <section aria-label="Novidades" className="space-y-6 animate-slide-up">
       <h2 className="text-2xl font-bold text-brand">Novidades</h2>
@@ -123,7 +130,7 @@ const NovidadesCarousel = ({ schoolId }: NovidadesCarouselProps) => {
               return (
                 <CarouselItem key={banner.id}>
                   {banner.link_url ? (
-                    <a href={banner.link_url} target="_blank" rel="noopener noreferrer" 
+                    <a href={normalizeUrl(banner.link_url)} target="_blank" rel="noopener noreferrer" 
                        aria-label={banner.title || 'Abrir novidade em nova aba'}
                        className="block transition-transform duration-300 hover:scale-[1.02]">
                       {img}

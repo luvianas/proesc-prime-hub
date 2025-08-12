@@ -72,9 +72,15 @@ const ConsultorAgenda = ({ onBack, schoolData }: ConsultorAgendaProps) => {
   ];
 
   const handleWhatsAppClick = () => {
-    const phone = consultantData?.consultant_whatsapp;
-    if (!phone) {
+    const raw = consultantData?.consultant_whatsapp as string | undefined;
+    if (!raw) {
       window.alert('WhatsApp do consultor não configurado.');
+      return;
+    }
+    const digits = raw.replace(/\D/g, '');
+    const phone = digits.startsWith('55') ? digits : `55${digits}`;
+    if (!phone) {
+      window.alert('Número de WhatsApp inválido.');
       return;
     }
     window.open(`https://wa.me/${phone}`, '_blank');

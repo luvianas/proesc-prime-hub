@@ -90,7 +90,11 @@ const ConsultantInfo = ({ onBack }: ConsultantInfoProps) => {
               <div className="pt-4 space-y-2">
                 <Button 
                   className="w-full" 
-                  onClick={() => window.open(`https://wa.me/5596984130163`, "_blank")}
+                  onClick={() => {
+                    const digits = (consultant.phone || '').replace(/\D/g, '');
+                    const phone = digits.startsWith('55') ? digits : `55${digits}`;
+                    if (phone) window.open(`https://wa.me/${phone}`, "_blank");
+                  }}
                 >
                   <MessageCircle className="h-4 w-4 mr-2" />
                   WhatsApp
