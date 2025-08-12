@@ -1,8 +1,8 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Loader2, AlertTriangle } from "lucide-react";
+import AIInsightsButton from "@/components/AIInsightsButton";
 
 interface SecretariaDashboardProps {
   onBack: () => void;
@@ -34,16 +34,19 @@ const SecretariaDashboard = ({ onBack, dashboardUrl }: SecretariaDashboardProps)
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center space-x-4">
-        <Button 
-          variant="outline" 
-          onClick={onBack}
-          className="flex items-center space-x-2"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          <span>Voltar</span>
-        </Button>
-        <h2 className="text-3xl font-bold text-brand">Dashboard de Secretaria</h2>
+      <div className="flex items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <Button 
+            variant="outline" 
+            onClick={onBack}
+            className="flex items-center space-x-2"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            <span>Voltar</span>
+          </Button>
+          <h2 className="text-3xl font-bold text-brand">Dashboard de Secretaria</h2>
+        </div>
+        <AIInsightsButton label="Explicar com IA" dashboardUrl={finalUrl} />
       </div>
 
       <Card className="w-full">
