@@ -16,28 +16,46 @@ const ConsultorAgenda = ({ onBack, schoolData }: ConsultorAgendaProps) => {
 
   useEffect(() => {
     const fetchConsultantData = async () => {
-      if (!schoolData?.consultant_id) {
-        setLoading(false);
-        return;
-      }
-
       try {
-        const consultantId = String(schoolData.consultant_id);
-        const { data: consultant, error } = await supabase
-          .from('profiles')
-          .select('name, consultant_whatsapp, consultant_calendar_url, avatar_url')
-          .or(`user_id.eq.${consultantId},id.eq.${consultantId}`)
-          .maybeSingle();
+        // 1) Preferir dados já vindos do contexto da escola
+        if (schoolData) {
+          const mergedInitial = {
+            name: schoolData?.consultant_name,
+            consultant_whatsapp: schoolData?.consultant_whatsapp,
+            consultant_calendar_url: schoolData?.consultant_calendar_url,
+            avatar_url: schoolData?.consultant_photo_url,
+          };
 
-        if (error) throw error;
-        const merged = {
-          name: consultant?.name || schoolData?.consultant_name,
-          // Sempre usar os dados do consultor associado à escola
-          consultant_whatsapp: consultant?.consultant_whatsapp,
-          consultant_calendar_url: consultant?.consultant_calendar_url,
-          avatar_url: consultant?.avatar_url || schoolData?.consultant_photo_url,
-        };
-        setConsultantData(merged);
+          if (mergedInitial.consultant_whatsapp || mergedInitial.consultant_calendar_url) {
+            setConsultantData(mergedInitial);
+            return;
+          }
+        }
+
+        // 2) Fallback: buscar diretamente em school_customizations (permite RLS para gestor)
+        if (schoolData?.school_id || schoolData?.id) {
+          let query = supabase
+            .from('school_customizations')
+            .select('consultant_whatsapp, consultant_calendar_url, consultant_name, consultant_photo_url')
+            .limit(1);
+
+          if (schoolData?.school_id) {
+            query = query.eq('school_id', schoolData.school_id);
+          } else if (schoolData?.id) {
+            query = query.eq('id', schoolData.id);
+          }
+
+          const { data, error } = await query.maybeSingle();
+          if (error) throw error;
+
+          const merged = {
+            name: data?.consultant_name || schoolData?.consultant_name,
+            consultant_whatsapp: data?.consultant_whatsapp,
+            consultant_calendar_url: data?.consultant_calendar_url,
+            avatar_url: data?.consultant_photo_url || schoolData?.consultant_photo_url,
+          };
+          setConsultantData(merged);
+        }
       } catch (error) {
         console.error('Error fetching consultant data:', error);
       } finally {
@@ -46,7 +64,7 @@ const ConsultorAgenda = ({ onBack, schoolData }: ConsultorAgendaProps) => {
     };
 
     fetchConsultantData();
-  }, [schoolData?.consultant_id]);
+  }, [schoolData?.consultant_id, schoolData?.school_id, schoolData?.id]);
 
   const extractSrc = (input?: string) => {
     if (!input) return undefined;
