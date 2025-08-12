@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -23,6 +23,43 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [loading, setLoading] = useState(true);
   const [mustChangePassword, setMustChangePassword] = useState(false);
   const { toast } = useToast();
+  const expiryTimeout = useRef<number | undefined>(undefined);
+  const REMEMBER_KEY = 'auth_remember';
+  const EXPIRY_KEY = 'auth_expiry';
+
+  const clearExpiryTimer = () => {
+    if (expiryTimeout.current) {
+      window.clearTimeout(expiryTimeout.current);
+      expiryTimeout.current = undefined;
+    }
+  };
+
+  const scheduleExpiry = (sess: Session | null) => {
+    clearExpiryTimer();
+    if (!sess) {
+      localStorage.removeItem(EXPIRY_KEY);
+      return;
+    }
+
+    const remember = localStorage.getItem(REMEMBER_KEY) === 'true';
+    if (remember) {
+      localStorage.removeItem(EXPIRY_KEY);
+      return;
+    }
+
+    const now = Date.now();
+    const FORTY_EIGHT_HOURS = 48 * 60 * 60 * 1000;
+    let target = Number(localStorage.getItem(EXPIRY_KEY));
+    if (!target || isNaN(target) || target < now) {
+      target = now + FORTY_EIGHT_HOURS;
+      localStorage.setItem(EXPIRY_KEY, String(target));
+    }
+    const delay = Math.max(0, target - now);
+    expiryTimeout.current = window.setTimeout(() => {
+      // Safe to call outside of auth callback
+      supabase.auth.signOut();
+    }, delay);
+  };
 
   useEffect(() => {
     // Set up auth state listener
@@ -30,7 +67,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       (event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
-        
+        setTimeout(() => scheduleExpiry(session ?? null), 0);
         if (session?.user) {
           // Defer Supabase calls to prevent deadlock
           setTimeout(async () => {
@@ -61,7 +98,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
-      
+      setTimeout(() => scheduleExpiry(session ?? null), 0);
       if (session?.user) {
         setTimeout(async () => {
           try {
@@ -136,6 +173,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const signOut = async () => {
+    clearExpiryTimer();
+    localStorage.removeItem(EXPIRY_KEY);
+    // não removemos REMEMBER_KEY para manter a preferência do usuário
     await supabase.auth.signOut();
     setUser(null);
     setSession(null);

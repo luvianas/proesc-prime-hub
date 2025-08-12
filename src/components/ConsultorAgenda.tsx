@@ -32,8 +32,9 @@ const ConsultorAgenda = ({ onBack, schoolData }: ConsultorAgendaProps) => {
         if (error) throw error;
         const merged = {
           name: consultant?.name || schoolData?.consultant_name,
-          consultant_whatsapp: consultant?.consultant_whatsapp || schoolData?.consultant_whatsapp,
-          consultant_calendar_url: consultant?.consultant_calendar_url || schoolData?.consultant_calendar_url,
+          // Sempre usar os dados do consultor associado à escola
+          consultant_whatsapp: consultant?.consultant_whatsapp,
+          consultant_calendar_url: consultant?.consultant_calendar_url,
           avatar_url: consultant?.avatar_url || schoolData?.consultant_photo_url,
         };
         setConsultantData(merged);

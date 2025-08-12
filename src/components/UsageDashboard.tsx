@@ -33,6 +33,7 @@ export default function UsageDashboard() {
   const [events, setEvents] = useState<UsageEvent[]>([]);
   const [filter, setFilter] = useState('');
   const [loading, setLoading] = useState(true);
+  const [userNames, setUserNames] = useState<Record<string, string>>({});
 
   useEffect(() => {
     document.title = 'Dados de Uso - Admin';
@@ -52,7 +53,23 @@ export default function UsageDashboard() {
         .select('*')
         .gte('created_at', fromISO)
         .order('created_at', { ascending: false });
-      if (!error && data) setEvents(data as any);
+
+      if (!error && data) {
+        setEvents(data as any);
+        // Buscar nomes dos usuários na tabela profiles
+        const ids = Array.from(new Set((data as any[]).map((e) => e.user_id).filter(Boolean)));
+        if (ids.length > 0) {
+          const { data: profiles } = await (supabase as any)
+            .from('profiles')
+            .select('user_id, name')
+            .in('user_id', ids);
+          const map: Record<string, string> = {};
+          (profiles || []).forEach((p: any) => { if (p.user_id) map[p.user_id] = p.name; });
+          setUserNames(map);
+        } else {
+          setUserNames({});
+        }
+      }
       setLoading(false);
     };
     load();
@@ -171,7 +188,12 @@ export default function UsageDashboard() {
                   {filtered.map((e) => (
                     <TableRow key={e.id}>
                       <TableCell>{new Date(e.created_at).toLocaleString()}</TableCell>
-                      <TableCell className="font-mono text-xs">{e.user_id}</TableCell>
+                      <TableCell>
+                        <div className="flex flex-col">
+                          <span className="text-sm font-medium">{userNames[e.user_id] || '—'}</span>
+                          <span className="font-mono text-[10px] text-muted-foreground">{e.user_id}</span>
+                        </div>
+                      </TableCell>
                       <TableCell><Badge variant={e.user_role === 'admin' ? 'default' : e.user_role === 'gestor' ? 'secondary' : 'outline'}>{e.user_role}</Badge></TableCell>
                       <TableCell>{e.event_type}</TableCell>
                       <TableCell className="max-w-[240px] truncate" title={e.event_name}>{e.event_name}</TableCell>

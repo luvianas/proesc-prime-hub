@@ -3,6 +3,7 @@ import { Navigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Card, CardContent, CardDescription, CardHeader } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { useAuth } from '@/hooks/useAuth';
@@ -14,6 +15,8 @@ const Auth = () => {
     password: ''
   });
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(true);
   const {
     signIn,
     user
@@ -40,7 +43,8 @@ const Auth = () => {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    await signIn(loginData.email, loginData.password);
+    localStorage.setItem('auth_remember', rememberMe ? 'true' : 'false');
+    const { error } = await signIn(loginData.email, loginData.password);
     setLoading(false);
   };
   const handleGoogleLogin = async () => {
@@ -125,10 +129,26 @@ const Auth = () => {
             </div>
             <div className="space-y-2">
               <Label htmlFor="login-password">Senha</Label>
-              <Input id="login-password" type="password" value={loginData.password} onChange={e => setLoginData({
-              ...loginData,
-              password: e.target.value
-            })} required />
+              <Input
+                id="login-password"
+                type={showPassword ? 'text' : 'password'}
+                value={loginData.password}
+                onChange={e => setLoginData({
+                  ...loginData,
+                  password: e.target.value
+                })}
+                required
+              />
+              <div className="flex items-center justify-between pt-1">
+                <label htmlFor="show-password" className="flex items-center gap-2 text-sm">
+                  <Checkbox id="show-password" checked={showPassword} onCheckedChange={(v) => setShowPassword(Boolean(v))} />
+                  Mostrar senha
+                </label>
+                <label htmlFor="remember-me" className="flex items-center gap-2 text-sm">
+                  <Checkbox id="remember-me" checked={rememberMe} onCheckedChange={(v) => setRememberMe(Boolean(v))} />
+                  Permanecer logado
+                </label>
+              </div>
             </div>
             <Button type="submit" className="w-full" disabled={loading}>
               {loading ? 'Entrando...' : 'Entrar'}
