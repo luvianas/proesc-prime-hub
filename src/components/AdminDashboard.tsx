@@ -1091,9 +1091,9 @@ const AdminDashboard = () => {
                          </Avatar>
                          <div>
                            <p className="font-medium">{school.school_name}</p>
-                          <p className="text-sm text-muted-foreground">
-                            Consultor: {school.consultant_name || 'Não informado'}
-                          </p>
+                           <p className="text-sm text-muted-foreground">
+                             Consultor: {(users.find(u => (u.id === school.consultant_id || u.user_id === school.consultant_id))?.name) || school.consultant_name || 'Não informado'}
+                           </p>
                           <p className="text-xs text-muted-foreground">
                             Criado em: {new Date(school.created_at).toLocaleDateString()}
                           </p>
