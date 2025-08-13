@@ -27,7 +27,7 @@ interface Ticket {
 }
 
 const TicketSystem = ({ onBack }: TicketSystemProps) => {
-  const { user } = useAuth();
+  const { user, userRole } = useAuth();
   const { toast } = useToast();
   const [showNewTicket, setShowNewTicket] = useState(false);
   const [tickets, setTickets] = useState<Ticket[]>([]);
@@ -35,12 +35,61 @@ const TicketSystem = ({ onBack }: TicketSystemProps) => {
   const [creating, setCreating] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [newTicket, setNewTicket] = useState({ title: "", description: "", priority: "normal" });
+  const [schoolInfo, setSchoolInfo] = useState<{
+    schoolName?: string;
+    schoolId?: string;
+    userWithoutSchool?: boolean;
+    searchInfo?: any;
+  }>({});
+  const [userProfile, setUserProfile] = useState<{
+    name?: string;
+    email?: string;
+    role?: string;
+    school_id?: string;
+  }>({});
 
   useEffect(() => {
     if (user) {
+      loadUserProfile();
       loadTickets();
     }
   }, [user]);
+
+  const loadUserProfile = async () => {
+    try {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('name, email, role, school_id')
+        .eq('user_id', user?.id)
+        .single();
+
+      if (profile) {
+        setUserProfile(profile);
+        
+        // Load school name if user has school_id
+        if (profile.school_id) {
+          const { data: schoolCustomization } = await supabase
+            .from('school_customizations')
+            .select('school_name')
+            .eq('school_id', profile.school_id)
+            .single();
+          
+          setSchoolInfo({
+            schoolName: schoolCustomization?.school_name,
+            schoolId: profile.school_id,
+            userWithoutSchool: false
+          });
+        } else {
+          setSchoolInfo({
+            userWithoutSchool: profile.role !== 'admin',
+            schoolId: undefined
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Error loading user profile:', error);
+    }
+  };
 
   const loadTickets = async () => {
     try {
@@ -64,7 +113,28 @@ const TicketSystem = ({ onBack }: TicketSystemProps) => {
         return;
       }
 
+      // Handle special case: user without school
+      if (data?.error === 'user_without_school') {
+        setSchoolInfo(prev => ({ 
+          ...prev, 
+          userWithoutSchool: true 
+        }));
+        toast({
+          title: "Usuário sem escola associada",
+          description: "Entre em contato com o administrador para associar sua conta a uma escola.",
+          variant: "destructive",
+        });
+        setTickets([]);
+        return;
+      }
+
       setTickets(data?.tickets || []);
+      if (data?.search_info) {
+        setSchoolInfo(prev => ({ 
+          ...prev, 
+          searchInfo: data.search_info 
+        }));
+      }
     } catch (error) {
       console.error('Error loading tickets:', error);
       toast({
@@ -152,6 +222,12 @@ const TicketSystem = ({ onBack }: TicketSystemProps) => {
       }
 
       setTickets(data?.tickets || []);
+      if (data?.search_info) {
+        setSchoolInfo(prev => ({ 
+          ...prev, 
+          searchInfo: data.search_info 
+        }));
+      }
     } catch (error) {
       console.error('Error searching tickets:', error);
       toast({
@@ -195,6 +271,25 @@ const TicketSystem = ({ onBack }: TicketSystemProps) => {
           <div>
             <h2 className="text-3xl font-bold text-gray-900">Sistema de Tickets</h2>
             <p className="text-gray-600">Acompanhe e gerencie seus tickets de suporte</p>
+            {schoolInfo.schoolName && (
+              <div className="flex items-center space-x-2 mt-2">
+                <Badge variant="outline" className="text-sm">
+                  🏫 {schoolInfo.schoolName}
+                </Badge>
+                {userRole === 'admin' && (
+                  <Badge variant="secondary" className="text-xs">
+                    Administrador
+                  </Badge>
+                )}
+              </div>
+            )}
+            {schoolInfo.userWithoutSchool && (
+              <div className="flex items-center space-x-2 mt-2">
+                <Badge variant="destructive" className="text-sm">
+                  ⚠️ Usuário sem escola associada
+                </Badge>
+              </div>
+            )}
           </div>
         </div>
         <Button onClick={() => setShowNewTicket(true)} className="flex items-center space-x-2">
@@ -265,9 +360,43 @@ const TicketSystem = ({ onBack }: TicketSystemProps) => {
               <CardContent className="text-center py-8">
                 <AlertCircle className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
                 <p className="text-lg font-medium">Nenhum ticket encontrado</p>
-                <p className="text-muted-foreground">
-                  {searchQuery ? 'Tente uma busca diferente ou' : ''} Crie seu primeiro ticket de suporte.
-                </p>
+                
+                {schoolInfo.userWithoutSchool ? (
+                  <div className="space-y-3">
+                    <p className="text-muted-foreground">
+                      Sua conta não está associada a uma escola.
+                    </p>
+                    <div className="bg-yellow-50 p-4 rounded-lg">
+                      <p className="text-sm text-yellow-800">
+                        <strong>Próximos passos:</strong><br/>
+                        Entre em contato com o administrador do sistema para:
+                      </p>
+                      <ul className="text-sm text-yellow-700 mt-2 space-y-1">
+                        <li>• Associar sua conta à escola correta</li>
+                        <li>• Configurar permissões de acesso</li>
+                        <li>• Acessar tickets da sua instituição</li>
+                      </ul>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    <p className="text-muted-foreground">
+                      {searchQuery ? 'Tente uma busca diferente ou' : ''} Crie seu primeiro ticket de suporte.
+                    </p>
+                    {schoolInfo.searchInfo && (
+                      <div className="bg-blue-50 p-3 rounded-lg">
+                        <p className="text-sm text-blue-800">
+                          <strong>Filtros aplicados:</strong><br/>
+                          Buscando por: <code className="bg-blue-100 px-1 rounded">{schoolInfo.searchInfo.school_tag}</code><br/>
+                          Papel: {schoolInfo.searchInfo.user_role}<br/>
+                          {schoolInfo.searchInfo.total_results !== undefined && (
+                            <>Total encontrado: {schoolInfo.searchInfo.total_results}</>
+                          )}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )}
               </CardContent>
             </Card>
           ) : (

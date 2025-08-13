@@ -41,7 +41,7 @@ serve(async (req) => {
     // Get user profile and school info
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
-      .select('school_id, name, email')
+      .select('school_id, name, email, role')
       .eq('user_id', user.id)
       .single();
 
@@ -50,9 +50,40 @@ serve(async (req) => {
       throw new Error('User profile not found');
     }
 
+    console.log('🏫 User profile loaded:', {
+      user_id: user.id,
+      school_id: profile.school_id,
+      role: profile.role,
+      email: profile.email
+    });
+
     const { action, ...body } = await req.json();
     const schoolId = profile.school_id;
-    const schoolTag = `school_${schoolId}`;
+    
+    // Handle users without school association
+    if (!schoolId && profile.role !== 'admin') {
+      console.warn('⚠️ User without school_id trying to access tickets:', {
+        user_id: user.id,
+        email: profile.email,
+        role: profile.role
+      });
+      
+      return new Response(JSON.stringify({ 
+        error: 'user_without_school',
+        message: 'Usuário não está associado a uma escola',
+        tickets: [],
+        user_info: {
+          email: profile.email,
+          role: profile.role
+        }
+      }), {
+        status: 200, // Not an error, just no school association
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // For admins without school_id, use a different approach
+    const schoolTag = schoolId ? `school_${schoolId}` : (profile.role === 'admin' ? 'proesc' : `school_null`);
 
     // Zendesk API base URL
     const zendeskUrl = `https://proesc.zendesk.com/api/v2`;
@@ -66,10 +97,29 @@ serve(async (req) => {
 
     let response;
 
+    console.log('🎯 Zendesk operation:', {
+      action,
+      school_tag: schoolTag,
+      user_role: profile.role,
+      school_id: schoolId
+    });
+
     switch (action) {
       case 'list_tickets':
         // Get tickets filtered by school tag
-        const listUrl = `${zendeskUrl}/search.json?query=type:ticket tags:${schoolTag}&sort_by=created_at&sort_order=desc`;
+        let searchQuery = `type:ticket`;
+        
+        if (profile.role === 'admin' && !schoolId) {
+          // Admins without school_id can see all tickets
+          searchQuery = `type:ticket tags:proesc`;
+          console.log('🔑 Admin access: listing all tickets');
+        } else {
+          searchQuery = `type:ticket tags:${schoolTag}`;
+        }
+        
+        const listUrl = `${zendeskUrl}/search.json?query=${encodeURIComponent(searchQuery)}&sort_by=created_at&sort_order=desc`;
+        console.log('📋 Zendesk search URL:', listUrl);
+        
         response = await fetch(listUrl, {
           method: 'GET',
           headers: zendeskHeaders,
@@ -111,7 +161,17 @@ serve(async (req) => {
 
       case 'search_tickets':
         const { query } = body;
-        const searchUrl = `${zendeskUrl}/search.json?query=type:ticket tags:${schoolTag} ${query}&sort_by=updated_at&sort_order=desc`;
+        let searchTicketsQuery = `type:ticket`;
+        
+        if (profile.role === 'admin' && !schoolId) {
+          searchTicketsQuery = `type:ticket tags:proesc ${query}`;
+        } else {
+          searchTicketsQuery = `type:ticket tags:${schoolTag} ${query}`;
+        }
+        
+        const searchUrl = `${zendeskUrl}/search.json?query=${encodeURIComponent(searchTicketsQuery)}&sort_by=updated_at&sort_order=desc`;
+        console.log('🔍 Search query:', searchTicketsQuery);
+        
         response = await fetch(searchUrl, {
           method: 'GET',
           headers: zendeskHeaders,
@@ -124,11 +184,23 @@ serve(async (req) => {
 
     if (!response.ok) {
       const errorData = await response.text();
-      console.error('Zendesk API error:', errorData);
+      console.error('❌ Zendesk API error:', {
+        status: response.status,
+        statusText: response.statusText,
+        error: errorData,
+        action,
+        school_tag: schoolTag
+      });
       throw new Error(`Zendesk API error: ${response.status}`);
     }
 
     const data = await response.json();
+    console.log('✅ Zendesk response:', {
+      action,
+      results_count: data.results?.length || 0,
+      next_page: data.next_page,
+      school_tag: schoolTag
+    });
     
     // Transform Zendesk data to our format
     if (action === 'list_tickets' || action === 'search_tickets') {
@@ -146,7 +218,15 @@ serve(async (req) => {
         zendesk_url: `https://${ZENDESK_SUBDOMAIN}.zendesk.com/agent/tickets/${ticket.id}`
       }));
 
-      return new Response(JSON.stringify({ tickets: transformedTickets }), {
+      return new Response(JSON.stringify({ 
+        tickets: transformedTickets,
+        search_info: {
+          school_tag: schoolTag,
+          total_results: data.count,
+          user_role: profile.role,
+          school_id: schoolId
+        }
+      }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
