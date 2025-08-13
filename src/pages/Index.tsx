@@ -33,6 +33,7 @@ import { ThemeToggle } from "@/components/ui/theme-toggle";
 import ImageCropperDialog from "@/components/ImageCropperDialog";
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip";
 import MobileActionsMenu from "@/components/MobileActionsMenu";
+import Footer from "@/components/Footer";
 const Index = () => {
   const [showAI, setShowAI] = useState(false);
   const [activeSection, setActiveSection] = useState("dashboard");
@@ -339,6 +340,7 @@ const Index = () => {
           </Dialog>
         )}
         <AdminDashboard />
+        <Footer />
       </div>;
   }
 
@@ -508,6 +510,7 @@ const Index = () => {
           </Dialog>
         )}
         <GestorDashboard />
+        <Footer />
       </div>;
     }
 
@@ -562,6 +565,7 @@ const Index = () => {
           </Dialog>
         )}
         <UserDashboard />
+        <Footer />
       </div>;
   }
 
@@ -613,6 +617,7 @@ const Index = () => {
         {/* AI Assistant */}
         {showAI && <AIAssistant onClose={() => setShowAI(false)} />}
       </div>
+      <Footer />
     </div>;
 };
 export default Index;
