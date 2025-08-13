@@ -43,7 +43,7 @@ serve(async (req) => {
       .from('profiles')
       .select(`
         school_id, name, email, role,
-        school_customizations!profiles_school_id_fkey(zendesk_integration_url)
+        school_customizations!profiles_school_id_fkey(zendesk_integration_url, school_name)
       `)
       .eq('user_id', user.id)
       .single();
@@ -63,11 +63,14 @@ serve(async (req) => {
     const { action, ...body } = await req.json();
     const schoolId = profile.school_id;
     const organizationId = profile.school_customizations?.[0]?.zendesk_integration_url;
+    const schoolName = profile.school_customizations?.[0]?.school_name;
     
     console.log('🏫 School integration info:', {
       school_id: schoolId,
+      school_name: schoolName,
       organization_id: organizationId,
-      user_role: profile.role
+      user_role: profile.role,
+      zendesk_integration_configured: !!organizationId
     });
     
     // Handle users without school association
@@ -135,7 +138,7 @@ serve(async (req) => {
 
     switch (action) {
       case 'list_tickets':
-        // Get tickets filtered by organization
+        // Get tickets filtered by organization or entity
         let listUrl = '';
         
         if (profile.role === 'admin' && !schoolId) {
@@ -143,9 +146,20 @@ serve(async (req) => {
           listUrl = `${zendeskUrl}/tickets.json?sort_by=created_at&sort_order=desc`;
           console.log('🔑 Admin access: listing all tickets');
         } else if (organizationId) {
-          // Get tickets for specific organization
+          // Try organization-based search first
           listUrl = `${zendeskUrl}/organizations/${organizationId}/tickets.json?sort_by=created_at&sort_order=desc`;
           console.log('🏢 Organization tickets URL:', listUrl);
+        } else if (schoolName) {
+          // Fallback to entity-based search for specific schools
+          const entityNumber = getEntityNumber(schoolName);
+          if (entityNumber) {
+            listUrl = `${zendeskUrl}/search.json?query=${encodeURIComponent(`type:ticket "Entidade N ${entityNumber}"`)}&sort_by=created_at&sort_order=desc`;
+            console.log(`🏫 Entity-based search for ${schoolName} (Entity ${entityNumber}):`, listUrl);
+          } else {
+            // Generic search by school name
+            listUrl = `${zendeskUrl}/search.json?query=${encodeURIComponent(`type:ticket "${schoolName}"`)}&sort_by=created_at&sort_order=desc`;
+            console.log(`🔍 School name search for ${schoolName}:`, listUrl);
+          }
         } else {
           // Fallback to empty results
           return new Response(JSON.stringify({ 
@@ -154,16 +168,30 @@ serve(async (req) => {
               organization_id: organizationId,
               total_results: 0,
               user_role: profile.role,
-              school_id: schoolId
+              school_id: schoolId,
+              school_name: schoolName,
+              error: 'no_search_criteria'
             }
           }), {
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           });
         }
         
+        console.log('📡 Making Zendesk API request:', {
+          url: listUrl,
+          method: 'GET',
+          timestamp: new Date().toISOString()
+        });
+        
         response = await fetch(listUrl, {
           method: 'GET',
           headers: zendeskHeaders,
+        });
+        
+        console.log('📨 Zendesk API response:', {
+          status: response.status,
+          ok: response.ok,
+          url: listUrl
         });
         break;
 
@@ -213,15 +241,27 @@ serve(async (req) => {
           // Search within organization tickets
           searchUrl = `${zendeskUrl}/search.json?query=${encodeURIComponent(`type:ticket organization:${organizationId} ${query}`)}&sort_by=updated_at&sort_order=desc`;
           console.log('🔍 Organization search query:', query, 'org:', organizationId);
+        } else if (schoolName) {
+          // Fallback to entity-based search
+          const entityNumber = getEntityNumber(schoolName);
+          if (entityNumber) {
+            searchUrl = `${zendeskUrl}/search.json?query=${encodeURIComponent(`type:ticket "Entidade N ${entityNumber}" ${query}`)}&sort_by=updated_at&sort_order=desc`;
+            console.log(`🔍 Entity-based search for ${schoolName} (Entity ${entityNumber}) with query:`, query);
+          } else {
+            searchUrl = `${zendeskUrl}/search.json?query=${encodeURIComponent(`type:ticket "${schoolName}" ${query}`)}&sort_by=updated_at&sort_order=desc`;
+            console.log(`🔍 School name search for ${schoolName} with query:`, query);
+          }
         } else {
-          // No organization configured, return empty
+          // No search criteria, return empty
           return new Response(JSON.stringify({ 
             tickets: [],
             search_info: {
               organization_id: organizationId,
               total_results: 0,
               user_role: profile.role,
-              school_id: schoolId
+              school_id: schoolId,
+              school_name: schoolName,
+              error: 'no_search_criteria'
             }
           }), {
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -255,7 +295,9 @@ serve(async (req) => {
       action,
       results_count: data.results?.length || data.tickets?.length || 0,
       next_page: data.next_page,
-      organization_id: organizationId
+      organization_id: organizationId,
+      school_name: schoolName,
+      full_response: data
     });
     
     // Transform Zendesk data to our format
@@ -280,7 +322,9 @@ serve(async (req) => {
           organization_id: organizationId,
           total_results: data.count || transformedTickets.length,
           user_role: profile.role,
-          school_id: schoolId
+          school_id: schoolId,
+          school_name: schoolName,
+          search_method: organizationId ? 'organization' : 'entity_search'
         }
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -330,4 +374,14 @@ function mapZendeskPriority(priority: string): string {
     default:
       return 'Média';
   }
+}
+
+function getEntityNumber(schoolName: string): string | null {
+  // Map known schools to their entity numbers
+  const schoolEntityMap: { [key: string]: string } = {
+    'Colégio Arcádia': '4626',
+    'Escola Celus': '1234', // Add other schools as needed
+  };
+  
+  return schoolEntityMap[schoolName] || null;
 }
