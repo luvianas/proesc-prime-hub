@@ -104,27 +104,37 @@ serve(async (req) => {
       });
     }
 
-    // Check if organization ID is configured for the school
+    // Log organization ID details for debugging
+    console.log('🔍 Organization ID Debug:', {
+      organizationId,
+      organizationIdType: typeof organizationId,
+      organizationIdExists: !!organizationId,
+      schoolCustomizations: profile.school_customizations,
+      zendeskIntegrationUrl: profile.school_customizations?.[0]?.zendesk_integration_url
+    });
+
+    // Check if organization ID is configured for the school - but allow continuation for testing
     if (schoolId && !organizationId) {
-      console.warn('⚠️ School without Zendesk organization ID:', {
+      console.warn('⚠️ School without Zendesk organization ID (will try alternative strategies):', {
         school_id: schoolId,
         user_id: user.id,
         school_customizations: profile.school_customizations
       });
       
-      return new Response(JSON.stringify({ 
-        error: 'organization_not_configured',
-        message: 'ID da organização do Zendesk não configurado para esta escola',
-        tickets: [],
-        user_info: {
-          email: profile.email,
-          role: profile.role,
-          school_id: schoolId
-        }
-      }), {
-        status: 200,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+      // Don't return early - continue with alternative strategies
+      // return new Response(JSON.stringify({ 
+      //   error: 'organization_not_configured',
+      //   message: 'ID da organização do Zendesk não configurado para esta escola',
+      //   tickets: [],
+      //   user_info: {
+      //     email: profile.email,
+      //     role: profile.role,
+      //     school_id: schoolId
+      //   }
+      // }), {
+      //   status: 200,
+      //   headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      // });
     }
 
     // Zendesk API base URL
