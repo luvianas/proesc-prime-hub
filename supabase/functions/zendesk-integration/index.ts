@@ -255,71 +255,269 @@ serve(async (req) => {
         }
 
       case 'list_tickets':
-        // Get tickets filtered by organization or entity
-        let listUrl = '';
+        console.log(`🎯 Starting enhanced ticket listing with multiple strategies...`);
         
+        // Initialize variables for multiple strategy attempts
+        let tickets = [];
+        let successfulStrategy = null;
+        let allAttempts = [];
+        const entityNumber = getEntityNumber(schoolName);
+        const schoolDomain = getSchoolDomain(schoolName);
+
+        // Strategy 1: Admin without school - get all tickets
         if (profile.role === 'admin' && !schoolId) {
-          // Admins without school_id can see all tickets
-          listUrl = `${zendeskUrl}/tickets.json?sort_by=created_at&sort_order=desc`;
-          console.log('🔑 Admin access: listing all tickets');
-        } else if (organizationId) {
-          // Try organization-based search first
-          listUrl = `${zendeskUrl}/organizations/${organizationId}/tickets.json?sort_by=created_at&sort_order=desc`;
-          console.log('🏢 Organization tickets URL:', listUrl);
-        } else if (schoolName) {
-          // Multiple search strategies as fallbacks
-          const entityNumber = getEntityNumber(schoolName);
-          const schoolDomain = getSchoolDomain(schoolName);
+          const adminUrl = `${zendeskUrl}/tickets.json?sort_by=created_at&sort_order=desc`;
+          console.log(`📋 Strategy 1: Admin general listing`);
           
-          if (entityNumber) {
-            listUrl = `${zendeskUrl}/search.json?query=${encodeURIComponent(`type:ticket "Entidade N ${entityNumber}"`)}&sort_by=created_at&sort_order=desc`;
-            console.log(`🏫 Entity-based search for ${schoolName} (Entity ${entityNumber}):`, listUrl);
-          } else if (schoolDomain) {
-            listUrl = `${zendeskUrl}/search.json?query=${encodeURIComponent(`type:ticket "${schoolDomain}"`)}&sort_by=created_at&sort_order=desc`;
-            console.log(`🌐 Domain-based search for ${schoolName} (${schoolDomain}):`, listUrl);
-          } else {
-            // Generic search by school name
-            listUrl = `${zendeskUrl}/search.json?query=${encodeURIComponent(`type:ticket "${schoolName}"`)}&sort_by=created_at&sort_order=desc`;
-            console.log(`🔍 School name search for ${schoolName}:`, listUrl);
-          }
-        } else {
-          // Fallback to empty results
-          return new Response(JSON.stringify({ 
-            tickets: [],
-            search_info: {
-              organization_id: organizationId,
-              total_results: 0,
-              user_role: profile.role,
-              school_id: schoolId,
-              school_name: schoolName,
-              error: 'no_search_criteria'
+          try {
+            const adminResponse = await fetch(adminUrl, { headers: zendeskHeaders });
+            const adminData = await adminResponse.json();
+            
+            allAttempts.push({
+              strategy: 'admin_general',
+              url: adminUrl,
+              status: adminResponse.status,
+              ticket_count: adminData.tickets?.length || 0,
+              success: adminResponse.ok && (adminData.tickets?.length > 0)
+            });
+            
+            if (adminResponse.ok && adminData.tickets?.length > 0) {
+              tickets = adminData.tickets;
+              successfulStrategy = 'admin_general';
+              console.log(`✅ Strategy 1 SUCCESS: Found ${tickets.length} tickets via admin listing`);
             }
-          }), {
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          });
-        }
-        
-        console.log('📡 Making Zendesk API request:', {
-          url: listUrl,
-          method: 'GET',
-          timestamp: new Date().toISOString(),
-          headers_preview: {
-            authorization_type: zendeskHeaders['Authorization'].substring(0, 20) + '...',
-            content_type: zendeskHeaders['Content-Type']
+          } catch (error) {
+            console.log(`❌ Strategy 1 ERROR:`, error.message);
+            allAttempts.push({
+              strategy: 'admin_general',
+              url: adminUrl,
+              status: 'error',
+              error: error.message
+            });
           }
+        }
+
+        // Strategy 2: Organization-based listing
+        if (tickets.length === 0 && organizationId) {
+          const orgUrl = `${zendeskUrl}/organizations/${organizationId}/tickets.json?sort_by=created_at&sort_order=desc`;
+          console.log(`📋 Strategy 2: Organization-based listing for ID: ${organizationId}`);
+          
+          try {
+            const orgResponse = await fetch(orgUrl, { headers: zendeskHeaders });
+            const orgData = await orgResponse.json();
+            
+            allAttempts.push({
+              strategy: 'organization',
+              url: orgUrl,
+              status: orgResponse.status,
+              ticket_count: orgData.tickets?.length || 0,
+              success: orgResponse.ok && (orgData.tickets?.length > 0)
+            });
+            
+            if (orgResponse.ok && orgData.tickets?.length > 0) {
+              tickets = orgData.tickets;
+              successfulStrategy = 'organization';
+              console.log(`✅ Strategy 2 SUCCESS: Found ${tickets.length} tickets via organization`);
+            } else {
+              console.log(`⚠️ Strategy 2 FAILED: ${orgResponse.status} - ${orgData.tickets?.length || 0} tickets`);
+            }
+          } catch (error) {
+            console.log(`❌ Strategy 2 ERROR:`, error.message);
+            allAttempts.push({
+              strategy: 'organization',
+              url: orgUrl,
+              status: 'error',
+              error: error.message
+            });
+          }
+        }
+
+        // Strategy 3: Entity-based search
+        if (tickets.length === 0 && entityNumber) {
+          const entityUrl = `${zendeskUrl}/search.json?query=${encodeURIComponent(`type:ticket "Entidade N ${entityNumber}"`)}&sort_by=created_at&sort_order=desc`;
+          console.log(`📋 Strategy 3: Entity-based search for entity ${entityNumber}`);
+          
+          try {
+            const entityResponse = await fetch(entityUrl, { headers: zendeskHeaders });
+            const entityData = await entityResponse.json();
+            
+            allAttempts.push({
+              strategy: 'entity',
+              url: entityUrl,
+              status: entityResponse.status,
+              ticket_count: entityData.results?.length || 0,
+              success: entityResponse.ok && (entityData.results?.length > 0)
+            });
+            
+            if (entityResponse.ok && entityData.results?.length > 0) {
+              tickets = entityData.results;
+              successfulStrategy = 'entity';
+              console.log(`✅ Strategy 3 SUCCESS: Found ${tickets.length} tickets via entity search`);
+            } else {
+              console.log(`⚠️ Strategy 3 FAILED: ${entityResponse.status} - ${entityData.results?.length || 0} tickets`);
+            }
+          } catch (error) {
+            console.log(`❌ Strategy 3 ERROR:`, error.message);
+            allAttempts.push({
+              strategy: 'entity',
+              url: entityUrl,
+              status: 'error',
+              error: error.message
+            });
+          }
+        }
+
+        // Strategy 4: Domain-based search
+        if (tickets.length === 0 && schoolDomain) {
+          const domainUrl = `${zendeskUrl}/search.json?query=${encodeURIComponent(`type:ticket "${schoolDomain}"`)}&sort_by=created_at&sort_order=desc`;
+          console.log(`📋 Strategy 4: Domain search for "${schoolDomain}"`);
+          
+          try {
+            const domainResponse = await fetch(domainUrl, { headers: zendeskHeaders });
+            const domainData = await domainResponse.json();
+            
+            allAttempts.push({
+              strategy: 'domain',
+              url: domainUrl,
+              status: domainResponse.status,
+              ticket_count: domainData.results?.length || 0,
+              success: domainResponse.ok && (domainData.results?.length > 0)
+            });
+            
+            if (domainResponse.ok && domainData.results?.length > 0) {
+              tickets = domainData.results;
+              successfulStrategy = 'domain';
+              console.log(`✅ Strategy 4 SUCCESS: Found ${tickets.length} tickets via domain search`);
+            } else {
+              console.log(`⚠️ Strategy 4 FAILED: ${domainResponse.status} - ${domainData.results?.length || 0} tickets`);
+            }
+          } catch (error) {
+            console.log(`❌ Strategy 4 ERROR:`, error.message);
+            allAttempts.push({
+              strategy: 'domain',
+              url: domainUrl,
+              status: 'error',
+              error: error.message
+            });
+          }
+        }
+
+        // Strategy 5: School name search
+        if (tickets.length === 0 && schoolName) {
+          const schoolUrl = `${zendeskUrl}/search.json?query=${encodeURIComponent(`type:ticket "${schoolName}"`)}&sort_by=created_at&sort_order=desc`;
+          console.log(`📋 Strategy 5: School name search for "${schoolName}"`);
+          
+          try {
+            const schoolResponse = await fetch(schoolUrl, { headers: zendeskHeaders });
+            const schoolData = await schoolResponse.json();
+            
+            allAttempts.push({
+              strategy: 'school_name',
+              url: schoolUrl,
+              status: schoolResponse.status,
+              ticket_count: schoolData.results?.length || 0,
+              success: schoolResponse.ok && (schoolData.results?.length > 0)
+            });
+            
+            if (schoolResponse.ok && schoolData.results?.length > 0) {
+              tickets = schoolData.results;
+              successfulStrategy = 'school_name';
+              console.log(`✅ Strategy 5 SUCCESS: Found ${tickets.length} tickets via school name search`);
+            } else {
+              console.log(`⚠️ Strategy 5 FAILED: ${schoolResponse.status} - ${schoolData.results?.length || 0} tickets`);
+            }
+          } catch (error) {
+            console.log(`❌ Strategy 5 ERROR:`, error.message);
+            allAttempts.push({
+              strategy: 'school_name',
+              url: schoolUrl,
+              status: 'error',
+              error: error.message
+            });
+          }
+        }
+
+        // Strategy 6: Broad search for specific organization (last resort)
+        if (tickets.length === 0 && organizationId) {
+          const broadUrl = `${zendeskUrl}/search.json?query=${encodeURIComponent(`type:ticket organization_id:${organizationId}`)}&sort_by=created_at&sort_order=desc`;
+          console.log(`📋 Strategy 6: Broad organization search`);
+          
+          try {
+            const broadResponse = await fetch(broadUrl, { headers: zendeskHeaders });
+            const broadData = await broadResponse.json();
+            
+            allAttempts.push({
+              strategy: 'broad_org',
+              url: broadUrl,
+              status: broadResponse.status,
+              ticket_count: broadData.results?.length || 0,
+              success: broadResponse.ok && (broadData.results?.length > 0)
+            });
+            
+            if (broadResponse.ok && broadData.results?.length > 0) {
+              tickets = broadData.results;
+              successfulStrategy = 'broad_org';
+              console.log(`✅ Strategy 6 SUCCESS: Found ${tickets.length} tickets via broad org search`);
+            } else {
+              console.log(`⚠️ Strategy 6 FAILED: ${broadResponse.status} - ${broadData.results?.length || 0} tickets`);
+            }
+          } catch (error) {
+            console.log(`❌ Strategy 6 ERROR:`, error.message);
+            allAttempts.push({
+              strategy: 'broad_org',
+              url: broadUrl,
+              status: 'error',
+              error: error.message
+            });
+          }
+        }
+
+        console.log(`🎯 Final result: ${tickets.length} tickets found using strategy: ${successfulStrategy || 'none'}`);
+        console.log(`📊 All attempts summary:`, allAttempts);
+
+        // Transform tickets for consistent response format
+        const transformedTickets = tickets.map((ticket: any) => ({
+          id: ticket.id.toString(),
+          title: ticket.subject || 'Sem título',
+          description: ticket.description || '',
+          status: mapZendeskStatus(ticket.status),
+          priority: mapZendeskPriority(ticket.priority),
+          created: ticket.created_at,
+          category: ticket.type || 'question',
+          zendesk_id: ticket.id,
+          zendesk_url: ticket.url,
+          organization_id: ticket.organization_id,
+          tags: ticket.tags || []
+        }));
+
+        // Log sample tickets for debugging
+        if (transformedTickets.length > 0) {
+          console.log(`🔍 Sample tickets found (first 3):`, transformedTickets.slice(0, 3).map(t => ({
+            id: t.id,
+            title: t.title.substring(0, 50),
+            status: t.status,
+            created: t.created
+          })));
+        }
+
+        return new Response(JSON.stringify({ 
+          tickets: transformedTickets,
+          total: tickets.length,
+          successful_strategy: successfulStrategy,
+          debug_info: {
+            all_attempts: allAttempts,
+            organization_id: organizationId,
+            school_name: schoolName,
+            entity_number: entityNumber,
+            school_domain: schoolDomain,
+            user_role: profile.role,
+            school_id: schoolId,
+            zendesk_configured: !!ZENDESK_OAUTH_TOKEN,
+            auth_method: ZENDESK_OAUTH_TOKEN ? 'OAuth' : 'API Token'
+          }
+        }), { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
         });
-        
-        response = await fetch(listUrl, {
-          method: 'GET',
-          headers: zendeskHeaders,
-        });
-        
-        console.log('📨 Zendesk API response:', {
-          status: response.status,
-          ok: response.ok,
-          url: listUrl
-        });
-        break;
 
       case 'create_ticket':
         const { subject, description, priority = 'normal' } = body;
@@ -347,6 +545,97 @@ serve(async (req) => {
         });
         break;
 
+
+      case 'test_ticket_access':
+        console.log(`🧪 Testing ticket access for specific ticket ID...`);
+        const testTicketId = body.test_ticket_id || '134449';
+        
+        // Test multiple endpoints to see which ones work
+        const testResults = [];
+        
+        // Test 1: Direct ticket access
+        try {
+          const directUrl = `${zendeskUrl}/tickets/${testTicketId}.json`;
+          const directResponse = await fetch(directUrl, { headers: zendeskHeaders });
+          const directData = await directResponse.json();
+          
+          testResults.push({
+            test: 'direct_ticket_access',
+            url: directUrl,
+            status: directResponse.status,
+            success: directResponse.ok,
+            has_ticket: !!directData.ticket,
+            ticket_id: directData.ticket?.id,
+            organization_id: directData.ticket?.organization_id,
+            tags: directData.ticket?.tags
+          });
+        } catch (error) {
+          testResults.push({
+            test: 'direct_ticket_access',
+            url: `${zendeskUrl}/tickets/${testTicketId}.json`,
+            status: 'error',
+            error: error.message
+          });
+        }
+        
+        // Test 2: Search for specific ticket
+        try {
+          const searchUrl = `${zendeskUrl}/search.json?query=${encodeURIComponent(`type:ticket ${testTicketId}`)}`;
+          const searchResponse = await fetch(searchUrl, { headers: zendeskHeaders });
+          const searchData = await searchResponse.json();
+          
+          testResults.push({
+            test: 'search_by_id',
+            url: searchUrl,
+            status: searchResponse.status,
+            success: searchResponse.ok,
+            results_count: searchData.results?.length || 0,
+            found_ticket: searchData.results?.find((t: any) => t.id.toString() === testTicketId)
+          });
+        } catch (error) {
+          testResults.push({
+            test: 'search_by_id',
+            status: 'error',
+            error: error.message
+          });
+        }
+        
+        // Test 3: Organization tickets (if org ID available)
+        if (organizationId) {
+          try {
+            const orgUrl = `${zendeskUrl}/organizations/${organizationId}/tickets.json`;
+            const orgResponse = await fetch(orgUrl, { headers: zendeskHeaders });
+            const orgData = await orgResponse.json();
+            
+            testResults.push({
+              test: 'organization_tickets',
+              url: orgUrl,
+              status: orgResponse.status,
+              success: orgResponse.ok,
+              tickets_count: orgData.tickets?.length || 0,
+              has_test_ticket: orgData.tickets?.some((t: any) => t.id.toString() === testTicketId)
+            });
+          } catch (error) {
+            testResults.push({
+              test: 'organization_tickets',
+              status: 'error',
+              error: error.message
+            });
+          }
+        }
+        
+        return new Response(JSON.stringify({
+          test_ticket_id: testTicketId,
+          test_results: testResults,
+          debug_info: {
+            organization_id: organizationId,
+            school_name: schoolName,
+            user_role: profile.role,
+            auth_method: ZENDESK_OAUTH_TOKEN ? 'OAuth' : 'API Token'
+          }
+        }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
 
       case 'search_tickets':
         const { query } = body;
