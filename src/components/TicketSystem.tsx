@@ -364,6 +364,43 @@ const TicketSystem = ({ onBack }: TicketSystemProps) => {
     }
   };
 
+  const testWithUlbraData = async () => {
+    if (!user) return;
+    
+    try {
+      setLoading(true);
+      console.log('🧪 Testando com dados da Ulbra...');
+      
+      const { data, error } = await supabase.functions.invoke('zendesk-integration', {
+        body: { 
+          action: 'list_tickets',
+          test_organization_id: '7388230589207',
+          test_domain: 'Ulbra.br',
+          test_entity: '3487'
+        }
+      });
+
+      if (error) throw error;
+      
+      console.log('🧪 Resultado do teste com Ulbra:', data);
+      setTickets(data.tickets || []);
+      
+      toast({
+        title: "Teste com Ulbra realizado",
+        description: `${data.tickets?.length || 0} tickets encontrados`,
+      });
+    } catch (error) {
+      console.error('❌ Erro no teste com Ulbra:', error);
+      toast({
+        title: "Erro no teste",
+        description: "Não foi possível testar com os dados da Ulbra",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div>
       {/* Header */}
@@ -375,6 +412,32 @@ const TicketSystem = ({ onBack }: TicketSystemProps) => {
           <div>
             <h2 className="text-3xl font-bold text-gray-900">Sistema de Tickets</h2>
             <p className="text-gray-600">Acompanhe e gerencie seus tickets de suporte</p>
+            
+            {/* Teste com dados da Ulbra */}
+            <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg mt-4">
+              <h3 className="font-medium mb-2">🧪 Teste com Ulbra</h3>
+              <div className="grid grid-cols-3 gap-4 text-sm">
+                <div>
+                  <span className="font-medium">Org ID:</span> 7388230589207
+                </div>
+                <div>
+                  <span className="font-medium">Domínio:</span> Ulbra.br
+                </div>
+                <div>
+                  <span className="font-medium">Entidade:</span> 3487
+                </div>
+              </div>
+              <Button 
+                onClick={testWithUlbraData} 
+                className="mt-3"
+                variant="outline"
+                size="sm"
+                disabled={loading}
+              >
+                {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                Testar com dados da Ulbra
+              </Button>
+            </div>
             {schoolInfo.schoolName && (
               <div className="flex items-center space-x-2 mt-2">
                 <Badge variant="outline" className="text-sm">

@@ -68,9 +68,9 @@ serve(async (req) => {
       email: profile.email
     });
 
-    const { action, ...body } = await req.json();
+    const { action, test_organization_id, test_domain, test_entity, ...body } = await req.json();
     const schoolId = profile.school_id;
-    const organizationId = profile.school_customizations?.[0]?.zendesk_integration_url;
+    const organizationId = test_organization_id || profile.school_customizations?.[0]?.zendesk_integration_url;
     const schoolName = profile.school_customizations?.[0]?.school_name;
     
     console.log('🏫 School integration info:', {
@@ -79,7 +79,8 @@ serve(async (req) => {
       organization_id: organizationId,
       user_role: profile.role,
       zendesk_integration_configured: !!organizationId,
-      profile_data: profile
+      profile_data: profile,
+      test_data: { test_organization_id, test_domain, test_entity }
     });
     
     // Handle users without school association
@@ -110,7 +111,8 @@ serve(async (req) => {
       organizationIdType: typeof organizationId,
       organizationIdExists: !!organizationId,
       schoolCustomizations: profile.school_customizations,
-      zendeskIntegrationUrl: profile.school_customizations?.[0]?.zendesk_integration_url
+      zendeskIntegrationUrl: profile.school_customizations?.[0]?.zendesk_integration_url,
+      testData: { test_organization_id, test_domain, test_entity }
     });
 
     // Check if organization ID is configured for the school - but allow continuation for testing
