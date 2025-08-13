@@ -1,47 +1,168 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeft, Plus, Search, Clock, CheckCircle, AlertCircle } from "lucide-react";
+import { ArrowLeft, Plus, Search, Clock, CheckCircle, AlertCircle, ExternalLink, Loader2 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/components/ui/use-toast";
 
 interface TicketSystemProps {
   onBack: () => void;
 }
 
+interface Ticket {
+  id: string;
+  title: string;
+  description: string;
+  status: string;
+  priority: string;
+  created: string;
+  category: string;
+  zendesk_id?: number;
+  zendesk_url?: string;
+}
+
 const TicketSystem = ({ onBack }: TicketSystemProps) => {
+  const { user } = useAuth();
+  const { toast } = useToast();
   const [showNewTicket, setShowNewTicket] = useState(false);
-  const [tickets] = useState([
-    {
-      id: "TK-001",
-      title: "Problema na integração do sistema financeiro",
-      description: "Dashboard financeira não está carregando os dados atualizados",
-      status: "Em Andamento",
-      priority: "Alta",
-      created: "2024-01-15",
-      category: "Técnico"
-    },
-    {
-      id: "TK-002",
-      title: "Solicitação de novo relatório",
-      description: "Necessário criar relatório personalizado de matrículas por período",
-      status: "Pendente",
-      priority: "Média",
-      created: "2024-01-14",
-      category: "Solicitação"
-    },
-    {
-      id: "TK-003",
-      title: "Erro no agendamento",
-      description: "Sistema não está permitindo agendamentos para próxima semana",
-      status: "Resolvido",
-      priority: "Baixa",
-      created: "2024-01-10",
-      category: "Bug"
+  const [tickets, setTickets] = useState<Ticket[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [creating, setCreating] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [newTicket, setNewTicket] = useState({ title: "", description: "", priority: "normal" });
+
+  useEffect(() => {
+    if (user) {
+      loadTickets();
     }
-  ]);
+  }, [user]);
+
+  const loadTickets = async () => {
+    try {
+      setLoading(true);
+      const { data: session } = await supabase.auth.getSession();
+      
+      const { data, error } = await supabase.functions.invoke('zendesk-integration', {
+        body: { action: 'list_tickets' },
+        headers: {
+          Authorization: `Bearer ${session?.session?.access_token}`
+        }
+      });
+
+      if (error) {
+        console.error('Error loading tickets:', error);
+        toast({
+          title: "Erro ao carregar tickets",
+          description: "Não foi possível carregar os tickets do Zendesk. Verifique a configuração.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      setTickets(data?.tickets || []);
+    } catch (error) {
+      console.error('Error loading tickets:', error);
+      toast({
+        title: "Erro ao carregar tickets",
+        description: "Erro na comunicação com o sistema de tickets.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const createTicket = async () => {
+    if (!newTicket.title.trim() || !newTicket.description.trim()) {
+      toast({
+        title: "Campos obrigatórios",
+        description: "Preencha o título e descrição do ticket.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      setCreating(true);
+      const { data: session } = await supabase.auth.getSession();
+      
+      const { data, error } = await supabase.functions.invoke('zendesk-integration', {
+        body: { 
+          action: 'create_ticket',
+          subject: newTicket.title,
+          description: newTicket.description,
+          priority: newTicket.priority
+        },
+        headers: {
+          Authorization: `Bearer ${session?.session?.access_token}`
+        }
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      toast({
+        title: "Ticket criado",
+        description: "Seu ticket foi criado com sucesso no Zendesk.",
+      });
+
+      setNewTicket({ title: "", description: "", priority: "normal" });
+      setShowNewTicket(false);
+      loadTickets(); // Reload tickets
+    } catch (error) {
+      console.error('Error creating ticket:', error);
+      toast({
+        title: "Erro ao criar ticket",
+        description: "Não foi possível criar o ticket. Tente novamente.",
+        variant: "destructive",
+      });
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  const searchTickets = async () => {
+    if (!searchQuery.trim()) {
+      loadTickets();
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const { data: session } = await supabase.auth.getSession();
+      
+      const { data, error } = await supabase.functions.invoke('zendesk-integration', {
+        body: { 
+          action: 'search_tickets',
+          query: searchQuery
+        },
+        headers: {
+          Authorization: `Bearer ${session?.session?.access_token}`
+        }
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      setTickets(data?.tickets || []);
+    } catch (error) {
+      console.error('Error searching tickets:', error);
+      toast({
+        title: "Erro na busca",
+        description: "Não foi possível buscar os tickets.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const getStatusBadge = (status: string) => {
     const variants = {
@@ -86,8 +207,17 @@ const TicketSystem = ({ onBack }: TicketSystemProps) => {
       <div className="flex items-center space-x-4 mb-6">
         <div className="relative flex-1 max-w-md">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-          <Input placeholder="Buscar tickets..." className="pl-10" />
+          <Input 
+            placeholder="Buscar tickets..." 
+            className="pl-10" 
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            onKeyPress={(e) => e.key === 'Enter' && searchTickets()}
+          />
         </div>
+        <Button onClick={searchTickets} variant="outline">
+          <Search className="h-4 w-4" />
+        </Button>
       </div>
 
       {/* New Ticket Form */}
@@ -98,13 +228,23 @@ const TicketSystem = ({ onBack }: TicketSystemProps) => {
             <CardDescription>Descreva seu problema ou solicitação</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <Input placeholder="Título do ticket" />
-            <Textarea placeholder="Descreva detalhadamente sua solicitação..." rows={4} />
+            <Input 
+              placeholder="Título do ticket" 
+              value={newTicket.title}
+              onChange={(e) => setNewTicket(prev => ({ ...prev, title: e.target.value }))}
+            />
+            <Textarea 
+              placeholder="Descreva detalhadamente sua solicitação..." 
+              rows={4}
+              value={newTicket.description}
+              onChange={(e) => setNewTicket(prev => ({ ...prev, description: e.target.value }))}
+            />
             <div className="flex justify-end space-x-2">
-              <Button variant="outline" onClick={() => setShowNewTicket(false)}>
+              <Button variant="outline" onClick={() => setShowNewTicket(false)} disabled={creating}>
                 Cancelar
               </Button>
-              <Button onClick={() => setShowNewTicket(false)}>
+              <Button onClick={createTicket} disabled={creating}>
+                {creating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Criar Ticket
               </Button>
             </div>
@@ -113,32 +253,62 @@ const TicketSystem = ({ onBack }: TicketSystemProps) => {
       )}
 
       {/* Tickets List */}
-      <div className="space-y-4">
-        {tickets.map((ticket) => (
-          <Card key={ticket.id} className="hover:shadow-md transition-shadow">
-            <CardHeader>
-              <div className="flex items-start justify-between">
-                <div className="space-y-2">
-                  <div className="flex items-center space-x-2">
-                    <Badge variant="outline">{ticket.id}</Badge>
-                    <Badge variant={getStatusBadge(ticket.status) as any}>
-                      {getStatusIcon(ticket.status)}
-                      <span className="ml-1">{ticket.status}</span>
-                    </Badge>
-                    <Badge variant="secondary">{ticket.category}</Badge>
+      {loading ? (
+        <div className="flex items-center justify-center py-8">
+          <Loader2 className="h-8 w-8 animate-spin" />
+          <span className="ml-2">Carregando tickets...</span>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {tickets.length === 0 ? (
+            <Card>
+              <CardContent className="text-center py-8">
+                <AlertCircle className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                <p className="text-lg font-medium">Nenhum ticket encontrado</p>
+                <p className="text-muted-foreground">
+                  {searchQuery ? 'Tente uma busca diferente ou' : ''} Crie seu primeiro ticket de suporte.
+                </p>
+              </CardContent>
+            </Card>
+          ) : (
+            tickets.map((ticket) => (
+              <Card key={ticket.id} className="hover:shadow-md transition-shadow">
+                <CardHeader>
+                  <div className="flex items-start justify-between">
+                    <div className="space-y-2">
+                      <div className="flex items-center space-x-2">
+                        <Badge variant="outline">{ticket.id}</Badge>
+                        <Badge variant={getStatusBadge(ticket.status) as any}>
+                          {getStatusIcon(ticket.status)}
+                          <span className="ml-1">{ticket.status}</span>
+                        </Badge>
+                        <Badge variant="secondary">{ticket.category}</Badge>
+                        {ticket.zendesk_url && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => window.open(ticket.zendesk_url, '_blank')}
+                            className="text-xs"
+                          >
+                            <ExternalLink className="h-3 w-3 mr-1" />
+                            Ver no Zendesk
+                          </Button>
+                        )}
+                      </div>
+                      <CardTitle className="text-lg">{ticket.title}</CardTitle>
+                      <CardDescription>{ticket.description}</CardDescription>
+                    </div>
+                    <div className="text-right text-sm text-gray-500">
+                      <p>Criado em</p>
+                      <p>{new Date(ticket.created).toLocaleDateString('pt-BR')}</p>
+                    </div>
                   </div>
-                  <CardTitle className="text-lg">{ticket.title}</CardTitle>
-                  <CardDescription>{ticket.description}</CardDescription>
-                </div>
-                <div className="text-right text-sm text-gray-500">
-                  <p>Criado em</p>
-                  <p>{new Date(ticket.created).toLocaleDateString('pt-BR')}</p>
-                </div>
-              </div>
-            </CardHeader>
-          </Card>
-        ))}
-      </div>
+                </CardHeader>
+              </Card>
+            ))
+          )}
+        </div>
+      )}
     </div>
   );
 };
