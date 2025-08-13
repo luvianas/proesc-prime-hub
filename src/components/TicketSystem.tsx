@@ -39,6 +39,7 @@ const TicketSystem = ({ onBack }: TicketSystemProps) => {
     schoolName?: string;
     schoolId?: string;
     userWithoutSchool?: boolean;
+    organizationNotConfigured?: boolean;
     searchInfo?: any;
   }>({});
   const [userProfile, setUserProfile] = useState<{
@@ -113,7 +114,7 @@ const TicketSystem = ({ onBack }: TicketSystemProps) => {
         return;
       }
 
-      // Handle special case: user without school
+      // Handle special cases: user without school or organization not configured
       if (data?.error === 'user_without_school') {
         setSchoolInfo(prev => ({ 
           ...prev, 
@@ -122,6 +123,20 @@ const TicketSystem = ({ onBack }: TicketSystemProps) => {
         toast({
           title: "Usuário sem escola associada",
           description: "Entre em contato com o administrador para associar sua conta a uma escola.",
+          variant: "destructive",
+        });
+        setTickets([]);
+        return;
+      }
+
+      if (data?.error === 'organization_not_configured') {
+        setSchoolInfo(prev => ({ 
+          ...prev, 
+          organizationNotConfigured: true 
+        }));
+        toast({
+          title: "Organização Zendesk não configurada",
+          description: "O ID da organização no Zendesk não foi configurado para esta escola.",
           variant: "destructive",
         });
         setTickets([]);
@@ -290,6 +305,13 @@ const TicketSystem = ({ onBack }: TicketSystemProps) => {
                 </Badge>
               </div>
             )}
+            {schoolInfo.organizationNotConfigured && (
+              <div className="flex items-center space-x-2 mt-2">
+                <Badge variant="destructive" className="text-sm">
+                  ⚠️ Organização Zendesk não configurada
+                </Badge>
+              </div>
+            )}
           </div>
         </div>
         <Button onClick={() => setShowNewTicket(true)} className="flex items-center space-x-2">
@@ -378,6 +400,23 @@ const TicketSystem = ({ onBack }: TicketSystemProps) => {
                       </ul>
                     </div>
                   </div>
+                ) : schoolInfo.organizationNotConfigured ? (
+                  <div className="space-y-3">
+                    <p className="text-muted-foreground">
+                      A integração com o Zendesk não foi configurada para esta escola.
+                    </p>
+                    <div className="bg-orange-50 p-4 rounded-lg">
+                      <p className="text-sm text-orange-800">
+                        <strong>Próximos passos:</strong><br/>
+                        Entre em contato com o administrador do sistema para:
+                      </p>
+                      <ul className="text-sm text-orange-700 mt-2 space-y-1">
+                        <li>• Configurar o ID da organização no Zendesk</li>
+                        <li>• Associar a escola à organização correta no Zendesk</li>
+                        <li>• Habilitar a integração para acessar tickets</li>
+                      </ul>
+                    </div>
+                  </div>
                 ) : (
                   <div className="space-y-3">
                     <p className="text-muted-foreground">
@@ -387,7 +426,11 @@ const TicketSystem = ({ onBack }: TicketSystemProps) => {
                       <div className="bg-blue-50 p-3 rounded-lg">
                         <p className="text-sm text-blue-800">
                           <strong>Filtros aplicados:</strong><br/>
-                          Buscando por: <code className="bg-blue-100 px-1 rounded">{schoolInfo.searchInfo.school_tag}</code><br/>
+                          {schoolInfo.searchInfo.organization_id ? (
+                            <>Organização: <code className="bg-blue-100 px-1 rounded">{schoolInfo.searchInfo.organization_id}</code><br/></>
+                          ) : (
+                            <>Busca global (admin)<br/></>
+                          )}
                           Papel: {schoolInfo.searchInfo.user_role}<br/>
                           {schoolInfo.searchInfo.total_results !== undefined && (
                             <>Total encontrado: {schoolInfo.searchInfo.total_results}</>

@@ -973,7 +973,7 @@ const AdminDashboard = () => {
                       </Select>
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="zendeskUrl">URL Integração Zendesk</Label>
+                      <Label htmlFor="zendeskUrl">ID da organização no Zendesk</Label>
                       <Input 
                         id="zendeskUrl" 
                         value={newSchool.zendesk_integration_url} 
@@ -981,7 +981,7 @@ const AdminDashboard = () => {
                           ...newSchool,
                           zendesk_integration_url: e.target.value
                         })} 
-                        placeholder="https://escola.zendesk.com" 
+                        placeholder="123456789" 
                       />
                     </div>
                     
@@ -1352,7 +1352,7 @@ const AdminDashboard = () => {
                 )}
               </div>
               <div className="space-y-2">
-                <Label htmlFor="editZendeskUrl">URL Integração Zendesk</Label>
+                <Label htmlFor="editZendeskUrl">ID da organização no Zendesk</Label>
                 <Input 
                   id="editZendeskUrl" 
                   value={editingSchool.zendesk_integration_url || ''} 
@@ -1360,6 +1360,7 @@ const AdminDashboard = () => {
                     ...editingSchool,
                     zendesk_integration_url: e.target.value
                   })} 
+                  placeholder="123456789"
                 />
               </div>
               
