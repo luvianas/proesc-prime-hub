@@ -159,6 +159,101 @@ serve(async (req) => {
     });
 
     switch (action) {
+      case 'get_ticket':
+        const ticketId = body.ticket_id;
+        if (!ticketId) {
+          return new Response(JSON.stringify({ 
+            error: 'ticket_id is required for get_ticket action' 
+          }), { 
+            status: 400, 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+          });
+        }
+        
+        const ticketUrl = `${zendeskUrl}/tickets/${ticketId}.json`;
+        console.log(`🎫 Fetching specific ticket ${ticketId} from URL:`, ticketUrl);
+        
+        try {
+          const ticketResponse = await fetch(ticketUrl, {
+            headers: zendeskHeaders
+          });
+
+          console.log(`🎫 Ticket ${ticketId} response status:`, ticketResponse.status);
+          console.log(`🎫 Response headers:`, Object.fromEntries(ticketResponse.headers.entries()));
+          
+          const ticketData = await ticketResponse.json();
+          
+          if (!ticketResponse.ok) {
+            console.error(`❌ Error fetching ticket ${ticketId}:`, {
+              status: ticketResponse.status,
+              statusText: ticketResponse.statusText,
+              error_data: ticketData,
+              url: ticketUrl,
+              auth_method: ZENDESK_OAUTH_TOKEN ? 'OAuth' : 'API Token'
+            });
+            return new Response(JSON.stringify({ 
+              error: 'Failed to fetch ticket from Zendesk',
+              details: ticketData,
+              status: ticketResponse.status
+            }), { 
+              status: ticketResponse.status, 
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+            });
+          }
+
+          console.log(`✅ Successfully fetched ticket ${ticketId}:`, {
+            ticket_id: ticketData.ticket?.id,
+            subject: ticketData.ticket?.subject,
+            status: ticketData.ticket?.status,
+            priority: ticketData.ticket?.priority,
+            organization_id: ticketData.ticket?.organization_id,
+            requester_id: ticketData.ticket?.requester_id,
+            assignee_id: ticketData.ticket?.assignee_id,
+            created_at: ticketData.ticket?.created_at,
+            tags: ticketData.ticket?.tags,
+            url: ticketData.ticket?.url
+          });
+          
+          const transformedTicket = {
+            id: ticketData.ticket.id.toString(),
+            title: ticketData.ticket.subject || 'Sem título',
+            description: ticketData.ticket.description || '',
+            status: mapZendeskStatus(ticketData.ticket.status),
+            priority: mapZendeskPriority(ticketData.ticket.priority),
+            created: ticketData.ticket.created_at,
+            category: ticketData.ticket.type || 'question',
+            zendesk_id: ticketData.ticket.id,
+            zendesk_url: ticketData.ticket.url,
+            organization_id: ticketData.ticket.organization_id,
+            requester_id: ticketData.ticket.requester_id,
+            assignee_id: ticketData.ticket.assignee_id,
+            tags: ticketData.ticket.tags,
+            raw_ticket: ticketData.ticket
+          };
+
+          return new Response(JSON.stringify({ 
+            ticket: transformedTicket,
+            debug_info: {
+              zendesk_url: ticketUrl,
+              auth_method: ZENDESK_OAUTH_TOKEN ? 'OAuth' : 'API Token',
+              organization_id: organizationId,
+              user_role: profile.role,
+              school_name: schoolName
+            }
+          }), { 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+          });
+        } catch (error) {
+          console.error(`💥 Exception fetching ticket ${ticketId}:`, error);
+          return new Response(JSON.stringify({ 
+            error: 'Exception occurred while fetching ticket',
+            details: error.message 
+          }), { 
+            status: 500, 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+          });
+        }
+
       case 'list_tickets':
         // Get tickets filtered by organization or entity
         let listUrl = '';
@@ -252,13 +347,6 @@ serve(async (req) => {
         });
         break;
 
-      case 'get_ticket':
-        const { ticketId } = body;
-        response = await fetch(`${zendeskUrl}/tickets/${ticketId}.json`, {
-          method: 'GET',
-          headers: zendeskHeaders,
-        });
-        break;
 
       case 'search_tickets':
         const { query } = body;
