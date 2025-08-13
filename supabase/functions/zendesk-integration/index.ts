@@ -41,11 +41,12 @@ serve(async (req) => {
     // Get user profile and school info
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
-      .select('*, school_customizations(*)')
+      .select('school_id, name, email')
       .eq('user_id', user.id)
       .single();
 
     if (profileError || !profile) {
+      console.error('Profile error:', profileError);
       throw new Error('User profile not found');
     }
 
