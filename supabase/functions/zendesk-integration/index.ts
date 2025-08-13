@@ -55,7 +55,7 @@ serve(async (req) => {
     const schoolTag = `school_${schoolId}`;
 
     // Zendesk API base URL
-    const zendeskUrl = `https://${ZENDESK_SUBDOMAIN}.zendesk.com/api/v2`;
+    const zendeskUrl = `https://proesc.zendesk.com/api/v2`;
     
     // Basic auth credentials
     const credentials = btoa(`${ZENDESK_EMAIL}/token:${ZENDESK_API_TOKEN}`);
