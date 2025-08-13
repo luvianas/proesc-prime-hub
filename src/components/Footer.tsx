@@ -1,4 +1,4 @@
-import { Instagram, Linkedin, Youtube, Facebook, ExternalLink, ArrowLeft, BookOpen } from "lucide-react";
+import { Instagram, Linkedin, Facebook, ExternalLink, ArrowLeft, BookOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const Footer = () => {
@@ -15,7 +15,7 @@ const Footer = () => {
                 href="https://instagram.com/proesc"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center justify-center w-10 h-10 rounded-full bg-gradient-to-br from-pink-500 to-orange-400 text-white hover:scale-110 transition-all duration-300 hover:shadow-lg"
+                className="flex items-center justify-center w-10 h-10 rounded-full bg-muted hover:bg-primary text-muted-foreground hover:text-primary-foreground hover:scale-110 transition-all duration-300 hover:shadow-lg"
                 aria-label="Instagram"
               >
                 <Instagram className="w-5 h-5" />
@@ -24,25 +24,16 @@ const Footer = () => {
                 href="https://linkedin.com/company/proesc"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center justify-center w-10 h-10 rounded-full bg-gradient-to-br from-blue-600 to-blue-800 text-white hover:scale-110 transition-all duration-300 hover:shadow-lg"
+                className="flex items-center justify-center w-10 h-10 rounded-full bg-muted hover:bg-primary text-muted-foreground hover:text-primary-foreground hover:scale-110 transition-all duration-300 hover:shadow-lg"
                 aria-label="LinkedIn"
               >
                 <Linkedin className="w-5 h-5" />
               </a>
               <a
-                href="https://youtube.com/@proesc"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center justify-center w-10 h-10 rounded-full bg-gradient-to-br from-red-500 to-red-700 text-white hover:scale-110 transition-all duration-300 hover:shadow-lg"
-                aria-label="YouTube"
-              >
-                <Youtube className="w-5 h-5" />
-              </a>
-              <a
                 href="https://facebook.com/proesc"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center justify-center w-10 h-10 rounded-full bg-gradient-to-br from-blue-600 to-blue-800 text-white hover:scale-110 transition-all duration-300 hover:shadow-lg"
+                className="flex items-center justify-center w-10 h-10 rounded-full bg-muted hover:bg-primary text-muted-foreground hover:text-primary-foreground hover:scale-110 transition-all duration-300 hover:shadow-lg"
                 aria-label="Facebook"
               >
                 <Facebook className="w-5 h-5" />
