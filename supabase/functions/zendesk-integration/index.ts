@@ -22,6 +22,11 @@ serve(async (req) => {
     const ZENDESK_EMAIL = Deno.env.get('ZENDESK_EMAIL');
 
     if (!ZENDESK_API_TOKEN || !ZENDESK_SUBDOMAIN || !ZENDESK_EMAIL) {
+      console.error('❌ Missing Zendesk credentials:', {
+        has_token: !!ZENDESK_API_TOKEN,
+        has_subdomain: !!ZENDESK_SUBDOMAIN,
+        has_email: !!ZENDESK_EMAIL
+      });
       throw new Error('Zendesk credentials not configured');
     }
 
@@ -150,11 +155,16 @@ serve(async (req) => {
           listUrl = `${zendeskUrl}/organizations/${organizationId}/tickets.json?sort_by=created_at&sort_order=desc`;
           console.log('🏢 Organization tickets URL:', listUrl);
         } else if (schoolName) {
-          // Fallback to entity-based search for specific schools
+          // Multiple search strategies as fallbacks
           const entityNumber = getEntityNumber(schoolName);
+          const schoolDomain = getSchoolDomain(schoolName);
+          
           if (entityNumber) {
             listUrl = `${zendeskUrl}/search.json?query=${encodeURIComponent(`type:ticket "Entidade N ${entityNumber}"`)}&sort_by=created_at&sort_order=desc`;
             console.log(`🏫 Entity-based search for ${schoolName} (Entity ${entityNumber}):`, listUrl);
+          } else if (schoolDomain) {
+            listUrl = `${zendeskUrl}/search.json?query=${encodeURIComponent(`type:ticket "${schoolDomain}"`)}&sort_by=created_at&sort_order=desc`;
+            console.log(`🌐 Domain-based search for ${schoolName} (${schoolDomain}):`, listUrl);
           } else {
             // Generic search by school name
             listUrl = `${zendeskUrl}/search.json?query=${encodeURIComponent(`type:ticket "${schoolName}"`)}&sort_by=created_at&sort_order=desc`;
@@ -180,7 +190,11 @@ serve(async (req) => {
         console.log('📡 Making Zendesk API request:', {
           url: listUrl,
           method: 'GET',
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
+          headers_preview: {
+            authorization_type: zendeskHeaders['Authorization'].substring(0, 20) + '...',
+            content_type: zendeskHeaders['Content-Type']
+          }
         });
         
         response = await fetch(listUrl, {
@@ -285,9 +299,11 @@ serve(async (req) => {
         statusText: response.statusText,
         error: errorData,
         action,
-        organization_id: organizationId
+        organization_id: organizationId,
+        url: response.url,
+        headers: Object.fromEntries(response.headers.entries())
       });
-      throw new Error(`Zendesk API error: ${response.status}`);
+      throw new Error(`Zendesk API error: ${response.status} - ${errorData}`);
     }
 
     const data = await response.json();
@@ -297,7 +313,12 @@ serve(async (req) => {
       next_page: data.next_page,
       organization_id: organizationId,
       school_name: schoolName,
-      full_response: data
+      raw_data_preview: {
+        has_results: !!data.results,
+        has_tickets: !!data.tickets,
+        first_ticket_subject: data.results?.[0]?.subject || data.tickets?.[0]?.subject,
+        api_response_keys: Object.keys(data)
+      }
     });
     
     // Transform Zendesk data to our format
@@ -337,8 +358,14 @@ serve(async (req) => {
 
   } catch (error) {
     console.error('Error in zendesk-integration:', error);
+    console.error('Error details:', {
+      message: error.message,
+      stack: error.stack,
+      name: error.name
+    });
     return new Response(JSON.stringify({ 
       error: error.message,
+      error_type: error.name,
       tickets: [] // Fallback empty array for list operations
     }), {
       status: 500,
@@ -384,4 +411,14 @@ function getEntityNumber(schoolName: string): string | null {
   };
   
   return schoolEntityMap[schoolName] || null;
+}
+
+function getSchoolDomain(schoolName: string): string | null {
+  // Map known schools to their domains
+  const schoolDomainMap: { [key: string]: string } = {
+    'Colégio Arcádia': 'colegioarcadia.com.br',
+    'Escola Celus': 'escolacelus.com.br', // Add other schools as needed
+  };
+  
+  return schoolDomainMap[schoolName] || null;
 }
