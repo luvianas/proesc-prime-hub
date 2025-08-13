@@ -78,7 +78,8 @@ serve(async (req) => {
       school_name: schoolName,
       organization_id: organizationId,
       user_role: profile.role,
-      zendesk_integration_configured: !!organizationId
+      zendesk_integration_configured: !!organizationId,
+      profile_data: profile
     });
     
     // Handle users without school association
@@ -107,7 +108,8 @@ serve(async (req) => {
     if (schoolId && !organizationId) {
       console.warn('⚠️ School without Zendesk organization ID:', {
         school_id: schoolId,
-        user_id: user.id
+        user_id: user.id,
+        school_customizations: profile.school_customizations
       });
       
       return new Response(JSON.stringify({ 
@@ -152,7 +154,8 @@ serve(async (req) => {
       action,
       organization_id: organizationId,
       user_role: profile.role,
-      school_id: schoolId
+      school_id: schoolId,
+      auth_method: ZENDESK_OAUTH_TOKEN ? 'OAuth' : 'API Token'
     });
 
     switch (action) {
