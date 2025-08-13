@@ -18,12 +18,15 @@ serve(async (req) => {
 
   try {
     const ZENDESK_API_TOKEN = Deno.env.get('ZENDESK_API_TOKEN');
+    const ZENDESK_OAUTH_TOKEN = Deno.env.get('ZENDESK_OAUTH_TOKEN');
     const ZENDESK_SUBDOMAIN = Deno.env.get('ZENDESK_SUBDOMAIN');
     const ZENDESK_EMAIL = Deno.env.get('ZENDESK_EMAIL');
 
-    if (!ZENDESK_API_TOKEN || !ZENDESK_SUBDOMAIN || !ZENDESK_EMAIL) {
+    // Check for either API token or OAuth token
+    if ((!ZENDESK_API_TOKEN && !ZENDESK_OAUTH_TOKEN) || !ZENDESK_SUBDOMAIN) {
       console.error('❌ Missing Zendesk credentials:', {
-        has_token: !!ZENDESK_API_TOKEN,
+        has_api_token: !!ZENDESK_API_TOKEN,
+        has_oauth_token: !!ZENDESK_OAUTH_TOKEN,
         has_subdomain: !!ZENDESK_SUBDOMAIN,
         has_email: !!ZENDESK_EMAIL
       });
@@ -125,12 +128,23 @@ serve(async (req) => {
     // Zendesk API base URL
     const zendeskUrl = `https://proesc.zendesk.com/api/v2`;
     
-    // Basic auth credentials
-    const credentials = btoa(`${ZENDESK_EMAIL}/token:${ZENDESK_API_TOKEN}`);
-    const zendeskHeaders = {
-      'Authorization': `Basic ${credentials}`,
-      'Content-Type': 'application/json',
-    };
+    // Set up authentication headers - prefer OAuth over API token
+    let zendeskHeaders: { [key: string]: string };
+    
+    if (ZENDESK_OAUTH_TOKEN) {
+      console.log('🔑 Using OAuth token for authentication');
+      zendeskHeaders = {
+        'Authorization': `Bearer ${ZENDESK_OAUTH_TOKEN}`,
+        'Content-Type': 'application/json',
+      };
+    } else {
+      console.log('🔑 Using API token for authentication');
+      const credentials = btoa(`${ZENDESK_EMAIL}/token:${ZENDESK_API_TOKEN}`);
+      zendeskHeaders = {
+        'Authorization': `Basic ${credentials}`,
+        'Content-Type': 'application/json',
+      };
+    }
 
     let response;
 
