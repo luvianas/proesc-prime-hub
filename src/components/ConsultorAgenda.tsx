@@ -187,7 +187,7 @@ const ConsultorAgenda = ({ onBack, schoolData }: ConsultorAgendaProps) => {
                     />
                   </div>
                 )}
-                <h3 className="text-xl font-semibold">{consultantData?.name || "Consultor não encontrado"}</h3>
+                <h3 className="text-xl font-semibold">Jade Sepulveda</h3>
               </div>
             </CardTitle>
           </CardHeader>
