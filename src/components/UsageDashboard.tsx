@@ -267,72 +267,74 @@ export default function UsageDashboard() {
           {loading ? (
             <div className="flex items-center gap-2 text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /> Carregando...</div>
           ) : (
-            <div className="border rounded-md overflow-hidden">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Data</TableHead>
-                    <TableHead>Usuário</TableHead>
-                    <TableHead>Perfil</TableHead>
-                    <TableHead>Tipo</TableHead>
-                    <TableHead>Evento</TableHead>
-                    <TableHead>Página</TableHead>
-                    <TableHead>Escola</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filtered.slice((currentPage - 1) * EVENTS_PER_PAGE, currentPage * EVENTS_PER_PAGE).map((e) => (
-                    <TableRow key={e.id}>
-                      <TableCell>{new Date(e.created_at).toLocaleString()}</TableCell>
-                      <TableCell>
-                        <div className="flex flex-col">
-                          <span className="text-sm font-medium">{userNames[e.user_id] || '—'}</span>
-                          <span className="font-mono text-[10px] text-muted-foreground">{e.user_id}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell><Badge variant={e.user_role === 'admin' ? 'default' : e.user_role === 'gestor' ? 'secondary' : 'outline'}>{e.user_role}</Badge></TableCell>
-                      <TableCell>{e.event_type}</TableCell>
-                      <TableCell className="max-w-[240px] truncate" title={e.event_name}>{e.event_name}</TableCell>
-                      <TableCell className="max-w-[200px] truncate" title={e.page || ''}>{e.page}</TableCell>
-                      <TableCell className="text-xs">
-                        <div className="flex flex-col">
-                          <span className="font-medium">{schoolNames[e.school_id || ''] || '-'}</span>
-                          <span className="font-mono text-[10px] text-muted-foreground">{e.school_id || '-'}</span>
-                        </div>
-                      </TableCell>
+            <>
+              <div className="border rounded-md overflow-hidden">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Data</TableHead>
+                      <TableHead>Usuário</TableHead>
+                      <TableHead>Perfil</TableHead>
+                      <TableHead>Tipo</TableHead>
+                      <TableHead>Evento</TableHead>
+                      <TableHead>Página</TableHead>
+                      <TableHead>Escola</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-              {filtered.length === 0 && (
-                <div className="p-4 text-sm text-muted-foreground">Nenhum evento encontrado.</div>
-              )}
-            </div>
-            
-            {filtered.length > EVENTS_PER_PAGE && (
-              <div className="flex justify-center items-center gap-2 mt-4 pt-4 border-t">
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  disabled={currentPage === 1}
-                  onClick={() => setCurrentPage(currentPage - 1)}
-                >
-                  Anterior
-                </Button>
-                <span className="text-sm text-muted-foreground px-4">
-                  Página {currentPage} de {Math.ceil(filtered.length / EVENTS_PER_PAGE)} 
-                  ({filtered.length} eventos)
-                </span>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  disabled={currentPage >= Math.ceil(filtered.length / EVENTS_PER_PAGE)}
-                  onClick={() => setCurrentPage(currentPage + 1)}
-                >
-                  Próxima
-                </Button>
+                  </TableHeader>
+                  <TableBody>
+                    {filtered.slice((currentPage - 1) * EVENTS_PER_PAGE, currentPage * EVENTS_PER_PAGE).map((e) => (
+                      <TableRow key={e.id}>
+                        <TableCell>{new Date(e.created_at).toLocaleString()}</TableCell>
+                        <TableCell>
+                          <div className="flex flex-col">
+                            <span className="text-sm font-medium">{userNames[e.user_id] || '—'}</span>
+                            <span className="font-mono text-[10px] text-muted-foreground">{e.user_id}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell><Badge variant={e.user_role === 'admin' ? 'default' : e.user_role === 'gestor' ? 'secondary' : 'outline'}>{e.user_role}</Badge></TableCell>
+                        <TableCell>{e.event_type}</TableCell>
+                        <TableCell className="max-w-[240px] truncate" title={e.event_name}>{e.event_name}</TableCell>
+                        <TableCell className="max-w-[200px] truncate" title={e.page || ''}>{e.page}</TableCell>
+                        <TableCell className="text-xs">
+                          <div className="flex flex-col">
+                            <span className="font-medium">{schoolNames[e.school_id || ''] || '-'}</span>
+                            <span className="font-mono text-[10px] text-muted-foreground">{e.school_id || '-'}</span>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+                {filtered.length === 0 && (
+                  <div className="p-4 text-sm text-muted-foreground">Nenhum evento encontrado.</div>
+                )}
               </div>
-            )}
+              
+              {filtered.length > EVENTS_PER_PAGE && (
+                <div className="flex justify-center items-center gap-2 mt-4 pt-4 border-t">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    disabled={currentPage === 1}
+                    onClick={() => setCurrentPage(currentPage - 1)}
+                  >
+                    Anterior
+                  </Button>
+                  <span className="text-sm text-muted-foreground px-4">
+                    Página {currentPage} de {Math.ceil(filtered.length / EVENTS_PER_PAGE)} 
+                    ({filtered.length} eventos)
+                  </span>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    disabled={currentPage >= Math.ceil(filtered.length / EVENTS_PER_PAGE)}
+                    onClick={() => setCurrentPage(currentPage + 1)}
+                  >
+                    Próxima
+                  </Button>
+                </div>
+              )}
+            </>
           )}
         </CardContent>
       </Card>
