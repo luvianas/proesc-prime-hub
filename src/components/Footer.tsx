@@ -1,5 +1,6 @@
 import { Instagram, Linkedin, Facebook, ExternalLink, ArrowLeft, BookOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import FooterConsultorContact from "@/components/FooterConsultorContact";
 
 const Footer = () => {
   return (
@@ -72,29 +73,25 @@ const Footer = () => {
             <h3 className="text-lg font-semibold text-foreground font-sora">Links Úteis</h3>
             <div className="space-y-2">
               <a
-                href="https://proesc.com/termos"
+                href="https://proesc.com/termos-de-uso-e-politica-de-privacidade-de-dados/"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="block text-muted-foreground hover:text-primary transition-colors duration-200 font-sora"
               >
-                Termos de Uso
+                Termos de Uso e Política de Privacidade
               </a>
-              <a
-                href="https://proesc.com/privacidade"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="block text-muted-foreground hover:text-primary transition-colors duration-200 font-sora"
-              >
-                Política de Privacidade
-              </a>
-              <a
-                href="https://proesc.com/contato"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="block text-muted-foreground hover:text-primary transition-colors duration-200 font-sora"
-              >
-                Contato
-              </a>
+              <FooterConsultorContact>
+                {(whatsappUrl) => (
+                  <a
+                    href={whatsappUrl || "https://proesc.com/contato"}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block text-muted-foreground hover:text-primary transition-colors duration-200 font-sora"
+                  >
+                    Contato
+                  </a>
+                )}
+              </FooterConsultorContact>
             </div>
           </div>
 

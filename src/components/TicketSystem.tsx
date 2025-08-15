@@ -183,17 +183,16 @@ const TicketSystem = ({ onBack }: TicketSystemProps) => {
 
     try {
       setCreating(true);
-      const { data: session } = await supabase.auth.getSession();
       
-      const { data, error } = await supabase.functions.invoke('zendesk-integration', {
+      // Enviar email diretamente para contato@proesc.com
+      const { data, error } = await supabase.functions.invoke('send-ticket-email', {
         body: { 
-          action: 'create_ticket',
-          subject: newTicket.title,
+          title: newTicket.title,
           description: newTicket.description,
-          priority: newTicket.priority
-        },
-        headers: {
-          Authorization: `Bearer ${session?.session?.access_token}`
+          priority: newTicket.priority,
+          userEmail: userProfile.email,
+          userName: userProfile.name,
+          schoolName: schoolInfo.schoolName
         }
       });
 
@@ -202,18 +201,17 @@ const TicketSystem = ({ onBack }: TicketSystemProps) => {
       }
 
       toast({
-        title: "Ticket criado",
-        description: "Seu ticket foi criado com sucesso no Zendesk.",
+        title: "Ticket enviado",
+        description: "Seu ticket foi enviado por email para nossa equipe de suporte.",
       });
 
       setNewTicket({ title: "", description: "", priority: "normal" });
       setShowNewTicket(false);
-      loadTickets(); // Reload tickets
     } catch (error) {
       console.error('Error creating ticket:', error);
       toast({
-        title: "Erro ao criar ticket",
-        description: "Não foi possível criar o ticket. Tente novamente.",
+        title: "Erro ao enviar ticket",
+        description: "Não foi possível enviar o ticket. Tente novamente.",
         variant: "destructive",
       });
     } finally {
@@ -410,34 +408,9 @@ const TicketSystem = ({ onBack }: TicketSystemProps) => {
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div>
-            <h2 className="text-3xl font-bold text-gray-900">Sistema de Tickets</h2>
+            <h2 className="text-3xl font-bold text-primary">Sistema de Tickets</h2>
             <p className="text-gray-600">Acompanhe e gerencie seus tickets de suporte</p>
             
-            {/* Teste com dados da Ulbra */}
-            <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg mt-4">
-              <h3 className="font-medium mb-2">🧪 Teste com Ulbra</h3>
-              <div className="grid grid-cols-3 gap-4 text-sm">
-                <div>
-                  <span className="font-medium">Org ID:</span> 7388230589207
-                </div>
-                <div>
-                  <span className="font-medium">Domínio:</span> Ulbra.br
-                </div>
-                <div>
-                  <span className="font-medium">Entidade:</span> 3487
-                </div>
-              </div>
-              <Button 
-                onClick={testWithUlbraData} 
-                className="mt-3"
-                variant="outline"
-                size="sm"
-                disabled={loading}
-              >
-                {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                Testar com dados da Ulbra
-              </Button>
-            </div>
             {schoolInfo.schoolName && (
               <div className="flex items-center space-x-2 mt-2">
                 <Badge variant="outline" className="text-sm">
@@ -634,121 +607,6 @@ const TicketSystem = ({ onBack }: TicketSystemProps) => {
         </div>
       )}
 
-      {/* Debug Section */}
-      {(debugInfo || testResults) && (
-        <Card className="mt-6">
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle className="flex items-center space-x-2">
-                <span>🔧 Informações de Debug</span>
-              </CardTitle>
-              <div className="flex space-x-2">
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={testTicketAccess}
-                  disabled={isTesting}
-                >
-                  {isTesting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  Testar Acesso
-                </Button>
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={getSpecificTicket}
-                  disabled={isTesting}
-                >
-                  {isTesting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  Buscar Ticket 134449
-                </Button>
-                <Button 
-                  variant="ghost" 
-                  size="sm"
-                  onClick={() => setShowDebug(!showDebug)}
-                >
-                  {showDebug ? 'Ocultar' : 'Mostrar'} Detalhes
-                </Button>
-              </div>
-            </div>
-          </CardHeader>
-          
-          {showDebug && (
-            <CardContent className="space-y-4">
-              {debugInfo && (
-                <div>
-                  <h4 className="font-semibold mb-2">🔍 Estratégias de Busca Utilizadas:</h4>
-                  <div className="bg-gray-50 p-3 rounded-lg">
-                    <p><strong>Estratégia Bem-sucedida:</strong> {debugInfo.successful_strategy || 'Nenhuma'}</p>
-                    <p><strong>Total de Tickets:</strong> {tickets.length}</p>
-                    <p><strong>Organização ID:</strong> {debugInfo.organization_id || 'Não definido'}</p>
-                    <p><strong>Escola:</strong> {debugInfo.school_name || 'Não definida'}</p>
-                    <p><strong>Papel do Usuário:</strong> {debugInfo.user_role}</p>
-                    <p><strong>Método de Auth:</strong> {debugInfo.auth_method}</p>
-                  </div>
-                  
-                  {debugInfo.all_attempts && (
-                    <div>
-                      <h5 className="font-medium mb-2">📋 Tentativas de Busca:</h5>
-                      <div className="space-y-2">
-                        {debugInfo.all_attempts.map((attempt: any, index: number) => (
-                          <div 
-                            key={index} 
-                            className={`p-2 rounded border-l-4 ${
-                              attempt.success 
-                                ? 'border-green-500 bg-green-50' 
-                                : 'border-orange-500 bg-orange-50'
-                            }`}
-                          >
-                            <p className="font-medium">{attempt.strategy}</p>
-                            <p className="text-sm">Status: {attempt.status}</p>
-                            <p className="text-sm">Tickets: {attempt.ticket_count || 0}</p>
-                            {attempt.error && (
-                              <p className="text-sm text-red-600">Erro: {attempt.error}</p>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-              
-              {testResults && (
-                <div>
-                  <h4 className="font-semibold mb-2">🧪 Resultados do Teste (Ticket {testResults.test_ticket_id}):</h4>
-                  <div className="space-y-2">
-                    {testResults.test_results?.map((result: any, index: number) => (
-                      <div 
-                        key={index} 
-                        className={`p-2 rounded border-l-4 ${
-                          result.success 
-                            ? 'border-green-500 bg-green-50' 
-                            : 'border-red-500 bg-red-50'
-                        }`}
-                      >
-                        <p className="font-medium">{result.test}</p>
-                        <p className="text-sm">Status: {result.status}</p>
-                        {result.has_ticket && (
-                          <p className="text-sm text-green-600">✅ Ticket encontrado!</p>
-                        )}
-                        {result.found_ticket && (
-                          <p className="text-sm text-green-600">✅ Encontrado via busca!</p>
-                        )}
-                        {result.has_test_ticket && (
-                          <p className="text-sm text-green-600">✅ Presente na organização!</p>
-                        )}
-                        {result.error && (
-                          <p className="text-sm text-red-600">Erro: {result.error}</p>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          )}
-        </Card>
-      )}
     </div>
   );
 };

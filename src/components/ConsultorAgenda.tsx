@@ -17,44 +17,32 @@ const ConsultorAgenda = ({ onBack, schoolData }: ConsultorAgendaProps) => {
   useEffect(() => {
     const fetchConsultantData = async () => {
       try {
-        // 1) Preferir dados já vindos do contexto da escola
-        if (schoolData) {
-          const mergedInitial = {
-            name: schoolData?.consultant_name,
-            consultant_whatsapp: schoolData?.consultant_whatsapp,
-            consultant_calendar_url: schoolData?.consultant_calendar_url,
-            avatar_url: schoolData?.consultant_photo_url,
-          };
-
-          if (mergedInitial.consultant_whatsapp || mergedInitial.consultant_calendar_url) {
-            setConsultantData(mergedInitial);
-            return;
-          }
-        }
-
-        // 2) Fallback: buscar diretamente em school_customizations (permite RLS para gestor)
+        // Buscar dados do consultor correto com base no school_id
         if (schoolData?.school_id || schoolData?.id) {
           let query = supabase
             .from('school_customizations')
             .select('consultant_whatsapp, consultant_calendar_url, consultant_name, consultant_photo_url')
             .limit(1);
 
-          if (schoolData?.school_id) {
-            query = query.eq('school_id', schoolData.school_id);
-          } else if (schoolData?.id) {
-            query = query.eq('id', schoolData.id);
-          }
+          const schoolId = schoolData?.school_id || schoolData?.id;
+          query = query.eq('school_id', schoolId);
 
           const { data, error } = await query.maybeSingle();
           if (error) throw error;
 
-          const merged = {
-            name: data?.consultant_name || schoolData?.consultant_name,
+          console.log('🔍 Dados do consultor obtidos da escola:', {
+            school_id: schoolId,
+            consultant_data: data
+          });
+
+          const consultantInfo = {
+            name: data?.consultant_name || 'Consultor não configurado',
             consultant_whatsapp: data?.consultant_whatsapp,
             consultant_calendar_url: data?.consultant_calendar_url,
-            avatar_url: data?.consultant_photo_url || schoolData?.consultant_photo_url,
+            avatar_url: data?.consultant_photo_url,
           };
-          setConsultantData(merged);
+          
+          setConsultantData(consultantInfo);
         }
       } catch (error) {
         console.error('Error fetching consultant data:', error);
@@ -64,7 +52,7 @@ const ConsultorAgenda = ({ onBack, schoolData }: ConsultorAgendaProps) => {
     };
 
     fetchConsultantData();
-  }, [schoolData?.consultant_id, schoolData?.school_id, schoolData?.id]);
+  }, [schoolData?.school_id, schoolData?.id]);
 
   const extractSrc = (input?: string) => {
     if (!input) return undefined;
@@ -143,9 +131,9 @@ const ConsultorAgenda = ({ onBack, schoolData }: ConsultorAgendaProps) => {
         {/* Consultant Info */}
         <Card className="lg:col-span-1">
           <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
+            <CardTitle className="flex items-center justify-center space-x-3">
               {consultantData?.avatar_url && (
-                <div className="w-12 h-12 rounded-full overflow-hidden">
+                <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-primary/20">
                   <img 
                     src={consultantData.avatar_url} 
                     alt={consultantData?.name || "Consultor"} 
@@ -153,15 +141,13 @@ const ConsultorAgenda = ({ onBack, schoolData }: ConsultorAgendaProps) => {
                   />
                 </div>
               )}
-              <div>
-                <h3 className="text-lg font-semibold">{consultantData?.name || "Consultor não encontrado"}</h3>
+              <div className="text-center">
+                <h3 className="text-xl font-semibold">{consultantData?.name || "Consultor não encontrado"}</h3>
               </div>
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            {/* Contatos removidos por não estarem configurados no contexto atual */}
-            
-            <div className="space-y-2">
+          <CardContent className="flex justify-center">
+            <div className="space-y-2 w-full max-w-xs">
               {consultantData?.consultant_whatsapp && (
                 <Button 
                   onClick={handleWhatsAppClick}
@@ -171,10 +157,6 @@ const ConsultorAgenda = ({ onBack, schoolData }: ConsultorAgendaProps) => {
                   WhatsApp
                 </Button>
               )}
-              <Button variant="outline" className="w-full" onClick={() => calendarSrc ? window.open(calendarSrc, '_blank') : undefined} disabled={!calendarSrc}>
-                <Calendar className="h-4 w-4 mr-2" />
-                Agendar Reunião
-              </Button>
             </div>
           </CardContent>
         </Card>

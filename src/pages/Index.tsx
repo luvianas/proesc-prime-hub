@@ -361,7 +361,7 @@ const Index = () => {
                 {schoolHeader?.schoolName?.charAt(0).toUpperCase()}
               </div>
             )}
-            <div>
+            <div className="hidden md:block">
               <h1 className="text-2xl font-bold" style={{ color: '#ca8619' }}>
                 {schoolHeader?.schoolName ?? 'Escola'}
               </h1>
