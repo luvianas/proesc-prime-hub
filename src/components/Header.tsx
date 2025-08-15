@@ -23,7 +23,7 @@ const Header = ({ showAI, setShowAI }: HeaderProps) => {
                 className="h-12 w-12"
               />
               <div className="ml-3 hidden md:block">
-                <h1 className="text-xl font-bold" style={{ color: '#c41133' }}>Red House Internacional School</h1>
+                <h1 className="text-xl font-bold text-[#c41133]">Red House Internacional School</h1>
                 <Badge variant="secondary" className="text-xs">Portal Prime</Badge>
               </div>
             </div>
