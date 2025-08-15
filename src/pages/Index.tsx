@@ -361,7 +361,10 @@ const Index = () => {
                 {schoolHeader?.schoolName?.charAt(0).toUpperCase()}
               </div>
             )}
-            {/* Texto do header oculto na versão mobile para painel gestor */}
+            <div className="hidden md:block">
+              <h1 className="text-xl font-bold text-primary">{schoolHeader?.schoolName}</h1>
+              <Badge variant="secondary" className="text-xs">Portal Prime</Badge>
+            </div>
           </div>
           <div className="justify-self-center">
 <TooltipProvider delayDuration={150}>
