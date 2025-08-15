@@ -7,9 +7,10 @@ import { ThemeToggle } from "@/components/ui/theme-toggle";
 interface HeaderProps {
   showAI: boolean;
   setShowAI: (show: boolean) => void;
+  schoolName?: string;
 }
 
-const Header = ({ showAI, setShowAI }: HeaderProps) => {
+const Header = ({ showAI, setShowAI, schoolName }: HeaderProps) => {
   return (
     <header className="bg-surface/80 backdrop-blur-sm shadow-elegant border-b border-border/50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -23,7 +24,7 @@ const Header = ({ showAI, setShowAI }: HeaderProps) => {
                 className="h-12 w-12"
               />
               <div className="ml-3 hidden md:block">
-                <h1 className="text-xl font-bold text-[#c41133]">Red House Internacional School</h1>
+                <h1 className="text-xl font-bold text-[#c41133]">{schoolName || "Red House Internacional School"}</h1>
                 <Badge variant="secondary" className="text-xs">Portal Prime</Badge>
               </div>
             </div>

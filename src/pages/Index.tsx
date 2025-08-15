@@ -583,7 +583,7 @@ const Index = () => {
   }
   return <div className="min-h-screen bg-gradient-to-br from-white to-red-50">
       <div className="flex items-center justify-between p-4">
-        <Header showAI={showAI} setShowAI={setShowAI} />
+        <Header showAI={showAI} setShowAI={setShowAI} schoolName={schoolHeader?.schoolName} />
         <div className="flex items-center space-x-4">
           <Link to="/auth">
             <Button variant="outline">Entrar no Sistema</Button>
