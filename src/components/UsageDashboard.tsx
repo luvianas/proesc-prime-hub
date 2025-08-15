@@ -33,9 +33,9 @@ export default function UsageDashboard() {
   const [range, setRange] = useState<'7d' | '30d'>('7d');
   const [events, setEvents] = useState<UsageEvent[]>([]);
   const [filter, setFilter] = useState('');
-  const [profileFilter, setProfileFilter] = useState('');
-  const [typeFilter, setTypeFilter] = useState('');
-  const [schoolFilter, setSchoolFilter] = useState('');
+  const [profileFilter, setProfileFilter] = useState('all');
+  const [typeFilter, setTypeFilter] = useState('all');
+  const [schoolFilter, setSchoolFilter] = useState('all');
   const [loading, setLoading] = useState(true);
   const [userNames, setUserNames] = useState<Record<string, string>>({});
   const [schoolNames, setSchoolNames] = useState<Record<string, string>>({});
@@ -112,17 +112,17 @@ export default function UsageDashboard() {
     }
     
     // Filtro por perfil
-    if (profileFilter) {
+    if (profileFilter && profileFilter !== 'all') {
       filteredEvents = filteredEvents.filter(e => e.user_role === profileFilter);
     }
     
     // Filtro por tipo
-    if (typeFilter) {
+    if (typeFilter && typeFilter !== 'all') {
       filteredEvents = filteredEvents.filter(e => e.event_type === typeFilter);
     }
     
     // Filtro por escola
-    if (schoolFilter) {
+    if (schoolFilter && schoolFilter !== 'all') {
       filteredEvents = filteredEvents.filter(e => e.school_id === schoolFilter);
     }
     
@@ -173,7 +173,7 @@ export default function UsageDashboard() {
             <SelectValue placeholder="Perfil" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">Todos os perfis</SelectItem>
+            <SelectItem value="all">Todos os perfis</SelectItem>
             <SelectItem value="admin">Admin</SelectItem>
             <SelectItem value="gestor">Gestor</SelectItem>
             <SelectItem value="user">Usuário</SelectItem>
@@ -185,7 +185,7 @@ export default function UsageDashboard() {
             <SelectValue placeholder="Tipo" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">Todos os tipos</SelectItem>
+            <SelectItem value="all">Todos os tipos</SelectItem>
             {Array.from(new Set(events.map(e => e.event_type))).map(type => (
               <SelectItem key={type} value={type}>{type}</SelectItem>
             ))}
@@ -197,20 +197,20 @@ export default function UsageDashboard() {
             <SelectValue placeholder="Escola" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">Todas as escolas</SelectItem>
+            <SelectItem value="all">Todas as escolas</SelectItem>
             {Object.entries(schoolNames).map(([id, name]) => (
               <SelectItem key={id} value={id}>{name}</SelectItem>
             ))}
           </SelectContent>
         </Select>
         
-        {(profileFilter || typeFilter || schoolFilter || filter) && (
+        {(profileFilter && profileFilter !== 'all' || typeFilter && typeFilter !== 'all' || schoolFilter && schoolFilter !== 'all' || filter) && (
           <Button 
             variant="outline" 
             onClick={() => {
-              setProfileFilter('');
-              setTypeFilter('');
-              setSchoolFilter('');
+              setProfileFilter('all');
+              setTypeFilter('all');
+              setSchoolFilter('all');
               setFilter('');
               setCurrentPage(1);
             }}
