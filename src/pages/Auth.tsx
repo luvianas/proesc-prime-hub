@@ -25,7 +25,7 @@ const Auth = () => {
     toast
   } = useToast();
   useEffect(() => {
-    document.title = "Login - Sistema de Controle";
+    document.title = "Prime Hub - Login";
     const desc = document.querySelector('meta[name="description"]');
     const content = "Faça login para acessar o Sistema de Controle.";
     if (desc) {

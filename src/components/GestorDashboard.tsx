@@ -51,7 +51,7 @@ const GestorDashboard = () => {
     fetchSchoolData();
   }, [user]);
   useEffect(() => {
-    document.title = 'Proesc Prime - Painel do Gestor';
+    document.title = 'Prime Hub - Gestor';
     const desc = 'Portal Prime para gestores: tickets, agenda do consultor e dashboards.';
     let meta = document.querySelector('meta[name="description"]');
     if (!meta) {

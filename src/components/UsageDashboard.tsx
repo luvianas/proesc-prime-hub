@@ -43,7 +43,7 @@ export default function UsageDashboard() {
   const EVENTS_PER_PAGE = 20;
 
   useEffect(() => {
-    document.title = 'Dados de Uso - Admin';
+    document.title = 'Prime Hub - Admin';
     const desc = 'Métricas e eventos de uso da plataforma (admin)';
     let meta = document.querySelector('meta[name="description"]');
     if (!meta) { meta = document.createElement('meta'); meta.setAttribute('name', 'description'); document.head.appendChild(meta); }

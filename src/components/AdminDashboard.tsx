@@ -337,6 +337,10 @@ const AdminDashboard = () => {
   }, []);
 
   useEffect(() => {
+    document.title = 'Prime Hub - Admin';
+  }, []);
+
+  useEffect(() => {
     if (editSchoolDialogOpen && editingSchool?.consultant_id) {
       fetchConsultantPreview(editingSchool.consultant_id);
     }
