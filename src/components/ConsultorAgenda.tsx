@@ -124,18 +124,7 @@ const ConsultorAgenda = ({ onBack, schoolData }: ConsultorAgendaProps) => {
   ];
 
   const handleWhatsAppClick = () => {
-    const raw = consultantData?.consultant_whatsapp as string | undefined;
-    if (!raw) {
-      window.alert('WhatsApp do consultor não configurado.');
-      return;
-    }
-    const digits = raw.replace(/\D/g, '');
-    const phone = digits.startsWith('55') ? digits : `55${digits}`;
-    if (!phone) {
-      window.alert('Número de WhatsApp inválido.');
-      return;
-    }
-    window.open(`https://wa.me/${phone}`, '_blank');
+    window.open('https://wa.me/5521982763635', '_blank');
   };
 
   if (loading) {
@@ -213,21 +202,14 @@ const ConsultorAgenda = ({ onBack, schoolData }: ConsultorAgendaProps) => {
           <CardTitle>Calendário de Agendamentos</CardTitle>
         </CardHeader>
         <CardContent className="p-0">
-          {calendarSrc ? (
-            <iframe
-              src={calendarSrc}
-              title="Calendário do Consultor"
-              width="100%"
-              height="600"
-              frameBorder="0"
-              className="w-full border-0 rounded-b-lg"
-            />
-          ) : (
-            <div className="p-8 text-center text-gray-500">
-              <Calendar className="h-16 w-16 mx-auto mb-4 text-gray-300" />
-              <p>Calendário não configurado para este consultor</p>
-            </div>
-          )}
+          <iframe
+            src="https://calendar.google.com/calendar/appointments/AcZssZ3bQZ1DeaPVbR4Vxjsn7HGHHaP_FpaNAdNDyGw=?gv=true"
+            title="Calendário do Consultor"
+            width="100%"
+            height="600"
+            frameBorder="0"
+            className="w-full border-0 rounded-b-lg"
+          />
         </CardContent>
       </Card>
 

@@ -285,7 +285,7 @@ const TicketSystem = ({ onBack }: TicketSystemProps) => {
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div>
-            <h2 className="text-3xl font-bold" style={{ color: '#c41133' }}>Sistema de Tickets</h2>
+            <h2 className="text-3xl font-bold" style={{ color: '#ca8619' }}>Sistema de Tickets</h2>
             <p className="text-gray-600">Acompanhe e gerencie seus tickets de suporte</p>
             
             {schoolInfo.schoolName && (
