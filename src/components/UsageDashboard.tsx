@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Loader2 } from 'lucide-react';
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, BarChart, Bar, CartesianGrid } from 'recharts';
 
@@ -32,8 +33,14 @@ export default function UsageDashboard() {
   const [range, setRange] = useState<'7d' | '30d'>('7d');
   const [events, setEvents] = useState<UsageEvent[]>([]);
   const [filter, setFilter] = useState('');
+  const [profileFilter, setProfileFilter] = useState('');
+  const [typeFilter, setTypeFilter] = useState('');
+  const [schoolFilter, setSchoolFilter] = useState('');
   const [loading, setLoading] = useState(true);
   const [userNames, setUserNames] = useState<Record<string, string>>({});
+  const [schoolNames, setSchoolNames] = useState<Record<string, string>>({});
+  const [currentPage, setCurrentPage] = useState(1);
+  const EVENTS_PER_PAGE = 20;
 
   useEffect(() => {
     document.title = 'Dados de Uso - Admin';
@@ -69,6 +76,20 @@ export default function UsageDashboard() {
         } else {
           setUserNames({});
         }
+        
+        // Buscar nomes das escolas
+        const schoolIds = Array.from(new Set((data as any[]).map((e) => e.school_id).filter(Boolean)));
+        if (schoolIds.length > 0) {
+          const { data: schools } = await supabase
+            .from('school_customizations')
+            .select('id, school_name')
+            .in('id', schoolIds);
+          const schoolMap: Record<string, string> = {};
+          (schools || []).forEach((s: any) => { if (s.id) schoolMap[s.id] = s.school_name; });
+          setSchoolNames(schoolMap);
+        } else {
+          setSchoolNames({});
+        }
       }
       setLoading(false);
     };
@@ -76,16 +97,37 @@ export default function UsageDashboard() {
   }, [range]);
 
   const filtered = useMemo(() => {
+    let filteredEvents = events;
+    
+    // Filtro de texto geral
     const q = filter.trim().toLowerCase();
-    if (!q) return events;
-    return events.filter(e =>
-      e.event_type.toLowerCase().includes(q) ||
-      e.event_name.toLowerCase().includes(q) ||
-      (e.page || '').toLowerCase().includes(q) ||
-      (e.user_role || '').toLowerCase().includes(q) ||
-      (e.school_id || '').toLowerCase().includes(q)
-    );
-  }, [events, filter]);
+    if (q) {
+      filteredEvents = filteredEvents.filter(e =>
+        e.event_type.toLowerCase().includes(q) ||
+        e.event_name.toLowerCase().includes(q) ||
+        (e.page || '').toLowerCase().includes(q) ||
+        (userNames[e.user_id] || '').toLowerCase().includes(q) ||
+        (schoolNames[e.school_id || ''] || '').toLowerCase().includes(q)
+      );
+    }
+    
+    // Filtro por perfil
+    if (profileFilter) {
+      filteredEvents = filteredEvents.filter(e => e.user_role === profileFilter);
+    }
+    
+    // Filtro por tipo
+    if (typeFilter) {
+      filteredEvents = filteredEvents.filter(e => e.event_type === typeFilter);
+    }
+    
+    // Filtro por escola
+    if (schoolFilter) {
+      filteredEvents = filteredEvents.filter(e => e.school_id === schoolFilter);
+    }
+    
+    return filteredEvents;
+  }, [events, filter, profileFilter, typeFilter, schoolFilter, userNames, schoolNames]);
 
   const byDay = useMemo(() => {
     const days = range === '7d' ? 7 : 30;
@@ -113,7 +155,7 @@ export default function UsageDashboard() {
           <p className="text-muted-foreground">Eventos e métricas de utilização da plataforma</p>
         </div>
         <div className="flex gap-3 w-full md:w-auto">
-          <Input placeholder="Filtrar por evento, página, perfil, escola" value={filter} onChange={(e)=>setFilter(e.target.value)} />
+          <Input placeholder="Busca geral" value={filter} onChange={(e)=>setFilter(e.target.value)} />
           <Select value={range} onValueChange={(v: '7d' | '30d') => setRange(v)}>
             <SelectTrigger className="w-36"><SelectValue placeholder="Período" /></SelectTrigger>
             <SelectContent>
@@ -122,6 +164,60 @@ export default function UsageDashboard() {
             </SelectContent>
           </Select>
         </div>
+      </div>
+      
+      {/* Filtros específicos */}
+      <div className="flex flex-wrap gap-3">
+        <Select value={profileFilter} onValueChange={setProfileFilter}>
+          <SelectTrigger className="w-40">
+            <SelectValue placeholder="Perfil" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="">Todos os perfis</SelectItem>
+            <SelectItem value="admin">Admin</SelectItem>
+            <SelectItem value="gestor">Gestor</SelectItem>
+            <SelectItem value="user">Usuário</SelectItem>
+          </SelectContent>
+        </Select>
+        
+        <Select value={typeFilter} onValueChange={setTypeFilter}>
+          <SelectTrigger className="w-40">
+            <SelectValue placeholder="Tipo" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="">Todos os tipos</SelectItem>
+            {Array.from(new Set(events.map(e => e.event_type))).map(type => (
+              <SelectItem key={type} value={type}>{type}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        
+        <Select value={schoolFilter} onValueChange={setSchoolFilter}>
+          <SelectTrigger className="w-48">
+            <SelectValue placeholder="Escola" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="">Todas as escolas</SelectItem>
+            {Object.entries(schoolNames).map(([id, name]) => (
+              <SelectItem key={id} value={id}>{name}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        
+        {(profileFilter || typeFilter || schoolFilter || filter) && (
+          <Button 
+            variant="outline" 
+            onClick={() => {
+              setProfileFilter('');
+              setTypeFilter('');
+              setSchoolFilter('');
+              setFilter('');
+              setCurrentPage(1);
+            }}
+          >
+            Limpar filtros
+          </Button>
+        )}
       </div>
 
       <div className="grid md:grid-cols-2 gap-6">
@@ -185,7 +281,7 @@ export default function UsageDashboard() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filtered.map((e) => (
+                  {filtered.slice((currentPage - 1) * EVENTS_PER_PAGE, currentPage * EVENTS_PER_PAGE).map((e) => (
                     <TableRow key={e.id}>
                       <TableCell>{new Date(e.created_at).toLocaleString()}</TableCell>
                       <TableCell>
@@ -198,15 +294,45 @@ export default function UsageDashboard() {
                       <TableCell>{e.event_type}</TableCell>
                       <TableCell className="max-w-[240px] truncate" title={e.event_name}>{e.event_name}</TableCell>
                       <TableCell className="max-w-[200px] truncate" title={e.page || ''}>{e.page}</TableCell>
-                      <TableCell className="font-mono text-xs">{e.school_id || '-'}</TableCell>
+                      <TableCell className="text-xs">
+                        <div className="flex flex-col">
+                          <span className="font-medium">{schoolNames[e.school_id || ''] || '-'}</span>
+                          <span className="font-mono text-[10px] text-muted-foreground">{e.school_id || '-'}</span>
+                        </div>
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
               </Table>
               {filtered.length === 0 && (
-                <div className="p-4 text-sm text-muted-foreground">Nenhum evento no período selecionado.</div>
+                <div className="p-4 text-sm text-muted-foreground">Nenhum evento encontrado.</div>
               )}
             </div>
+            
+            {filtered.length > EVENTS_PER_PAGE && (
+              <div className="flex justify-center items-center gap-2 mt-4 pt-4 border-t">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  disabled={currentPage === 1}
+                  onClick={() => setCurrentPage(currentPage - 1)}
+                >
+                  Anterior
+                </Button>
+                <span className="text-sm text-muted-foreground px-4">
+                  Página {currentPage} de {Math.ceil(filtered.length / EVENTS_PER_PAGE)} 
+                  ({filtered.length} eventos)
+                </span>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  disabled={currentPage >= Math.ceil(filtered.length / EVENTS_PER_PAGE)}
+                  onClick={() => setCurrentPage(currentPage + 1)}
+                >
+                  Próxima
+                </Button>
+              </div>
+            )}
           )}
         </CardContent>
       </Card>

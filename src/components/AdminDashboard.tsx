@@ -77,7 +77,10 @@ const AdminDashboard = () => {
     password: '',
     name: '',
     role: 'gestor' as 'admin' | 'gestor',
-    schoolId: ''
+    schoolId: '',
+    avatar_url: '',
+    consultant_whatsapp: '',
+    consultant_calendar_url: ''
   });
   const [newSchool, setNewSchool] = useState({
     school_name: '',
@@ -145,6 +148,11 @@ const AdminDashboard = () => {
   // Avatar cropper state
   const [cropOpen, setCropOpen] = useState(false);
   const [cropSrc, setCropSrc] = useState<string>('');
+  
+  // Pagination states
+  const [currentUserPage, setCurrentUserPage] = useState(1);
+  const [currentSchoolPage, setCurrentSchoolPage] = useState(1);
+  const ITEMS_PER_PAGE = 10;
   const uploadImage = async (file: File, folder: string) => {
     try {
       const ext = file.name.split('.').pop() || 'png';
@@ -429,6 +437,15 @@ const AdminDashboard = () => {
         }).eq('user_id', authData.user.id);
       }
 
+      // Update additional user info if provided
+      if (authData.user && (newUser.avatar_url || newUser.consultant_whatsapp || newUser.consultant_calendar_url)) {
+        await supabase.from('profiles').update({
+          avatar_url: newUser.avatar_url || null,
+          consultant_whatsapp: newUser.consultant_whatsapp || null,
+          consultant_calendar_url: newUser.consultant_calendar_url || null
+        }).eq('user_id', authData.user.id);
+      }
+
       toast({
         title: "Sucesso",
         description: "Usuário criado com sucesso!"
@@ -439,7 +456,10 @@ const AdminDashboard = () => {
         password: '',
         name: '',
         role: 'gestor',
-        schoolId: ''
+        schoolId: '',
+        avatar_url: '',
+        consultant_whatsapp: '',
+        consultant_calendar_url: ''
       });
       fetchData();
     } catch (error: any) {
@@ -804,6 +824,45 @@ const AdminDashboard = () => {
                       </div>
                     )}
                     
+                    <div className="space-y-2">
+                      <Label htmlFor="avatar_url">URL da Foto</Label>
+                      <Input 
+                        id="avatar_url" 
+                        value={newUser.avatar_url} 
+                        onChange={e => setNewUser({
+                          ...newUser,
+                          avatar_url: e.target.value
+                        })} 
+                        placeholder="https://exemplo.com/foto.jpg" 
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="consultant_whatsapp">WhatsApp</Label>
+                      <Input 
+                        id="consultant_whatsapp" 
+                        value={newUser.consultant_whatsapp} 
+                        onChange={e => setNewUser({
+                          ...newUser,
+                          consultant_whatsapp: e.target.value
+                        })} 
+                        placeholder="(11) 99999-9999" 
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="consultant_calendar_url">Link de Incorporação do Google Calendar</Label>
+                      <Input 
+                        id="consultant_calendar_url" 
+                        value={newUser.consultant_calendar_url} 
+                        onChange={e => setNewUser({
+                          ...newUser,
+                          consultant_calendar_url: e.target.value
+                        })} 
+                        placeholder="https://calendar.google.com/calendar/embed?..." 
+                      />
+                    </div>
+                    
                     <Button onClick={createUser} className="w-full" disabled={loading}>
                       {loading ? 'Criando...' : 'Criar Usuário'}
                     </Button>
@@ -841,7 +900,7 @@ const AdminDashboard = () => {
                            u.email.toLowerCase().includes(q) || 
                            roleLabel.toLowerCase().includes(q) || 
                            schoolName.includes(q);
-                  }).map(user => {
+                  }).slice((currentUserPage - 1) * ITEMS_PER_PAGE, currentUserPage * ITEMS_PER_PAGE).map(user => {
                     const environment = getUserEnvironment(user.user_id);
                     return (
                       <div key={user.id} className="flex items-center justify-between p-4 border rounded-lg">
@@ -866,11 +925,6 @@ const AdminDashboard = () => {
                             {user.role === 'gestor' && user.school_id && (
                               <p className="text-xs text-muted-foreground">
                                 Escola: {getSchoolName(user.school_id)}
-                              </p>
-                            )}
-                            {environment && (
-                              <p className="text-xs text-muted-foreground">
-                                Ambiente: {environment.name}
                               </p>
                             )}
                           </div>
@@ -898,6 +952,58 @@ const AdminDashboard = () => {
                     );
                   })}
                 </div>
+                
+                {/* Pagination for Users */}
+                {users.filter(u => {
+                  const q = userSearch.trim().toLowerCase();
+                  if (!q) return true;
+                  const roleLabel = u.role;
+                  const schoolName = u.role === 'gestor' && u.school_id ? getSchoolName(u.school_id).toLowerCase() : '';
+                  return u.name.toLowerCase().includes(q) || 
+                         u.email.toLowerCase().includes(q) || 
+                         roleLabel.toLowerCase().includes(q) || 
+                         schoolName.includes(q);
+                }).length > ITEMS_PER_PAGE && (
+                  <div className="flex justify-center items-center gap-2 mt-4">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      disabled={currentUserPage === 1}
+                      onClick={() => setCurrentUserPage(currentUserPage - 1)}
+                    >
+                      Anterior
+                    </Button>
+                    <span className="text-sm text-muted-foreground">
+                      Página {currentUserPage} de {Math.ceil(users.filter(u => {
+                        const q = userSearch.trim().toLowerCase();
+                        if (!q) return true;
+                        const roleLabel = u.role;
+                        const schoolName = u.role === 'gestor' && u.school_id ? getSchoolName(u.school_id).toLowerCase() : '';
+                        return u.name.toLowerCase().includes(q) || 
+                               u.email.toLowerCase().includes(q) || 
+                               roleLabel.toLowerCase().includes(q) || 
+                               schoolName.includes(q);
+                      }).length / ITEMS_PER_PAGE)}
+                    </span>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      disabled={currentUserPage >= Math.ceil(users.filter(u => {
+                        const q = userSearch.trim().toLowerCase();
+                        if (!q) return true;
+                        const roleLabel = u.role;
+                        const schoolName = u.role === 'gestor' && u.school_id ? getSchoolName(u.school_id).toLowerCase() : '';
+                        return u.name.toLowerCase().includes(q) || 
+                               u.email.toLowerCase().includes(q) || 
+                               roleLabel.toLowerCase().includes(q) || 
+                               schoolName.includes(q);
+                      }).length / ITEMS_PER_PAGE)}
+                      onClick={() => setCurrentUserPage(currentUserPage + 1)}
+                    >
+                      Próxima
+                    </Button>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
@@ -1080,7 +1186,7 @@ const AdminDashboard = () => {
                     const q = schoolSearch.trim().toLowerCase();
                     if (!q) return true;
                     return s.school_name.toLowerCase().includes(q);
-                  }).map(school => (
+                  }).slice((currentSchoolPage - 1) * ITEMS_PER_PAGE, currentSchoolPage * ITEMS_PER_PAGE).map(school => (
                     <div key={school.id} className="flex items-center justify-between p-4 border rounded-lg">
                        <div className="flex items-center space-x-4">
                          <Avatar className="h-10 w-10">
@@ -1111,6 +1217,43 @@ const AdminDashboard = () => {
                     </div>
                   ))}
                 </div>
+                
+                {/* Pagination for Schools */}
+                {schools.filter(s => {
+                  const q = schoolSearch.trim().toLowerCase();
+                  if (!q) return true;
+                  return s.school_name.toLowerCase().includes(q);
+                }).length > ITEMS_PER_PAGE && (
+                  <div className="flex justify-center items-center gap-2 mt-4">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      disabled={currentSchoolPage === 1}
+                      onClick={() => setCurrentSchoolPage(currentSchoolPage - 1)}
+                    >
+                      Anterior
+                    </Button>
+                    <span className="text-sm text-muted-foreground">
+                      Página {currentSchoolPage} de {Math.ceil(schools.filter(s => {
+                        const q = schoolSearch.trim().toLowerCase();
+                        if (!q) return true;
+                        return s.school_name.toLowerCase().includes(q);
+                      }).length / ITEMS_PER_PAGE)}
+                    </span>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      disabled={currentSchoolPage >= Math.ceil(schools.filter(s => {
+                        const q = schoolSearch.trim().toLowerCase();
+                        if (!q) return true;
+                        return s.school_name.toLowerCase().includes(q);
+                      }).length / ITEMS_PER_PAGE)}
+                      onClick={() => setCurrentSchoolPage(currentSchoolPage + 1)}
+                    >
+                      Próxima
+                    </Button>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
