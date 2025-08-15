@@ -70,7 +70,21 @@ serve(async (req) => {
 
     const { action, test_organization_id, test_domain, test_entity, ...body } = await req.json();
     const schoolId = profile.school_id;
-    const organizationId = test_organization_id || profile.school_customizations?.[0]?.zendesk_integration_url;
+    
+    // Try to get organization_id from school customizations
+    // The zendesk_integration_url contains a value that needs to be mapped to organization_id
+    let organizationId = test_organization_id || profile.school_customizations?.[0]?.zendesk_integration_url;
+    
+    // Map specific zendesk integration URLs to their actual organization IDs
+    const zendeskOrgMapping: Record<string, string> = {
+      '33696846096407': '7388230589207', // Colégio Arcádia mapping
+    };
+    
+    if (organizationId && zendeskOrgMapping[organizationId]) {
+      const originalOrgId = organizationId;
+      organizationId = zendeskOrgMapping[organizationId];
+      console.log(`🔄 Mapped zendesk integration URL ${originalOrgId} to organization ID: ${organizationId}`);
+    }
     const schoolName = profile.school_customizations?.[0]?.school_name;
     
     console.log('🏫 School integration info:', {

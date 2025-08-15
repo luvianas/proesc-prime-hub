@@ -19,28 +19,73 @@ const ConsultorAgenda = ({ onBack, schoolData }: ConsultorAgendaProps) => {
       try {
         // Buscar dados do consultor correto com base no school_id
         if (schoolData?.school_id || schoolData?.id) {
-          let query = supabase
-            .from('school_customizations')
-            .select('consultant_whatsapp, consultant_calendar_url, consultant_name, consultant_photo_url')
-            .limit(1);
-
           const schoolId = schoolData?.school_id || schoolData?.id;
-          query = query.eq('school_id', schoolId);
+          
+          // Buscar primeiro os dados da escola com o consultant_id
+          const { data: schoolCustomization, error: schoolError } = await supabase
+            .from('school_customizations')
+            .select('consultant_id, consultant_whatsapp, consultant_calendar_url, consultant_name, consultant_photo_url')
+            .eq('school_id', schoolId)
+            .single();
 
-          const { data, error } = await query.maybeSingle();
-          if (error) throw error;
+          if (schoolError) throw schoolError;
 
-          console.log('🔍 Dados do consultor obtidos da escola:', {
-            school_id: schoolId,
-            consultant_data: data
-          });
-
-          const consultantInfo = {
-            name: data?.consultant_name || 'Consultor não configurado',
-            consultant_whatsapp: data?.consultant_whatsapp,
-            consultant_calendar_url: data?.consultant_calendar_url,
-            avatar_url: data?.consultant_photo_url,
+          let consultantInfo = {
+            name: 'Consultor não configurado',
+            consultant_whatsapp: null,
+            consultant_calendar_url: null,
+            avatar_url: null,
           };
+
+          // Se temos um consultant_id, buscar dados completos do perfil do consultor
+          if (schoolCustomization?.consultant_id) {
+            const { data: consultantProfile, error: consultantError } = await supabase
+              .from('profiles')
+              .select('name, avatar_url, consultant_whatsapp, consultant_calendar_url')
+              .eq('user_id', schoolCustomization.consultant_id)
+              .single();
+
+            if (!consultantError && consultantProfile) {
+              consultantInfo = {
+                name: consultantProfile.name || schoolCustomization.consultant_name || 'Consultor não configurado',
+                consultant_whatsapp: consultantProfile.consultant_whatsapp || schoolCustomization.consultant_whatsapp,
+                consultant_calendar_url: consultantProfile.consultant_calendar_url || schoolCustomization.consultant_calendar_url,
+                avatar_url: consultantProfile.avatar_url || schoolCustomization.consultant_photo_url,
+              };
+
+              console.log('✅ Dados do consultor obtidos do perfil:', {
+                school_id: schoolId,
+                consultant_id: schoolCustomization.consultant_id,
+                consultant_data: consultantInfo
+              });
+            } else {
+              // Fallback para dados armazenados diretamente na school_customizations
+              consultantInfo = {
+                name: schoolCustomization.consultant_name || 'Consultor não configurado',
+                consultant_whatsapp: schoolCustomization.consultant_whatsapp,
+                consultant_calendar_url: schoolCustomization.consultant_calendar_url,
+                avatar_url: schoolCustomization.consultant_photo_url,
+              };
+
+              console.log('⚠️ Usando dados de fallback da escola:', {
+                school_id: schoolId,
+                consultant_data: consultantInfo
+              });
+            }
+          } else {
+            // Se não há consultant_id, usar dados diretos da school_customizations
+            consultantInfo = {
+              name: schoolCustomization.consultant_name || 'Consultor não configurado',
+              consultant_whatsapp: schoolCustomization.consultant_whatsapp,
+              consultant_calendar_url: schoolCustomization.consultant_calendar_url,
+              avatar_url: schoolCustomization.consultant_photo_url,
+            };
+
+            console.log('📋 Dados do consultor obtidos da configuração da escola:', {
+              school_id: schoolId,
+              consultant_data: consultantInfo
+            });
+          }
           
           setConsultantData(consultantInfo);
         }
@@ -127,21 +172,21 @@ const ConsultorAgenda = ({ onBack, schoolData }: ConsultorAgendaProps) => {
         <link rel="canonical" href={window.location.href} />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Consultant Info */}
-        <Card className="lg:col-span-1">
+      {/* Consultant Info Centered */}
+      <div className="flex justify-center mb-6">
+        <Card className="w-full max-w-md">
           <CardHeader>
-            <CardTitle className="flex items-center justify-center space-x-3">
-              {consultantData?.avatar_url && (
-                <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-primary/20">
-                  <img 
-                    src={consultantData.avatar_url} 
-                    alt={consultantData?.name || "Consultor"} 
-                    className="w-full h-full object-cover" 
-                  />
-                </div>
-              )}
-              <div className="text-center">
+            <CardTitle className="text-center">
+              <div className="flex flex-col items-center space-y-4">
+                {consultantData?.avatar_url && (
+                  <div className="w-20 h-20 rounded-full overflow-hidden border-3 border-primary/30 shadow-lg">
+                    <img 
+                      src={consultantData.avatar_url} 
+                      alt={consultantData?.name || "Consultor"} 
+                      className="w-full h-full object-cover" 
+                    />
+                  </div>
+                )}
                 <h3 className="text-xl font-semibold">{consultantData?.name || "Consultor não encontrado"}</h3>
               </div>
             </CardTitle>
@@ -160,7 +205,6 @@ const ConsultorAgenda = ({ onBack, schoolData }: ConsultorAgendaProps) => {
             </div>
           </CardContent>
         </Card>
-
       </div>
 
       {/* Google Calendar Integration */}

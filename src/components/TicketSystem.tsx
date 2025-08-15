@@ -48,10 +48,6 @@ const TicketSystem = ({ onBack }: TicketSystemProps) => {
     role?: string;
     school_id?: string;
   }>({});
-  const [debugInfo, setDebugInfo] = useState<any>(null);
-  const [showDebug, setShowDebug] = useState(false);
-  const [testResults, setTestResults] = useState<any>(null);
-  const [isTesting, setIsTesting] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -155,10 +151,6 @@ const TicketSystem = ({ onBack }: TicketSystemProps) => {
         }));
       }
       
-      // Store debug info for troubleshooting
-      if (data?.debug_info) {
-        setDebugInfo(data.debug_info);
-      }
     } catch (error) {
       console.error('Error loading tickets:', error);
       toast({
@@ -282,122 +274,7 @@ const TicketSystem = ({ onBack }: TicketSystemProps) => {
     }
   };
 
-  const testTicketAccess = async () => {
-    try {
-      setIsTesting(true);
-      const { data: session } = await supabase.auth.getSession();
-      
-      const { data, error } = await supabase.functions.invoke('zendesk-integration', {
-        body: { 
-          action: 'test_ticket_access',
-          test_ticket_id: '134449'
-        },
-        headers: {
-          Authorization: `Bearer ${session?.session?.access_token}`
-        }
-      });
 
-      if (error) {
-        throw error;
-      }
-
-      setTestResults(data);
-      toast({
-        title: "Teste de acesso concluído",
-        description: "Verifique os resultados do teste nas informações de debug.",
-      });
-    } catch (error) {
-      console.error('Error testing ticket access:', error);
-      toast({
-        title: "Erro no teste",
-        description: "Não foi possível executar o teste de acesso.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsTesting(false);
-    }
-  };
-
-  const getSpecificTicket = async () => {
-    try {
-      setIsTesting(true);
-      const { data: session } = await supabase.auth.getSession();
-      
-      const { data, error } = await supabase.functions.invoke('zendesk-integration', {
-        body: { 
-          action: 'get_ticket',
-          ticket_id: '134449'
-        },
-        headers: {
-          Authorization: `Bearer ${session?.session?.access_token}`
-        }
-      });
-
-      if (error) {
-        throw error;
-      }
-
-      if (data?.ticket) {
-        toast({
-          title: "Ticket 134449 encontrado!",
-          description: `"${data.ticket.title}" - Status: ${data.ticket.status}`,
-        });
-        console.log('Ticket 134449 details:', data.ticket);
-      } else {
-        toast({
-          title: "Ticket não encontrado",
-          description: "O ticket 134449 não foi encontrado ou não é acessível.",
-          variant: "destructive",
-        });
-      }
-    } catch (error) {
-      console.error('Error getting specific ticket:', error);
-      toast({
-        title: "Erro ao buscar ticket",
-        description: "Não foi possível buscar o ticket específico.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsTesting(false);
-    }
-  };
-
-  const testWithUlbraData = async () => {
-    if (!user) return;
-    
-    try {
-      setLoading(true);
-      console.log('🧪 Testando com dados da Ulbra...');
-      
-      const { data, error } = await supabase.functions.invoke('zendesk-integration', {
-        body: { 
-          action: 'list_tickets',
-          test_organization_id: '7388230589207',
-          test_domain: 'Ulbra.br',
-          test_entity: '3487'
-        }
-      });
-
-      if (error) throw error;
-      
-      console.log('🧪 Resultado do teste com Ulbra:', data);
-      setTickets(data.tickets || []);
-      
-      toast({
-        title: "Teste com Ulbra realizado",
-        description: `${data.tickets?.length || 0} tickets encontrados`,
-      });
-    } catch (error) {
-      console.error('❌ Erro no teste com Ulbra:', error);
-      toast({
-        title: "Erro no teste",
-        description: "Não foi possível testar com os dados da Ulbra",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
 
   return (
     <div>
@@ -408,7 +285,7 @@ const TicketSystem = ({ onBack }: TicketSystemProps) => {
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div>
-            <h2 className="text-3xl font-bold text-primary">Sistema de Tickets</h2>
+            <h2 className="text-3xl font-bold" style={{ color: '#c41133' }}>Sistema de Tickets</h2>
             <p className="text-gray-600">Acompanhe e gerencie seus tickets de suporte</p>
             
             {schoolInfo.schoolName && (
