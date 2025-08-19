@@ -7,9 +7,8 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
-import { Plus, Users, Settings, Trash2, School, Edit3, Minimize2, Maximize2, User, Key } from 'lucide-react';
+import { Plus, Users, Settings, Trash2, School, Edit3, Minimize2, Maximize2, User, Key, FileText, BarChart3 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
@@ -19,6 +18,8 @@ import UsageDashboard from '@/components/UsageDashboard';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
 import ImageCropperDialog from '@/components/ImageCropperDialog';
+import { Sidebar, SidebarProvider, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarTrigger, useSidebar } from '@/components/ui/sidebar';
+
 interface User {
   id: string;
   user_id: string;
@@ -153,6 +154,10 @@ const AdminDashboard = () => {
   const [currentUserPage, setCurrentUserPage] = useState(1);
   const [currentSchoolPage, setCurrentSchoolPage] = useState(1);
   const ITEMS_PER_PAGE = 10;
+  
+  // Sidebar navigation
+  const [activeView, setActiveView] = useState('users');
+
   const uploadImage = async (file: File, folder: string) => {
     try {
       const ext = file.name.split('.').pop() || 'png';
@@ -495,24 +500,24 @@ const AdminDashboard = () => {
     } catch (error: any) {
       toast({
         title: "Erro",
-        description: error.message || "Erro ao atualizar usuário",
+        description: error.message || "Erro ao alterar status do usuário",
         variant: "destructive"
       });
     }
   };
 
   const deleteUser = async (userId: string) => {
-    if (!confirm('Tem certeza que deseja excluir este usuário?')) return;
     try {
-      const { data, error } = await supabase.functions.invoke('delete-auth-user', {
-        body: { user_id: userId }
+      const tempClient = createClient(TEMP_SUPABASE_URL, TEMP_SUPABASE_ANON_KEY);
+      const { error } = await tempClient.functions.invoke('delete-auth-user', {
+        body: { userId }
       });
       if (error) throw error;
+      setUsers(users.filter(user => user.user_id !== userId));
       toast({
         title: "Sucesso",
         description: "Usuário excluído com sucesso!"
       });
-      fetchData();
     } catch (error: any) {
       toast({
         title: "Erro",
@@ -522,84 +527,6 @@ const AdminDashboard = () => {
     }
   };
 
-  const resetUserPassword = async (targetUserId: string) => {
-    try {
-      const { error } = await supabase.functions.invoke('reset-user-password', { body: { user_id: targetUserId } });
-      if (error) throw error;
-      toast({ title: 'Senha redefinida', description: 'Senha padrão definida e troca obrigatória no próximo login.' });
-    } catch (e: any) {
-      toast({ title: 'Erro', description: e.message || 'Falha ao redefinir senha', variant: 'destructive' });
-    }
-  };
-
-  const openDeleteSchoolDialog = (school: SchoolCustomization) => {
-    setSchoolToDelete(school);
-    setConfirmEmail('');
-    setConfirmPassword('');
-    setDeleteSchoolDialogOpen(true);
-  };
-
-  const confirmDeleteSchool = async () => {
-    if (!schoolToDelete) return;
-    try {
-      setDeletingSchool(true);
-      const tempClient = createClient(TEMP_SUPABASE_URL, TEMP_SUPABASE_ANON_KEY, {
-        auth: {
-          persistSession: false,
-          autoRefreshToken: false
-        }
-      });
-      const { data: signInData, error: signInError } = await tempClient.auth.signInWithPassword({
-        email: confirmEmail,
-        password: confirmPassword
-      });
-      if (signInError || !signInData?.user) throw new Error('Credenciais inválidas');
-      const { error: delError } = await tempClient.from('school_customizations').delete().eq('id', schoolToDelete.id);
-      if (delError) throw delError;
-      toast({
-        title: 'Sucesso',
-        description: 'Escola excluída com sucesso!'
-      });
-      setSchools(schools.filter(s => s.id !== schoolToDelete.id));
-      setDeleteSchoolDialogOpen(false);
-      setSchoolToDelete(null);
-    } catch (error: any) {
-      toast({
-        title: 'Erro',
-        description: error.message || 'Falha ao excluir escola (verifique permissões).',
-        variant: 'destructive'
-      });
-    } finally {
-      setDeletingSchool(false);
-    }
-  };
-
-  const getUserEnvironment = (userId: string) => {
-    return environments.find(env => env.user_id === userId);
-  };
-
-  const getSchoolName = (schoolId: string | undefined) => {
-    if (!schoolId) return '';
-    const school = schools.find(s => s.id === schoolId);
-    return school?.school_name || '';
-  };
-
-  const getConsultantName = (consultantId: string | undefined) => {
-    if (!consultantId) return 'Não atribuído';
-    const consultant = users.find(u => u.user_id === consultantId);
-    return consultant?.name || 'Não encontrado';
-  };
-
-  const editUser = (user: User) => {
-    setEditingUser(user);
-    setEditDialogOpen(true);
-  };
-
-  const editSchool = (school: SchoolCustomization) => {
-    setEditingSchool(school);
-    setEditSchoolDialogOpen(true);
-  };
-
   const updateUser = async () => {
     if (!editingUser) return;
     try {
@@ -607,16 +534,19 @@ const AdminDashboard = () => {
         name: editingUser.name,
         email: editingUser.email,
         role: editingUser.role,
-        school_id: editingUser.role === 'gestor' ? editingUser.school_id : null
+        school_id: editingUser.school_id,
+        avatar_url: editingUser.avatar_url,
+        consultant_whatsapp: editingUser.consultant_whatsapp,
+        consultant_calendar_url: editingUser.consultant_calendar_url
       }).eq('user_id', editingUser.user_id);
       if (error) throw error;
+      setUsers(users.map(user => user.user_id === editingUser.user_id ? editingUser : user));
+      setEditDialogOpen(false);
+      setEditingUser(null);
       toast({
         title: "Sucesso",
         description: "Usuário atualizado com sucesso!"
       });
-      setEditDialogOpen(false);
-      setEditingUser(null);
-      fetchData();
     } catch (error: any) {
       toast({
         title: "Erro",
@@ -638,13 +568,14 @@ const AdminDashboard = () => {
         dashboard_links: editingSchool.dashboard_links
       }).eq('id', editingSchool.id);
       if (error) throw error;
+      setSchools(schools.map(school => school.id === editingSchool.id ? editingSchool : school));
+      setEditSchoolDialogOpen(false);
+      setEditingSchool(null);
+      setConsultantPreview(null);
       toast({
         title: "Sucesso",
         description: "Escola atualizada com sucesso!"
       });
-      setEditSchoolDialogOpen(false);
-      setEditingSchool(null);
-      fetchData();
     } catch (error: any) {
       toast({
         title: "Erro",
@@ -654,692 +585,896 @@ const AdminDashboard = () => {
     }
   };
 
-  if (loading) {
+  const confirmDeleteSchool = async () => {
+    if (!schoolToDelete || deletingSchool) return;
+    
+    try {
+      setDeletingSchool(true);
+      
+      const { error } = await supabase.from('school_customizations')
+        .delete()
+        .eq('id', schoolToDelete.id);
+      
+      if (error) throw error;
+      
+      setSchools(schools.filter(school => school.id !== schoolToDelete.id));
+      setDeleteSchoolDialogOpen(false);
+      setSchoolToDelete(null);
+      setConfirmEmail('');
+      setConfirmPassword('');
+      
+      toast({
+        title: "Sucesso",
+        description: "Escola excluída com sucesso!"
+      });
+    } catch (error: any) {
+      toast({
+        title: "Erro",
+        description: error.message || "Erro ao excluir escola",
+        variant: "destructive"
+      });
+    } finally {
+      setDeletingSchool(false);
+    }
+  };
+
+  const resetUserPassword = async (userId: string) => {
+    try {
+      setResetting(true);
+      const tempClient = createClient(TEMP_SUPABASE_URL, TEMP_SUPABASE_ANON_KEY);
+      const { error } = await tempClient.functions.invoke('reset-user-password', {
+        body: { userId }
+      });
+      if (error) throw error;
+      toast({
+        title: "Sucesso",
+        description: "Email de reset de senha enviado!"
+      });
+      setResetDialogOpen(false);
+    } catch (error: any) {
+      toast({
+        title: "Erro",
+        description: error.message || "Erro ao resetar senha",
+        variant: "destructive"
+      });
+    } finally {
+      setResetting(false);
+    }
+  };
+
+  if (userRole !== 'admin') {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="text-lg">Carregando...</div>
+        <Card className="w-96">
+          <CardHeader>
+            <CardTitle>Acesso Negado</CardTitle>
+            <CardDescription>Você não tem permissão para acessar esta página.</CardDescription>
+          </CardHeader>
+        </Card>
       </div>
     );
   }
 
-  return (
-    <div className="container mx-auto p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">Painel Administrativo</h1>
-          <p className="text-muted-foreground">Gerencie usuários e escolas do sistema</p>
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto"></div>
+          <p className="mt-2">Carregando...</p>
         </div>
-        {/* Tema e perfil movidos para o cabeçalho global */}
+      </div>
+    );
+  }
+
+  const filteredUsers = users.filter(user => 
+    user.name?.toLowerCase().includes(userSearch.toLowerCase()) ||
+    user.email?.toLowerCase().includes(userSearch.toLowerCase())
+  );
+
+  const filteredSchools = schools.filter(school => 
+    school.school_name?.toLowerCase().includes(schoolSearch.toLowerCase())
+  );
+
+  const paginatedUsers = filteredUsers.slice(
+    (currentUserPage - 1) * ITEMS_PER_PAGE,
+    currentUserPage * ITEMS_PER_PAGE
+  );
+
+  const paginatedSchools = filteredSchools.slice(
+    (currentSchoolPage - 1) * ITEMS_PER_PAGE,
+    currentSchoolPage * ITEMS_PER_PAGE
+  );
+
+  const totalUserPages = Math.ceil(filteredUsers.length / ITEMS_PER_PAGE);
+  const totalSchoolPages = Math.ceil(filteredSchools.length / ITEMS_PER_PAGE);
+
+  const sidebarItems = [
+    { id: 'users', title: 'Usuários', icon: Users },
+    { id: 'schools', title: 'Instituições', icon: School },
+    { id: 'banners', title: 'Novidades', icon: FileText },
+    { id: 'usage', title: 'Dados de Uso', icon: BarChart3 },
+  ];
+
+  const AdminSidebar = () => {
+    const { state } = useSidebar();
+    const collapsed = state === "collapsed";
+    
+    return (
+      <Sidebar className={collapsed ? "w-14" : "w-60"} collapsible="icon">
+        <SidebarTrigger className="m-2 self-end" />
+        <SidebarContent>
+          <SidebarGroup>
+            <SidebarGroupLabel>Menu Administrativo</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {sidebarItems.map((item) => (
+                  <SidebarMenuItem key={item.id}>
+                    <SidebarMenuButton
+                      onClick={() => setActiveView(item.id)}
+                      className={activeView === item.id ? "bg-muted text-primary font-medium" : "hover:bg-muted/50"}
+                    >
+                      <item.icon className="mr-2 h-4 w-4" />
+                      {!collapsed && <span>{item.title}</span>}
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        </SidebarContent>
+      </Sidebar>
+    );
+  };
+
+  return (
+    <SidebarProvider>
+      <div className="min-h-screen flex w-full">
+        {!minimized && <AdminSidebar />}
+        
+        <main className="flex-1">
+          {minimized && (
+            <div className="flex justify-center p-4">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setMinimized(false)}
+                className="w-auto"
+              >
+                <Maximize2 className="h-4 w-4 mr-2" />
+                Painel Admin
+              </Button>
+            </div>
+          )}
+
+          {!minimized && (
+            <>
+              <div className="p-6 border-b">
+                <div className="flex justify-between items-center">
+                  <div>
+                    <h1 className="text-2xl font-bold">Sistema de Controle - Admin</h1>
+                    <p className="text-muted-foreground">Gerenciar usuários, escolas e novidades</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <ThemeToggle />
+                    <Button variant="ghost" onClick={openAdminProfile}>
+                      <User className="h-4 w-4 mr-2" />
+                      Perfil
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setMinimized(true)}
+                      className="px-2"
+                    >
+                      <Minimize2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-6">
+                {activeView === 'users' && (
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center">
+                      <h2 className="text-xl font-semibold">Gerenciar Usuários</h2>
+                      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+                        <DialogTrigger asChild>
+                          <Button>
+                            <Plus className="h-4 w-4 mr-2" />
+                            Novo Usuário
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent className="sm:max-w-md">
+                          <DialogHeader>
+                            <DialogTitle>Criar Novo Usuário</DialogTitle>
+                            <DialogDescription>
+                              Preencha as informações para criar um novo usuário.
+                            </DialogDescription>
+                          </DialogHeader>
+                          <div className="space-y-4">
+                            <div>
+                              <Label htmlFor="name">Nome</Label>
+                              <Input
+                                id="name"
+                                type="text"
+                                value={newUser.name}
+                                onChange={(e) => setNewUser({ ...newUser, name: e.target.value })}
+                                placeholder="Nome completo"
+                              />
+                            </div>
+                            <div>
+                              <Label htmlFor="email">E-mail</Label>
+                              <Input
+                                id="email"
+                                type="email"
+                                value={newUser.email}
+                                onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
+                                placeholder="usuario@escola.com"
+                              />
+                            </div>
+                            <div>
+                              <Label htmlFor="password">Senha</Label>
+                              <Input
+                                id="password"
+                                type="password"
+                                value={newUser.password}
+                                onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
+                                placeholder="Senha"
+                              />
+                            </div>
+                            <div>
+                              <Label htmlFor="role">Tipo de Usuário</Label>
+                              <Select value={newUser.role} onValueChange={(value: 'admin' | 'gestor') => setNewUser({ ...newUser, role: value })}>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Selecione o tipo" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="gestor">Gestor</SelectItem>
+                                  <SelectItem value="admin">Admin</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            {newUser.role === 'gestor' && (
+                              <div>
+                                <Label htmlFor="school">Escola</Label>
+                                <Select value={newUser.schoolId} onValueChange={(value) => setNewUser({ ...newUser, schoolId: value })}>
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Selecione a escola" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {schools.map((school) => (
+                                      <SelectItem key={school.id} value={school.id}>
+                                        {school.school_name}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                            )}
+                            <div>
+                              <Label htmlFor="avatar_url">URL do Avatar (opcional)</Label>
+                              <Input
+                                id="avatar_url"
+                                type="url"
+                                value={newUser.avatar_url}
+                                onChange={(e) => setNewUser({ ...newUser, avatar_url: e.target.value })}
+                                placeholder="https://..."
+                              />
+                            </div>
+                            <div>
+                              <Label htmlFor="consultant_whatsapp">WhatsApp do Consultor (opcional)</Label>
+                              <Input
+                                id="consultant_whatsapp"
+                                type="tel"
+                                value={newUser.consultant_whatsapp}
+                                onChange={(e) => setNewUser({ ...newUser, consultant_whatsapp: e.target.value })}
+                                placeholder="(11) 99999-9999"
+                              />
+                            </div>
+                            <div>
+                              <Label htmlFor="consultant_calendar_url">URL da Agenda do Consultor (opcional)</Label>
+                              <Input
+                                id="consultant_calendar_url"
+                                type="url"
+                                value={newUser.consultant_calendar_url}
+                                onChange={(e) => setNewUser({ ...newUser, consultant_calendar_url: e.target.value })}
+                                placeholder="https://calendly.com/..."
+                              />
+                            </div>
+                          </div>
+                          <div className="flex justify-end space-x-2">
+                            <Button variant="ghost" onClick={() => setDialogOpen(false)}>Cancelar</Button>
+                            <Button onClick={createUser} disabled={loading}>
+                              {loading ? 'Criando...' : 'Criar Usuário'}
+                            </Button>
+                          </div>
+                        </DialogContent>
+                      </Dialog>
+                    </div>
+
+                    <div className="mb-4">
+                      <Input
+                        placeholder="Buscar usuários por nome ou email..."
+                        value={userSearch}
+                        onChange={(e) => {
+                          setUserSearch(e.target.value);
+                          setCurrentUserPage(1);
+                        }}
+                        className="max-w-sm"
+                      />
+                    </div>
+
+                    <div className="grid gap-4">
+                      {paginatedUsers.map((user) => (
+                        <Card key={user.id}>
+                          <CardContent className="p-4">
+                            <div className="flex justify-between items-start">
+                              <div className="flex items-center space-x-3">
+                                <Avatar className="h-10 w-10">
+                                  <AvatarImage src={user.avatar_url} />
+                                  <AvatarFallback>{user.name?.charAt(0)}</AvatarFallback>
+                                </Avatar>
+                                <div>
+                                  <h3 className="font-medium">{user.name}</h3>
+                                  <p className="text-sm text-muted-foreground">{user.email}</p>
+                                  <div className="flex items-center gap-2 mt-1">
+                                    <Badge variant={user.role === 'admin' ? 'destructive' : 'secondary'}>
+                                      {user.role}
+                                    </Badge>
+                                    <Badge variant={user.is_active ? 'default' : 'outline'}>
+                                      {user.is_active ? 'Ativo' : 'Inativo'}
+                                    </Badge>
+                                  </div>
+                                </div>
+                              </div>
+                              <div className="flex space-x-2">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => {
+                                    setEditingUser(user);
+                                    setEditDialogOpen(true);
+                                  }}
+                                >
+                                  <Edit3 className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => {
+                                    setEditingUser(user);
+                                    setResetDialogOpen(true);
+                                  }}
+                                >
+                                  <Key className="h-4 w-4" />
+                                </Button>
+                                <Switch
+                                  checked={user.is_active}
+                                  onCheckedChange={() => toggleUserStatus(user.user_id, user.is_active)}
+                                />
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => deleteUser(user.user_id)}
+                                  className="text-red-600 hover:text-red-700"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+
+                    {totalUserPages > 1 && (
+                      <div className="flex justify-center gap-2">
+                        <Button
+                          variant="outline"
+                          onClick={() => setCurrentUserPage(Math.max(1, currentUserPage - 1))}
+                          disabled={currentUserPage === 1}
+                        >
+                          Anterior
+                        </Button>
+                        <span className="flex items-center px-3">
+                          Página {currentUserPage} de {totalUserPages}
+                        </span>
+                        <Button
+                          variant="outline"
+                          onClick={() => setCurrentUserPage(Math.min(totalUserPages, currentUserPage + 1))}
+                          disabled={currentUserPage === totalUserPages}
+                        >
+                          Próxima
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {activeView === 'schools' && (
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center">
+                      <h2 className="text-xl font-semibold">Gerenciar Instituições</h2>
+                      <Dialog open={schoolDialogOpen} onOpenChange={setSchoolDialogOpen}>
+                        <DialogTrigger asChild>
+                          <Button>
+                            <Plus className="h-4 w-4 mr-2" />
+                            Nova Escola
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent className="sm:max-w-2xl max-h-[80vh] overflow-y-auto">
+                          <DialogHeader>
+                            <DialogTitle>Criar Nova Escola</DialogTitle>
+                            <DialogDescription>
+                              Configure uma nova escola com suas personalizações.
+                            </DialogDescription>
+                          </DialogHeader>
+                          <div className="space-y-4">
+                            <div>
+                              <Label htmlFor="school_name">Nome da Escola</Label>
+                              <Input
+                                id="school_name"
+                                value={newSchool.school_name}
+                                onChange={(e) => setNewSchool({ ...newSchool, school_name: e.target.value })}
+                                placeholder="Nome da escola"
+                              />
+                            </div>
+                            <div>
+                              <Label htmlFor="logo_upload">Logo da Escola</Label>
+                              <div className="flex gap-2">
+                                <Input
+                                  type="file"
+                                  accept="image/*"
+                                  onChange={async (e) => {
+                                    const file = e.target.files?.[0];
+                                    if (file) {
+                                      setUploadingLogoNew(true);
+                                      const url = await uploadImage(file, 'logos');
+                                      if (url) setNewSchool({ ...newSchool, logo_url: url });
+                                      setUploadingLogoNew(false);
+                                    }
+                                  }}
+                                  disabled={uploadingLogoNew}
+                                />
+                                {uploadingLogoNew && <span className="text-sm text-muted-foreground">Enviando...</span>}
+                              </div>
+                              {newSchool.logo_url && (
+                                <div className="mt-2">
+                                  <img src={newSchool.logo_url} alt="Logo preview" className="h-16 w-16 object-contain rounded border" />
+                                </div>
+                              )}
+                            </div>
+                            <div>
+                              <Label htmlFor="consultant">Consultor Responsável</Label>
+                              <Select 
+                                value={newSchool.consultant_id} 
+                                onValueChange={(value) => {
+                                  setNewSchool({ ...newSchool, consultant_id: value });
+                                  fetchConsultantPreview(value);
+                                }}
+                              >
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Selecione um consultor" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="">Nenhum consultor</SelectItem>
+                                  {adminUsers.map((admin) => (
+                                    <SelectItem key={admin.user_id} value={admin.user_id}>
+                                      {admin.name} ({admin.email})
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            <div>
+                              <Label htmlFor="zendesk_url">URL Zendesk</Label>
+                              <Input
+                                id="zendesk_url"
+                                value={newSchool.zendesk_integration_url}
+                                onChange={(e) => setNewSchool({ ...newSchool, zendesk_integration_url: e.target.value })}
+                                placeholder="https://escola.zendesk.com"
+                              />
+                            </div>
+                            <div>
+                              <Label htmlFor="metabase_url">URL Metabase</Label>
+                              <Input
+                                id="metabase_url"
+                                value={newSchool.metabase_integration_url}
+                                onChange={(e) => setNewSchool({ ...newSchool, metabase_integration_url: e.target.value })}
+                                placeholder="https://metabase.escola.com"
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label>Links dos Dashboards</Label>
+                              <div className="grid grid-cols-2 gap-2">
+                                <div>
+                                  <Label htmlFor="financeiro_link" className="text-sm">Financeiro</Label>
+                                  <Input
+                                    id="financeiro_link"
+                                    value={newSchool.dashboard_links.financeiro}
+                                    onChange={(e) => setNewSchool({
+                                      ...newSchool,
+                                      dashboard_links: { ...newSchool.dashboard_links, financeiro: e.target.value }
+                                    })}
+                                    placeholder="URL do dashboard financeiro"
+                                  />
+                                </div>
+                                <div>
+                                  <Label htmlFor="agenda_link" className="text-sm">Agenda</Label>
+                                  <Input
+                                    id="agenda_link"
+                                    value={newSchool.dashboard_links.agenda}
+                                    onChange={(e) => setNewSchool({
+                                      ...newSchool,
+                                      dashboard_links: { ...newSchool.dashboard_links, agenda: e.target.value }
+                                    })}
+                                    placeholder="URL do dashboard de agenda"
+                                  />
+                                </div>
+                                <div>
+                                  <Label htmlFor="secretaria_link" className="text-sm">Secretaria</Label>
+                                  <Input
+                                    id="secretaria_link"
+                                    value={newSchool.dashboard_links.secretaria}
+                                    onChange={(e) => setNewSchool({
+                                      ...newSchool,
+                                      dashboard_links: { ...newSchool.dashboard_links, secretaria: e.target.value }
+                                    })}
+                                    placeholder="URL do dashboard de secretaria"
+                                  />
+                                </div>
+                                <div>
+                                  <Label htmlFor="pedagogico_link" className="text-sm">Pedagógico</Label>
+                                  <Input
+                                    id="pedagogico_link"
+                                    value={newSchool.dashboard_links.pedagogico}
+                                    onChange={(e) => setNewSchool({
+                                      ...newSchool,
+                                      dashboard_links: { ...newSchool.dashboard_links, pedagogico: e.target.value }
+                                    })}
+                                    placeholder="URL do dashboard pedagógico"
+                                  />
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="flex justify-end space-x-2">
+                            <Button variant="ghost" onClick={() => setSchoolDialogOpen(false)}>Cancelar</Button>
+                            <Button onClick={createSchool}>Criar Escola</Button>
+                          </div>
+                        </DialogContent>
+                      </Dialog>
+                    </div>
+
+                    <div className="mb-4">
+                      <Input
+                        placeholder="Buscar escolas..."
+                        value={schoolSearch}
+                        onChange={(e) => {
+                          setSchoolSearch(e.target.value);
+                          setCurrentSchoolPage(1);
+                        }}
+                        className="max-w-sm"
+                      />
+                    </div>
+
+                    <div className="grid gap-4">
+                      {paginatedSchools.map((school) => (
+                        <Card key={school.id}>
+                          <CardContent className="p-4">
+                            <div className="flex justify-between items-start">
+                              <div className="flex items-center space-x-3">
+                                {school.logo_url && (
+                                  <img 
+                                    src={school.logo_url} 
+                                    alt={`Logo ${school.school_name}`}
+                                    className="h-12 w-12 object-contain rounded border"
+                                  />
+                                )}
+                                <div>
+                                  <h3 className="font-medium">{school.school_name}</h3>
+                                  <p className="text-sm text-muted-foreground">
+                                    Criada em {new Date(school.created_at).toLocaleDateString('pt-BR')}
+                                  </p>
+                                  {school.consultant_id && (
+                                    <p className="text-sm text-blue-600">
+                                      Consultor: {adminUsers.find(u => u.user_id === school.consultant_id)?.name || 'N/A'}
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
+                              <div className="flex space-x-2">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => {
+                                    setEditingSchool(school);
+                                    setEditSchoolDialogOpen(true);
+                                  }}
+                                >
+                                  <Edit3 className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => {
+                                    setSchoolToDelete(school);
+                                    setDeleteSchoolDialogOpen(true);
+                                  }}
+                                  className="text-red-600 hover:text-red-700"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+
+                    {totalSchoolPages > 1 && (
+                      <div className="flex justify-center gap-2">
+                        <Button
+                          variant="outline"
+                          onClick={() => setCurrentSchoolPage(Math.max(1, currentSchoolPage - 1))}
+                          disabled={currentSchoolPage === 1}
+                        >
+                          Anterior
+                        </Button>
+                        <span className="flex items-center px-3">
+                          Página {currentSchoolPage} de {totalSchoolPages}
+                        </span>
+                        <Button
+                          variant="outline"
+                          onClick={() => setCurrentSchoolPage(Math.min(totalSchoolPages, currentSchoolPage + 1))}
+                          disabled={currentSchoolPage === totalSchoolPages}
+                        >
+                          Próxima
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {activeView === 'banners' && (
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center">
+                      <h2 className="text-xl font-semibold">Gerenciar Novidades</h2>
+                      <Dialog open={bannerDialogOpen} onOpenChange={setBannerDialogOpen}>
+                        <DialogTrigger asChild>
+                          <Button>
+                            <Plus className="h-4 w-4 mr-2" />
+                            Novo Banner
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent className="sm:max-w-md">
+                          <DialogHeader>
+                            <DialogTitle>Criar Novo Banner</DialogTitle>
+                            <DialogDescription>
+                              Envie uma imagem para criar um novo banner.
+                            </DialogDescription>
+                          </DialogHeader>
+                          <div className="space-y-4">
+                            <div>
+                              <Label htmlFor="banner_scope">Escopo</Label>
+                              <Select value={bannerScope} onValueChange={(value: 'global' | 'school') => setBannerScope(value)}>
+                                <SelectTrigger>
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="global">Global (todas as escolas)</SelectItem>
+                                  <SelectItem value="school">Específica da escola</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            {bannerScope === 'school' && (
+                              <div>
+                                <Label htmlFor="banner_school">Escola</Label>
+                                <Select value={bannerSchoolId} onValueChange={setBannerSchoolId}>
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Selecione a escola" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {schools.map((school) => (
+                                      <SelectItem key={school.id} value={school.id}>
+                                        {school.school_name}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                            )}
+                            <div>
+                              <Label htmlFor="banner_title">Título (opcional)</Label>
+                              <Input
+                                id="banner_title"
+                                value={bannerTitle}
+                                onChange={(e) => setBannerTitle(e.target.value)}
+                                placeholder="Título do banner"
+                              />
+                            </div>
+                            <div>
+                              <Label htmlFor="banner_link">Link (opcional)</Label>
+                              <Input
+                                id="banner_link"
+                                value={bannerLink}
+                                onChange={(e) => setBannerLink(e.target.value)}
+                                placeholder="https://..."
+                              />
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <Switch
+                                id="banner_use_default"
+                                checked={bannerUseDefault}
+                                onCheckedChange={setBannerUseDefault}
+                              />
+                              <Label htmlFor="banner_use_default">Usar duração padrão (6 segundos)</Label>
+                            </div>
+                            {!bannerUseDefault && (
+                              <div>
+                                <Label htmlFor="banner_duration">Duração (segundos)</Label>
+                                <Input
+                                  id="banner_duration"
+                                  type="number"
+                                  min="1"
+                                  max="30"
+                                  value={bannerDuration}
+                                  onChange={(e) => setBannerDuration(parseInt(e.target.value) || 6)}
+                                />
+                              </div>
+                            )}
+                            <div>
+                              <Label htmlFor="banner_file">Imagem</Label>
+                              <Input
+                                id="banner_file"
+                                type="file"
+                                accept="image/png,image/jpeg"
+                                onChange={(e) => setBannerFile(e.target.files?.[0] || null)}
+                              />
+                            </div>
+                          </div>
+                          <div className="flex justify-end space-x-2">
+                            <Button variant="ghost" onClick={() => setBannerDialogOpen(false)}>Cancelar</Button>
+                            <Button onClick={handleBannerUpload} disabled={uploadingBanner}>
+                              {uploadingBanner ? 'Enviando...' : 'Enviar Banner'}
+                            </Button>
+                          </div>
+                        </DialogContent>
+                      </Dialog>
+                    </div>
+                    
+                    <BannersManager key={bannersReloadKey} />
+                  </div>
+                )}
+
+                {activeView === 'usage' && (
+                  <div className="space-y-4">
+                    <UsageDashboard />
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+        </main>
       </div>
 
       {/* Admin Profile Dialog */}
       <Dialog open={profileDialogOpen} onOpenChange={setProfileDialogOpen}>
-        <DialogContent className="sm:max-w-lg">
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Meu Perfil - Admin</DialogTitle>
-            <DialogDescription>Gerencie suas informações pessoais e credenciais</DialogDescription>
+            <DialogTitle>Perfil do Administrador</DialogTitle>
+            <DialogDescription>
+              Gerencie suas informações pessoais e configurações.
+            </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
-            <div className="flex items-center gap-4">
-              <Avatar className="h-16 w-16">
-                <AvatarImage src={adminProfile.avatar_url} alt="Foto do perfil" />
-                <AvatarFallback>
-                  {adminProfile.name?.charAt(0).toUpperCase() || 'A'}
-                </AvatarFallback>
-              </Avatar>
-                <div>
-                  <Label htmlFor="avatar">Foto do perfil</Label>
-                  <Input
-                    id="avatar"
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => {
-                      const f = e.target.files?.[0];
-                      if (!f) return;
-                      const url = URL.createObjectURL(f);
-                      setCropSrc(url);
-                      setCropOpen(true);
-                    }}
-                    disabled={loadingProfile}
-                  />
-                </div>
+          {loadingProfile ? (
+            <div className="text-center py-4">Carregando...</div>
+          ) : (
+            <div className="space-y-4">
+              <div className="flex flex-col items-center space-y-2">
+                <Avatar className="h-20 w-20 cursor-pointer" onClick={() => {
+                  const input = document.createElement('input');
+                  input.type = 'file';
+                  input.accept = 'image/*';
+                  input.onchange = (e) => {
+                    const file = (e.target as HTMLInputElement).files?.[0];
+                    if (file) {
+                      const reader = new FileReader();
+                      reader.onload = () => {
+                        setCropSrc(reader.result as string);
+                        setCropOpen(true);
+                      };
+                      reader.readAsDataURL(file);
+                    }
+                  };
+                  input.click();
+                }}>
+                  <AvatarImage src={adminProfile.avatar_url} />
+                  <AvatarFallback>{adminProfile.name?.charAt(0)}</AvatarFallback>
+                </Avatar>
+                <Button variant="outline" size="sm" onClick={() => {
+                  const input = document.createElement('input');
+                  input.type = 'file';
+                  input.accept = 'image/*';
+                  input.onchange = (e) => {
+                    const file = (e.target as HTMLInputElement).files?.[0];
+                    if (file) {
+                      const reader = new FileReader();
+                      reader.onload = () => {
+                        setCropSrc(reader.result as string);
+                        setCropOpen(true);
+                      };
+                      reader.readAsDataURL(file);
+                    }
+                  };
+                  input.click();
+                }}>
+                  Alterar Foto
+                </Button>
+              </div>
+              <div>
+                <Label htmlFor="admin_name">Nome</Label>
+                <Input
+                  id="admin_name"
+                  value={adminProfile.name}
+                  onChange={(e) => setAdminProfile({ ...adminProfile, name: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label htmlFor="admin_email">E-mail</Label>
+                <Input
+                  id="admin_email"
+                  type="email"
+                  value={adminProfile.email}
+                  onChange={(e) => setAdminProfile({ ...adminProfile, email: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label htmlFor="admin_whatsapp">WhatsApp</Label>
+                <Input
+                  id="admin_whatsapp"
+                  value={adminProfile.consultant_whatsapp}
+                  onChange={(e) => setAdminProfile({ ...adminProfile, consultant_whatsapp: e.target.value })}
+                  placeholder="(11) 99999-9999"
+                />
+              </div>
+              <div>
+                <Label htmlFor="admin_calendar">URL da Agenda</Label>
+                <Input
+                  id="admin_calendar"
+                  value={adminProfile.consultant_calendar_url}
+                  onChange={(e) => setAdminProfile({ ...adminProfile, consultant_calendar_url: e.target.value })}
+                  placeholder="https://calendly.com/..."
+                />
+              </div>
+              <div>
+                <Label htmlFor="admin_new_password">Nova Senha (opcional)</Label>
+                <Input
+                  id="admin_new_password"
+                  type="password"
+                  value={adminNewPassword}
+                  onChange={(e) => setAdminNewPassword(e.target.value)}
+                  placeholder="Digite nova senha"
+                />
+              </div>
+              <div>
+                <Label htmlFor="admin_confirm_password">Confirmar Nova Senha</Label>
+                <Input
+                  id="admin_confirm_password"
+                  type="password"
+                  value={adminConfirmPassword}
+                  onChange={(e) => setAdminConfirmPassword(e.target.value)}
+                  placeholder="Confirme a nova senha"
+                />
+              </div>
             </div>
-            <div className="space-y-3">
-              <div className="space-y-2">
-                <Label htmlFor="name">Nome</Label>
-                <Input id="name" value={adminProfile.name} onChange={(e) => setAdminProfile(prev => ({ ...prev, name: e.target.value }))} />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="email">E-mail</Label>
-                <Input id="email" type="email" value={adminProfile.email} onChange={(e) => setAdminProfile(prev => ({ ...prev, email: e.target.value }))} />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="whatsapp">WhatsApp</Label>
-                <Input id="whatsapp" value={adminProfile.consultant_whatsapp} onChange={(e) => setAdminProfile(prev => ({ ...prev, consultant_whatsapp: e.target.value }))} placeholder="(11) 99999-9999" />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="calendar">Link de incorporação da agenda</Label>
-                <Input id="calendar" value={adminProfile.consultant_calendar_url} onChange={(e) => setAdminProfile(prev => ({ ...prev, consultant_calendar_url: e.target.value }))} placeholder="https://calendar.google.com/calendar/embed?..." />
-              </div>
-              <div className="grid md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="password">Nova senha</Label>
-                  <Input id="password" type="password" value={adminNewPassword} onChange={(e) => setAdminNewPassword(e.target.value)} />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="confirmPassword">Confirmar senha</Label>
-                  <Input id="confirmPassword" type="password" value={adminConfirmPassword} onChange={(e) => setAdminConfirmPassword(e.target.value)} />
-                </div>
-              </div>
-            </div>
-          </div>
-          <div className="flex justify-end gap-2 pt-2">
+          )}
+          <div className="flex justify-end space-x-2">
             <Button variant="ghost" onClick={() => setProfileDialogOpen(false)}>Cancelar</Button>
             <Button onClick={saveAdminProfile} disabled={savingProfile}>{savingProfile ? 'Salvando...' : 'Salvar'}</Button>
           </div>
         </DialogContent>
       </Dialog>
-
-
-      {!minimized && (
-        <Tabs defaultValue="users" className="space-y-4">
-          <div className="flex items-center justify-between">
-            <TabsList>
-              <TabsTrigger value="users">Usuários</TabsTrigger>
-              <TabsTrigger value="schools">Instituições</TabsTrigger>
-              <TabsTrigger value="banners">Novidades</TabsTrigger>
-              <TabsTrigger value="usage">Dados de Uso</TabsTrigger>
-            </TabsList>
-          </div>
-
-          <TabsContent value="users" className="space-y-4">
-            <div className="flex justify-between items-center">
-              <h2 className="text-xl font-semibold">Gerenciar Usuários</h2>
-              <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-                <DialogTrigger asChild>
-                  <Button>
-                    <Plus className="w-4 h-4 mr-2" />
-                    Novo Usuário
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="sm:max-w-md max-h-[80vh] overflow-y-auto">
-                  <DialogHeader>
-                    <DialogTitle>Criar Novo Usuário</DialogTitle>
-                    <DialogDescription>
-                      Crie um novo usuário e configure seu ambiente personalizado
-                    </DialogDescription>
-                  </DialogHeader>
-                  <div className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="name">Nome <span className="text-destructive">*</span></Label>
-                      <Input id="name" required value={newUser.name} onChange={e => setNewUser({
-                        ...newUser,
-                        name: e.target.value
-                      })} placeholder="Nome do usuário" />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="email">Email <span className="text-destructive">*</span></Label>
-                      <Input id="email" required type="email" value={newUser.email} onChange={e => setNewUser({
-                        ...newUser,
-                        email: e.target.value
-                      })} placeholder="email@exemplo.com" />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="password">Senha <span className="text-destructive">*</span></Label>
-                      <Input id="password" required type="password" value={newUser.password} onChange={e => setNewUser({
-                        ...newUser,
-                        password: e.target.value
-                      })} placeholder="Senha" />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="role">Tipo de Usuário <span className="text-destructive">*</span></Label>
-                      <Select value={newUser.role} onValueChange={(value: 'admin' | 'gestor') => setNewUser({
-                        ...newUser,
-                        role: value
-                      })}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecione o tipo" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="gestor">Gestor</SelectItem>
-                          <SelectItem value="admin">Admin</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    
-                    {newUser.role === 'gestor' && (
-                      <div className="space-y-2">
-                        <Label htmlFor="school">Escola</Label>
-                        <Select value={newUser.schoolId} onValueChange={value => setNewUser({
-                          ...newUser,
-                          schoolId: value
-                        })}>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Selecione a escola" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {schools.map(school => (
-                              <SelectItem key={school.id} value={school.id}>
-                                {school.school_name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    )}
-                    
-                    <div className="space-y-2">
-                      <Label htmlFor="avatar_url">URL da Foto</Label>
-                      <Input 
-                        id="avatar_url" 
-                        value={newUser.avatar_url} 
-                        onChange={e => setNewUser({
-                          ...newUser,
-                          avatar_url: e.target.value
-                        })} 
-                        placeholder="https://exemplo.com/foto.jpg" 
-                      />
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <Label htmlFor="consultant_whatsapp">WhatsApp</Label>
-                      <Input 
-                        id="consultant_whatsapp" 
-                        value={newUser.consultant_whatsapp} 
-                        onChange={e => setNewUser({
-                          ...newUser,
-                          consultant_whatsapp: e.target.value
-                        })} 
-                        placeholder="(11) 99999-9999" 
-                      />
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <Label htmlFor="consultant_calendar_url">Link de Incorporação do Google Calendar</Label>
-                      <Input 
-                        id="consultant_calendar_url" 
-                        value={newUser.consultant_calendar_url} 
-                        onChange={e => setNewUser({
-                          ...newUser,
-                          consultant_calendar_url: e.target.value
-                        })} 
-                        placeholder="https://calendar.google.com/calendar/embed?..." 
-                      />
-                    </div>
-                    
-                    <Button onClick={createUser} className="w-full" disabled={loading}>
-                      {loading ? 'Criando...' : 'Criar Usuário'}
-                    </Button>
-                  </div>
-                </DialogContent>
-              </Dialog>
-            </div>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Users className="w-5 h-5" />
-                  Usuários ({users.length})
-                </CardTitle>
-                <CardDescription>
-                  Lista de todos os usuários do sistema
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="flex gap-2 items-center mb-4">
-                  <Input 
-                    placeholder="Procurar usuários (nome, email, função, escola)" 
-                    value={userSearch} 
-                    onChange={e => setUserSearch(e.target.value)} 
-                  />
-                </div>
-
-                <div className="space-y-4">
-                  {users.filter(u => {
-                    const q = userSearch.trim().toLowerCase();
-                    if (!q) return true;
-                    const roleLabel = u.role;
-                    const schoolName = u.role === 'gestor' && u.school_id ? getSchoolName(u.school_id).toLowerCase() : '';
-                    return u.name.toLowerCase().includes(q) || 
-                           u.email.toLowerCase().includes(q) || 
-                           roleLabel.toLowerCase().includes(q) || 
-                           schoolName.includes(q);
-                  }).slice((currentUserPage - 1) * ITEMS_PER_PAGE, currentUserPage * ITEMS_PER_PAGE).map(user => {
-                    const environment = getUserEnvironment(user.user_id);
-                    return (
-                      <div key={user.id} className="flex items-center justify-between p-4 border rounded-lg">
-                        <div className="flex items-center space-x-4">
-                          <Avatar className="h-10 w-10">
-                            <AvatarImage src={user.avatar_url || ''} alt={`Foto de ${user.name}`} />
-                            <AvatarFallback>
-                              {user.name.charAt(0).toUpperCase()}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <p className="font-medium">{user.name}</p>
-                              <Badge variant={user.role === 'admin' ? 'default' : user.role === 'gestor' ? 'secondary' : 'outline'}>
-                                {user.role === 'admin' ? 'Admin' : user.role === 'gestor' ? 'Gestor' : 'Usuário'}
-                              </Badge>
-                              <Badge variant={user.is_active ? 'default' : 'destructive'}>
-                                {user.is_active ? 'Ativo' : 'Inativo'}
-                              </Badge>
-                            </div>
-                            <p className="text-sm text-muted-foreground">{user.email}</p>
-                            {user.role === 'gestor' && user.school_id && (
-                              <p className="text-xs text-muted-foreground">
-                                Escola: {getSchoolName(user.school_id)}
-                              </p>
-                            )}
-                          </div>
-                        </div>
-                        
-                        <div className="flex items-center space-x-2">
-                          <Button variant="outline" size="sm" onClick={() => editUser(user)}>
-                            <Edit3 className="w-4 h-4" />
-                          </Button>
-                          <Switch 
-                            checked={user.is_active} 
-                            onCheckedChange={() => toggleUserStatus(user.user_id, user.is_active)} 
-                            disabled={user.role === 'admin'} 
-                          />
-                          <Button variant="secondary" size="sm" onClick={() => resetUserPassword(user.user_id)} title="Redefinir senha">
-                            <Key className="w-4 h-4" />
-                          </Button>
-                          {user.role !== 'admin' && (
-                            <Button variant="destructive" size="sm" onClick={() => deleteUser(user.user_id)}>
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-                
-                {/* Pagination for Users */}
-                {users.filter(u => {
-                  const q = userSearch.trim().toLowerCase();
-                  if (!q) return true;
-                  const roleLabel = u.role;
-                  const schoolName = u.role === 'gestor' && u.school_id ? getSchoolName(u.school_id).toLowerCase() : '';
-                  return u.name.toLowerCase().includes(q) || 
-                         u.email.toLowerCase().includes(q) || 
-                         roleLabel.toLowerCase().includes(q) || 
-                         schoolName.includes(q);
-                }).length > ITEMS_PER_PAGE && (
-                  <div className="flex justify-center items-center gap-2 mt-4">
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      disabled={currentUserPage === 1}
-                      onClick={() => setCurrentUserPage(currentUserPage - 1)}
-                    >
-                      Anterior
-                    </Button>
-                    <span className="text-sm text-muted-foreground">
-                      Página {currentUserPage} de {Math.ceil(users.filter(u => {
-                        const q = userSearch.trim().toLowerCase();
-                        if (!q) return true;
-                        const roleLabel = u.role;
-                        const schoolName = u.role === 'gestor' && u.school_id ? getSchoolName(u.school_id).toLowerCase() : '';
-                        return u.name.toLowerCase().includes(q) || 
-                               u.email.toLowerCase().includes(q) || 
-                               roleLabel.toLowerCase().includes(q) || 
-                               schoolName.includes(q);
-                      }).length / ITEMS_PER_PAGE)}
-                    </span>
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      disabled={currentUserPage >= Math.ceil(users.filter(u => {
-                        const q = userSearch.trim().toLowerCase();
-                        if (!q) return true;
-                        const roleLabel = u.role;
-                        const schoolName = u.role === 'gestor' && u.school_id ? getSchoolName(u.school_id).toLowerCase() : '';
-                        return u.name.toLowerCase().includes(q) || 
-                               u.email.toLowerCase().includes(q) || 
-                               roleLabel.toLowerCase().includes(q) || 
-                               schoolName.includes(q);
-                      }).length / ITEMS_PER_PAGE)}
-                      onClick={() => setCurrentUserPage(currentUserPage + 1)}
-                    >
-                      Próxima
-                    </Button>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="schools" className="space-y-4">
-            <div className="flex justify-between items-center">
-              <h2 className="text-xl font-semibold">Gerenciar Escolas</h2>
-              <Dialog open={schoolDialogOpen} onOpenChange={setSchoolDialogOpen}>
-                <DialogTrigger asChild>
-                  <Button>
-                    <Plus className="w-4 h-4 mr-2" />
-                    Nova Escola
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="sm:max-w-lg max-h-[80vh] overflow-y-auto">
-                  <DialogHeader>
-                    <DialogTitle>Criar Nova Escola</DialogTitle>
-                    <DialogDescription>
-                      Configure as personalizações da escola para os gestores
-                    </DialogDescription>
-                  </DialogHeader>
-                  <div className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="schoolName">Nome da Escola <span className="text-destructive">*</span></Label>
-                      <Input 
-                        id="schoolName" 
-                        required
-                        value={newSchool.school_name} 
-                        onChange={e => setNewSchool({
-                          ...newSchool,
-                          school_name: e.target.value
-                        })} 
-                        placeholder="Nome da escola" 
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="logoFile">Logo da Escola</Label>
-                      <Input 
-                        id="logoFile" 
-                        type="file" 
-                        accept="image/*" 
-                        onChange={async e => {
-                          const file = e.target.files?.[0];
-                          if (!file) return;
-                          setUploadingLogoNew(true);
-                          const url = await uploadImage(file, 'logos');
-                          setUploadingLogoNew(false);
-                          if (url) setNewSchool({
-                            ...newSchool,
-                            logo_url: url
-                          });
-                        }} 
-                      />
-                      {uploadingLogoNew && <p className="text-sm text-muted-foreground">Enviando...</p>}
-                      {newSchool.logo_url && <img src={newSchool.logo_url} alt="Logo da escola" className="h-12 rounded" />}
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="consultant_id">Consultor Responsável</Label>
-                      <Select
-                        value={newSchool.consultant_id}
-                        onValueChange={(value) => setNewSchool(prev => ({ ...prev, consultant_id: value }))}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecione um consultor" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {adminUsers.map((admin) => (
-                            <SelectItem key={admin.user_id} value={admin.user_id}>
-                              {admin.name} ({admin.email})
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="zendeskUrl">ID da organização no Zendesk</Label>
-                      <Input 
-                        id="zendeskUrl" 
-                        value={newSchool.zendesk_integration_url} 
-                        onChange={e => setNewSchool({
-                          ...newSchool,
-                          zendesk_integration_url: e.target.value
-                        })} 
-                        placeholder="123456789" 
-                      />
-                    </div>
-                    
-                    <div className="space-y-4">
-                      <h4 className="font-medium">Links dos Dashboards (Metabase)</h4>
-                      <div className="space-y-2">
-                        <Label htmlFor="dashFinanceiro">Dashboard Financeiro</Label>
-                        <Input 
-                          id="dashFinanceiro" 
-                          value={newSchool.dashboard_links?.financeiro || ''} 
-                          onChange={e => setNewSchool({
-                            ...newSchool,
-                            dashboard_links: {
-                              ...newSchool.dashboard_links,
-                              financeiro: e.target.value
-                            }
-                          })} 
-                          placeholder="https://metabase.escola.com/public/dashboard/..." 
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="dashAgenda">Dashboard Agenda</Label>
-                        <Input 
-                          id="dashAgenda" 
-                          value={newSchool.dashboard_links?.agenda || ''} 
-                          onChange={e => setNewSchool({
-                            ...newSchool,
-                            dashboard_links: {
-                              ...newSchool.dashboard_links,
-                              agenda: e.target.value
-                            }
-                          })} 
-                          placeholder="https://metabase.escola.com/public/dashboard/..." 
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="dashSecretaria">Dashboard Secretaria</Label>
-                        <Input 
-                          id="dashSecretaria" 
-                          value={newSchool.dashboard_links?.secretaria || ''} 
-                          onChange={e => setNewSchool({
-                            ...newSchool,
-                            dashboard_links: {
-                              ...newSchool.dashboard_links,
-                              secretaria: e.target.value
-                            }
-                          })} 
-                          placeholder="https://metabase.escola.com/public/dashboard/..." 
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="dashPedagogico">Dashboard Pedagógico</Label>
-                        <Input 
-                          id="dashPedagogico" 
-                          value={newSchool.dashboard_links?.pedagogico || ''} 
-                          onChange={e => setNewSchool({
-                            ...newSchool,
-                            dashboard_links: {
-                              ...newSchool.dashboard_links,
-                              pedagogico: e.target.value
-                            }
-                          })} 
-                          placeholder="https://metabase.escola.com/public/dashboard/..." 
-                        />
-                      </div>
-                    </div>
-                    <Button onClick={createSchool} className="w-full">
-                      Criar Escola
-                    </Button>
-                  </div>
-                </DialogContent>
-              </Dialog>
-            </div>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <School className="w-5 h-5" />
-                  Escolas ({schools.length})
-                </CardTitle>
-                <CardDescription>
-                  Lista de todas as escolas do sistema
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="flex gap-2 items-center mb-4">
-                  <Input 
-                    placeholder="Procurar escolas (nome)" 
-                    value={schoolSearch} 
-                    onChange={e => setSchoolSearch(e.target.value)} 
-                  />
-                </div>
-
-                <div className="space-y-4">
-                  {schools.filter(s => {
-                    const q = schoolSearch.trim().toLowerCase();
-                    if (!q) return true;
-                    return s.school_name.toLowerCase().includes(q);
-                  }).slice((currentSchoolPage - 1) * ITEMS_PER_PAGE, currentSchoolPage * ITEMS_PER_PAGE).map(school => (
-                    <div key={school.id} className="flex items-center justify-between p-4 border rounded-lg">
-                       <div className="flex items-center space-x-4">
-                         <Avatar className="h-10 w-10">
-                           <AvatarImage src={school.logo_url || ''} alt={`Logo ${school.school_name}`} />
-                           <AvatarFallback className="bg-primary text-primary-foreground">
-                             {school.school_name.charAt(0).toUpperCase()}
-                           </AvatarFallback>
-                         </Avatar>
-                         <div>
-                           <p className="font-medium">{school.school_name}</p>
-                           <p className="text-sm text-muted-foreground">
-                             Consultor: {(users.find(u => (u.id === school.consultant_id || u.user_id === school.consultant_id))?.name) || school.consultant_name || 'Não informado'}
-                           </p>
-                          <p className="text-xs text-muted-foreground">
-                            Criado em: {new Date(school.created_at).toLocaleDateString()}
-                          </p>
-                        </div>
-                      </div>
-                      
-                      <div className="flex items-center space-x-2">
-                        <Button variant="outline" size="sm" onClick={() => editSchool(school)}>
-                          <Edit3 className="w-4 h-4" />
-                        </Button>
-                        <Button variant="destructive" size="sm" onClick={() => openDeleteSchoolDialog(school)}>
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                
-                {/* Pagination for Schools */}
-                {schools.filter(s => {
-                  const q = schoolSearch.trim().toLowerCase();
-                  if (!q) return true;
-                  return s.school_name.toLowerCase().includes(q);
-                }).length > ITEMS_PER_PAGE && (
-                  <div className="flex justify-center items-center gap-2 mt-4">
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      disabled={currentSchoolPage === 1}
-                      onClick={() => setCurrentSchoolPage(currentSchoolPage - 1)}
-                    >
-                      Anterior
-                    </Button>
-                    <span className="text-sm text-muted-foreground">
-                      Página {currentSchoolPage} de {Math.ceil(schools.filter(s => {
-                        const q = schoolSearch.trim().toLowerCase();
-                        if (!q) return true;
-                        return s.school_name.toLowerCase().includes(q);
-                      }).length / ITEMS_PER_PAGE)}
-                    </span>
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      disabled={currentSchoolPage >= Math.ceil(schools.filter(s => {
-                        const q = schoolSearch.trim().toLowerCase();
-                        if (!q) return true;
-                        return s.school_name.toLowerCase().includes(q);
-                      }).length / ITEMS_PER_PAGE)}
-                      onClick={() => setCurrentSchoolPage(currentSchoolPage + 1)}
-                    >
-                      Próxima
-                    </Button>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="banners" className="space-y-4">
-            <div className="flex justify-end">
-              <Dialog open={bannerDialogOpen} onOpenChange={setBannerDialogOpen}>
-                <DialogTrigger asChild>
-                  <Button>+ Adicionar Banner</Button>
-                </DialogTrigger>
-                <DialogContent className="sm:max-w-md">
-                  <DialogHeader>
-                    <DialogTitle>Adicionar Banner</DialogTitle>
-                    <DialogDescription>Envie imagens JPG ou PNG e defina o escopo.</DialogDescription>
-                  </DialogHeader>
-                  <div className="space-y-4">
-                    <div className="space-y-2">
-                      <Label>Imagem (JPG ou PNG)</Label>
-                      <Input type="file" accept="image/png, image/jpeg" onChange={(e) => setBannerFile(e.target.files?.[0] || null)} />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Título</Label>
-                      <Input placeholder="Título do banner" value={bannerTitle} onChange={(e)=>setBannerTitle(e.target.value)} />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Link de redirecionamento</Label>
-                      <Input placeholder="https://..." value={bannerLink} onChange={(e)=>setBannerLink(e.target.value)} />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Escopo</Label>
-                      <Select value={bannerScope} onValueChange={(v: 'global' | 'school') => setBannerScope(v)}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecione o escopo" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="global">Global (todas as escolas)</SelectItem>
-                          <SelectItem value="school">Por escola</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    {bannerScope === 'school' && (
-                      <div className="space-y-2">
-                        <Label>Escolha a escola</Label>
-                        <Select value={bannerSchoolId} onValueChange={(v) => setBannerSchoolId(v)}>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Selecione a escola" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {schools.map((s) => (
-                              <SelectItem key={s.id} value={s.id}>{s.school_name}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    )}
-                    <div className="flex items-center gap-3">
-                      <Switch checked={bannerUseDefault} onCheckedChange={(v)=>setBannerUseDefault(v)} />
-                      <span className="text-sm">Usar duração padrão do sistema (6s)</span>
-                    </div>
-                    {!bannerUseDefault && (
-                      <div>
-                        <Label>Duração personalizada (segundos)</Label>
-                        <Input type="number" min={1} max={120} value={bannerDuration} onChange={(e)=>setBannerDuration(Number(e.target.value))} />
-                      </div>
-                    )}
-                    <div className="flex justify-end gap-2">
-                      <Button variant="ghost" onClick={() => setBannerDialogOpen(false)}>Cancelar</Button>
-                      <Button onClick={handleBannerUpload} disabled={uploadingBanner || (bannerScope==='school' && !bannerSchoolId)}>
-                        {uploadingBanner ? 'Enviando...' : 'Adicionar'}
-                      </Button>
-                    </div>
-                  </div>
-                </DialogContent>
-              </Dialog>
-            </div>
-            <BannersManager key={bannersReloadKey} />
-          </TabsContent>
-          <TabsContent value="usage" className="space-y-4">
-            <UsageDashboard />
-          </TabsContent>
-        </Tabs>
-      )}
 
       {/* Edit User Dialog */}
       <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
@@ -1624,7 +1759,7 @@ const AdminDashboard = () => {
         </DialogContent>
       </Dialog>
       <ImageCropperDialog open={cropOpen} onOpenChange={setCropOpen} imageSrc={cropSrc} onConfirm={uploadCroppedAvatar} />
-    </div>
+    </SidebarProvider>
   );
 };
 
