@@ -701,7 +701,6 @@ const AdminDashboard = () => {
     
     return (
       <Sidebar className={collapsed ? "w-14" : "w-60"} collapsible="icon">
-        <SidebarTrigger className="m-2 self-end" />
         <SidebarContent>
           <SidebarGroup>
             <SidebarGroupLabel>Menu Administrativo</SidebarGroupLabel>
@@ -748,11 +747,14 @@ const AdminDashboard = () => {
 
           {!minimized && (
             <>
-              <div className="p-6 border-b">
-                <div className="flex justify-between items-center">
-                  <div>
-                    <h1 className="text-2xl font-bold">Sistema de Controle - Admin</h1>
-                    <p className="text-muted-foreground">Gerenciar usuários, escolas e novidades</p>
+              <header className="sticky top-0 z-40 border-b bg-background">
+                <div className="flex h-16 items-center justify-between px-6">
+                  <div className="flex items-center gap-4">
+                    <SidebarTrigger />
+                    <div>
+                      <h1 className="text-2xl font-bold">Sistema de Controle - Admin</h1>
+                      <p className="text-sm text-muted-foreground">Gerenciar usuários, escolas e novidades</p>
+                    </div>
                   </div>
                   <div className="flex items-center gap-2">
                     <ThemeToggle />
@@ -770,9 +772,9 @@ const AdminDashboard = () => {
                     </Button>
                   </div>
                 </div>
-              </div>
+              </header>
 
-              <div className="p-6">
+              <div className="flex-1 overflow-auto p-6">
                 {activeView === 'users' && (
                   <div className="space-y-4">
                     <div className="flex justify-between items-center">
