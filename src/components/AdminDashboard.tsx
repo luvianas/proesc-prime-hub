@@ -748,15 +748,9 @@ const AdminDashboard = () => {
           {!minimized && (
             <>
               <header className="sticky top-0 z-40 border-b bg-background">
-                <div className="flex h-16 items-center justify-between px-6">
-                  <div className="flex items-center gap-4">
-                    <SidebarTrigger />
-                    <div>
-                      <h1 className="text-2xl font-bold">Sistema de Controle - Admin</h1>
-                      <p className="text-sm text-muted-foreground">Gerenciar usuários, escolas e novidades</p>
-                    </div>
-                  </div>
+                <div className="flex h-16 items-center justify-end px-6">
                   <div className="flex items-center gap-2">
+                    <SidebarTrigger />
                     <ThemeToggle />
                     <Button variant="ghost" onClick={openAdminProfile}>
                       <User className="h-4 w-4 mr-2" />
@@ -769,6 +763,14 @@ const AdminDashboard = () => {
                       className="px-2"
                     >
                       <Minimize2 className="h-4 w-4" />
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => window.location.href = '/'}
+                    >
+                      <Key className="w-4 h-4 mr-2" />
+                      Sair
                     </Button>
                   </div>
                 </div>
