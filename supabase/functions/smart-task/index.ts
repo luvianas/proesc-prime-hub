@@ -79,12 +79,12 @@ serve(async (req) => {
       throw new Error('Invalid user token');
     }
 
-    // Get user profile and school info with organization ID
+    // Get user profile and school info with external ID
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
       .select(`
         school_id, name, email, role,
-        school_customizations!profiles_school_id_fkey(zendesk_integration_url, school_name)
+        school_customizations!profiles_school_id_fkey(zendesk_external_id, zendesk_integration_url, school_name)
       `)
       .eq('user_id', user.id)
       .single();
@@ -104,12 +104,14 @@ serve(async (req) => {
     const { action = 'list_tickets', ...body } = await req.json();
     const schoolId = profile.school_id;
     
-    // Get organization_id directly from zendesk_integration_url (no mapping needed)
+    // Get external_id (preferred) or fallback to organization_id
+    const externalId = profile.school_customizations?.[0]?.zendesk_external_id;
     const organizationId = profile.school_customizations?.[0]?.zendesk_integration_url;
     
     console.log('🏢 Smart-task: Organization details:', {
+      zendesk_external_id: externalId,
       zendesk_integration_url: organizationId,
-      organization_will_be_used: organizationId || 'none',
+      primary_method: externalId ? 'external_id' : (organizationId ? 'organization_id' : 'none'),
       school_customizations: profile.school_customizations?.[0] || 'none'
     });
     
@@ -118,6 +120,7 @@ serve(async (req) => {
     console.log('🎯 Smart-task: Processing request:', {
       action,
       school_id: schoolId,
+      external_id: externalId,
       organization_id: organizationId,
       user_role: profile.role,
       school_name: schoolName
@@ -135,11 +138,11 @@ serve(async (req) => {
       });
     }
 
-    // Check if organization ID is configured for the school
-    if (schoolId && !organizationId) {
+    // Check if external_id or organization_id is configured for the school
+    if (schoolId && !externalId && !organizationId) {
       return new Response(JSON.stringify({ 
         error: 'organization_not_configured',
-        message: 'ID da organização do Zendesk não configurado para esta escola',
+        message: 'External ID ou Organization ID do Zendesk não configurado para esta escola',
         tickets: []
       }), {
         status: 200,
@@ -172,17 +175,37 @@ serve(async (req) => {
 
     switch (action) {
       case 'list_tickets':
-        console.log(`🎯 Smart-task: Fetching tickets for organization ${organizationId}`);
+        console.log(`🎯 Smart-task: Fetching tickets - External ID: ${externalId}, Organization ID: ${organizationId}`);
         
         // Try multiple strategies to get tickets
         let fetchUrl = '';
         let fetchResponse;
         let fetchData;
 
-        // Strategy 1: Organization-based listing (preferred)
-        if (organizationId) {
+        // Strategy 1: External ID search (preferred method)
+        if (externalId) {
+          fetchUrl = `${zendeskUrl}/search.json?query=${encodeURIComponent(`type:ticket organization_external_id:${externalId}`)}&sort_by=created_at&sort_order=desc&per_page=100`;
+          console.log('📋 Smart-task: Trying external_id search (primary method)');
+          
+          try {
+            fetchResponse = await fetch(fetchUrl, { headers: zendeskHeaders });
+            fetchData = await fetchResponse.json();
+            
+            if (fetchResponse.ok && fetchData.results?.length > 0) {
+              tickets = fetchData.results;
+              console.log(`✅ Smart-task: Found ${tickets.length} tickets via external_id`);
+            } else {
+              console.log(`⚠️ Smart-task: External ID search failed or returned no tickets`);
+            }
+          } catch (error) {
+            console.error('❌ Smart-task: External ID search error:', error);
+          }
+        }
+
+        // Strategy 2: Organization-based listing (fallback)
+        if (tickets.length === 0 && organizationId) {
           fetchUrl = `${zendeskUrl}/organizations/${organizationId}/tickets.json?sort_by=created_at&sort_order=desc&per_page=100`;
-          console.log('📋 Smart-task: Trying organization-based listing');
+          console.log('📋 Smart-task: Trying organization-based listing (fallback)');
           
           try {
             fetchResponse = await fetch(fetchUrl, { headers: zendeskHeaders });
@@ -190,7 +213,7 @@ serve(async (req) => {
             
             if (fetchResponse.ok && fetchData.tickets?.length > 0) {
               tickets = fetchData.tickets;
-              console.log(`✅ Smart-task: Found ${tickets.length} tickets via organization`);
+              console.log(`✅ Smart-task: Found ${tickets.length} tickets via organization (fallback)`);
             } else {
               console.log(`⚠️ Smart-task: Organization listing failed or returned no tickets`);
             }
@@ -199,7 +222,7 @@ serve(async (req) => {
           }
         }
 
-        // Strategy 2: Search by school name if organization method failed
+        // Strategy 3: Search by school name if previous methods failed
         if (tickets.length === 0 && schoolName) {
           fetchUrl = `${zendeskUrl}/search.json?query=${encodeURIComponent(`type:ticket "${schoolName}"`)}&sort_by=created_at&sort_order=desc`;
           console.log('📋 Smart-task: Trying school name search');
@@ -219,7 +242,7 @@ serve(async (req) => {
           }
         }
 
-        // Strategy 3: Admin gets all tickets (if user is admin and no school specific results)
+        // Strategy 4: Admin gets all tickets (if user is admin and no school specific results)
         if (tickets.length === 0 && profile.role === 'admin') {
           fetchUrl = `${zendeskUrl}/tickets.json?sort_by=created_at&sort_order=desc&per_page=100`;
           console.log('📋 Smart-task: Admin fallback - getting all tickets');
@@ -261,11 +284,13 @@ serve(async (req) => {
         return new Response(JSON.stringify({ 
           tickets: transformedTickets,
           total_count: transformedTickets.length,
+          external_id: externalId,
           organization_id: organizationId,
           school_name: schoolName,
           user_role: profile.role,
           debug_info: {
             strategies_used: tickets.length > 0 ? 'success' : 'all_failed',
+            primary_method: externalId ? 'external_id' : 'organization_id',
             final_url: fetchUrl,
             auth_method: ZENDESK_OAUTH_TOKEN ? 'OAuth' : 'API Token'
           }
@@ -284,9 +309,11 @@ serve(async (req) => {
           });
         }
 
-        // Build search query with organization filter if available
+        // Build search query with external_id or organization filter if available
         let searchQuery = `type:ticket ${query}`;
-        if (organizationId) {
+        if (externalId) {
+          searchQuery += ` organization_external_id:${externalId}`;
+        } else if (organizationId) {
           searchQuery += ` organization:${organizationId}`;
         }
 
@@ -323,6 +350,7 @@ serve(async (req) => {
             tickets: searchResults,
             total_count: searchResults.length,
             search_query: searchQuery,
+            external_id: externalId,
             organization_id: organizationId
           }), { 
             headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
