@@ -90,7 +90,7 @@ serve(async (req) => {
       .from('profiles')
       .select(`
         school_id, name, email, role,
-        school_customizations!profiles_school_id_fkey(zendesk_external_id, zendesk_integration_url, school_name)
+        school_customizations!profiles_school_id_fkey(zendesk_integration_url, school_name)
       `)
       .eq('user_id', user.id)
       .single();
@@ -109,7 +109,6 @@ serve(async (req) => {
       });
     }
 
-    const externalId = profile.school_customizations?.[0]?.zendesk_external_id;
     const organizationId = profile.school_customizations?.[0]?.zendesk_integration_url;
     const schoolName = profile.school_customizations?.[0]?.school_name;
 
@@ -121,32 +120,25 @@ serve(async (req) => {
         school_id: profile.school_id,
         role: profile.role,
         school_name: schoolName,
-        external_id: externalId,
         organization_id: organizationId,
-        has_external_id: !!externalId,
-        has_organization_id: !!organizationId,
-        has_zendesk_config: !!(externalId || organizationId)
+        has_zendesk_config: !!organizationId
       }
     });
 
-    // Check if external_id or organization is configured
-    if (!externalId && !organizationId) {
+    // Check if organization is configured
+    if (!organizationId) {
       diagnostics.push({
         step: 'organization_check',
         status: 'warning',
-        message: 'Neither External ID nor Organization ID configured for this school',
+        message: 'Zendesk organization ID not configured for this school',
         details: { school_id: profile.school_id }
       });
     } else {
       diagnostics.push({
         step: 'organization_check',
         status: 'success',
-        message: externalId ? 'External ID found in configuration (preferred)' : 'Organization ID found in configuration',
-        details: { 
-          external_id: externalId,
-          organization_id: organizationId,
-          method: externalId ? 'external_id' : 'organization_id'
-        }
+        message: 'Organization ID found in configuration',
+        details: { organization_id: organizationId }
       });
     }
 
@@ -205,49 +197,7 @@ serve(async (req) => {
         });
       }
 
-      // Test external_id ticket search (preferred method)
-      if (externalId) {
-        try {
-          const externalIdResponse = await fetch(`${zendeskUrl}/search.json?query=${encodeURIComponent(`type:ticket organization_external_id:${externalId}`)}&per_page=5`, { 
-            headers: zendeskHeaders 
-          });
-          
-          if (externalIdResponse.ok) {
-            const externalIdData = await externalIdResponse.json();
-            diagnostics.push({
-              step: 'external_id_test',
-              status: 'success',
-              message: `External ID search successful - found ${externalIdData.results?.length || 0} tickets`,
-              details: { 
-                ticket_count: externalIdData.results?.length || 0,
-                external_id: externalId,
-                method: 'external_id_search'
-              }
-            });
-          } else {
-            const errorData = await externalIdResponse.text();
-            diagnostics.push({
-              step: 'external_id_test',
-              status: 'error',
-              message: `External ID search failed: ${externalIdResponse.status}`,
-              details: { 
-                external_id: externalId,
-                status: externalIdResponse.status, 
-                error: errorData 
-              }
-            });
-          }
-        } catch (error) {
-          diagnostics.push({
-            step: 'external_id_test',
-            status: 'error',
-            message: 'Failed to test external ID search',
-            details: { external_id: externalId, error: error.message }
-          });
-        }
-      }
-
-      // Test organization existence if we have organization ID (fallback method)
+      // Test organization existence if we have organization ID
       if (organizationId) {
         try {
           const orgResponse = await fetch(`${zendeskUrl}/organizations/${organizationId}.json`, { 
@@ -259,12 +209,10 @@ serve(async (req) => {
             diagnostics.push({
               step: 'organization_test',
               status: 'success',
-              message: 'Organization exists and is accessible (fallback method)',
+              message: 'Organization exists and is accessible',
               details: { 
                 organization_name: orgData.organization?.name,
-                organization_id: orgData.organization?.id,
-                external_id: orgData.organization?.external_id,
-                method: 'organization_lookup'
+                organization_id: orgData.organization?.id
               }
             });
           } else {
@@ -289,46 +237,43 @@ serve(async (req) => {
           });
         }
 
-        // Test ticket retrieval for the organization (fallback method)
-        if (!externalId) {
-          try {
-            const ticketsResponse = await fetch(`${zendeskUrl}/organizations/${organizationId}/tickets.json?per_page=5`, { 
-              headers: zendeskHeaders 
+        // Test ticket retrieval for the organization
+        try {
+          const ticketsResponse = await fetch(`${zendeskUrl}/organizations/${organizationId}/tickets.json?per_page=5`, { 
+            headers: zendeskHeaders 
+          });
+          
+          if (ticketsResponse.ok) {
+            const ticketsData = await ticketsResponse.json();
+            diagnostics.push({
+              step: 'tickets_test',
+              status: 'success',
+              message: `Found ${ticketsData.tickets?.length || 0} tickets for organization`,
+              details: { 
+                ticket_count: ticketsData.tickets?.length || 0,
+                organization_id: organizationId
+              }
             });
-            
-            if (ticketsResponse.ok) {
-              const ticketsData = await ticketsResponse.json();
-              diagnostics.push({
-                step: 'tickets_test',
-                status: 'success',
-                message: `Found ${ticketsData.tickets?.length || 0} tickets for organization (fallback method)`,
-                details: { 
-                  ticket_count: ticketsData.tickets?.length || 0,
-                  organization_id: organizationId,
-                  method: 'organization_tickets'
-                }
-              });
-            } else {
-              const errorData = await ticketsResponse.text();
-              diagnostics.push({
-                step: 'tickets_test',
-                status: 'error',
-                message: `Failed to retrieve tickets: ${ticketsResponse.status}`,
-                details: { 
-                  organization_id: organizationId,
-                  status: ticketsResponse.status, 
-                  error: errorData 
-                }
-              });
-            }
-          } catch (error) {
+          } else {
+            const errorData = await ticketsResponse.text();
             diagnostics.push({
               step: 'tickets_test',
               status: 'error',
-              message: 'Failed to test ticket retrieval',
-              details: { organization_id: organizationId, error: error.message }
+              message: `Failed to retrieve tickets: ${ticketsResponse.status}`,
+              details: { 
+                organization_id: organizationId,
+                status: ticketsResponse.status, 
+                error: errorData 
+              }
             });
           }
+        } catch (error) {
+          diagnostics.push({
+            step: 'tickets_test',
+            status: 'error',
+            message: 'Failed to test ticket retrieval',
+            details: { organization_id: organizationId, error: error.message }
+          });
         }
       }
     }
