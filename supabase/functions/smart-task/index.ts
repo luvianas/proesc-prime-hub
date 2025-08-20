@@ -104,20 +104,14 @@ serve(async (req) => {
     const { action = 'list_tickets', ...body } = await req.json();
     const schoolId = profile.school_id;
     
-    // Get organization_id from school customizations
-    let organizationId = profile.school_customizations?.[0]?.zendesk_integration_url;
+    // Get organization_id directly from zendesk_integration_url (no mapping needed)
+    const organizationId = profile.school_customizations?.[0]?.zendesk_integration_url;
     
-    // Map specific zendesk integration URLs to their actual organization IDs
-    const zendeskOrgMapping: Record<string, string> = {
-      '33696846096407': '7388230589207', // Colégio Arcádia
-      // Add more mappings as needed
-    };
-    
-    if (organizationId && zendeskOrgMapping[organizationId]) {
-      const originalOrgId = organizationId;
-      organizationId = zendeskOrgMapping[organizationId];
-      console.log(`🔄 Smart-task: Mapped ${originalOrgId} to organization ID: ${organizationId}`);
-    }
+    console.log('🏢 Smart-task: Organization details:', {
+      zendesk_integration_url: organizationId,
+      organization_will_be_used: organizationId || 'none',
+      school_customizations: profile.school_customizations?.[0] || 'none'
+    });
     
     const schoolName = profile.school_customizations?.[0]?.school_name;
     
