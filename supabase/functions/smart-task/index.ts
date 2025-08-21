@@ -79,12 +79,12 @@ serve(async (req) => {
       throw new Error('Invalid user token');
     }
 
-    // Get user profile and school info with organization ID
+    // Get user profile and school info with external ID
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
       .select(`
         school_id, name, email, role,
-        school_customizations!profiles_school_id_fkey(zendesk_integration_url, school_name)
+        school_customizations!profiles_school_id_fkey(zendesk_external_id, school_name)
       `)
       .eq('user_id', user.id)
       .single();
@@ -104,12 +104,12 @@ serve(async (req) => {
     const { action = 'list_tickets', ...body } = await req.json();
     const schoolId = profile.school_id;
     
-    // Get organization_id directly from zendesk_integration_url (no mapping needed)
-    const organizationId = profile.school_customizations?.[0]?.zendesk_integration_url;
+    // Get external_id from zendesk_external_id
+    const externalId = profile.school_customizations?.[0]?.zendesk_external_id;
     
-    console.log('🏢 Smart-task: Organization details:', {
-      zendesk_integration_url: organizationId,
-      organization_will_be_used: organizationId || 'none',
+    console.log('🏢 Smart-task: External ID details:', {
+      zendesk_external_id: externalId,
+      external_id_will_be_used: externalId || 'none',
       school_customizations: profile.school_customizations?.[0] || 'none'
     });
     
@@ -118,7 +118,7 @@ serve(async (req) => {
     console.log('🎯 Smart-task: Processing request:', {
       action,
       school_id: schoolId,
-      organization_id: organizationId,
+      external_id: externalId,
       user_role: profile.role,
       school_name: schoolName
     });
@@ -135,11 +135,11 @@ serve(async (req) => {
       });
     }
 
-    // Check if organization ID is configured for the school
-    if (schoolId && !organizationId) {
+    // Check if external ID is configured for the school
+    if (schoolId && !externalId) {
       return new Response(JSON.stringify({ 
-        error: 'organization_not_configured',
-        message: 'ID da organização do Zendesk não configurado para esta escola',
+        error: 'external_id_not_configured',
+        message: 'External ID do Zendesk não configurado para esta escola',
         tickets: []
       }), {
         status: 200,
@@ -172,30 +172,30 @@ serve(async (req) => {
 
     switch (action) {
       case 'list_tickets':
-        console.log(`🎯 Smart-task: Fetching tickets for organization ${organizationId}`);
+        console.log(`🎯 Smart-task: Fetching tickets for external_id ${externalId}`);
         
         // Try multiple strategies to get tickets
         let fetchUrl = '';
         let fetchResponse;
         let fetchData;
 
-        // Strategy 1: Organization-based listing (preferred)
-        if (organizationId) {
-          fetchUrl = `${zendeskUrl}/organizations/${organizationId}/tickets.json?sort_by=created_at&sort_order=desc&per_page=100`;
-          console.log('📋 Smart-task: Trying organization-based listing');
+        // Strategy 1: External ID search (preferred)
+        if (externalId) {
+          fetchUrl = `${zendeskUrl}/search.json?query=${encodeURIComponent(`type:ticket external_id:${externalId}`)}&sort_by=created_at&sort_order=desc&per_page=100`;
+          console.log('📋 Smart-task: Trying external_id search');
           
           try {
             fetchResponse = await fetch(fetchUrl, { headers: zendeskHeaders });
             fetchData = await fetchResponse.json();
             
-            if (fetchResponse.ok && fetchData.tickets?.length > 0) {
-              tickets = fetchData.tickets;
-              console.log(`✅ Smart-task: Found ${tickets.length} tickets via organization`);
+            if (fetchResponse.ok && fetchData.results?.length > 0) {
+              tickets = fetchData.results;
+              console.log(`✅ Smart-task: Found ${tickets.length} tickets via external_id`);
             } else {
-              console.log(`⚠️ Smart-task: Organization listing failed or returned no tickets`);
+              console.log(`⚠️ Smart-task: External_id search failed or returned no tickets`);
             }
           } catch (error) {
-            console.error('❌ Smart-task: Organization listing error:', error);
+            console.error('❌ Smart-task: External_id search error:', error);
           }
         }
 
@@ -261,7 +261,7 @@ serve(async (req) => {
         return new Response(JSON.stringify({ 
           tickets: transformedTickets,
           total_count: transformedTickets.length,
-          organization_id: organizationId,
+          external_id: externalId,
           school_name: schoolName,
           user_role: profile.role,
           debug_info: {
@@ -284,10 +284,10 @@ serve(async (req) => {
           });
         }
 
-        // Build search query with organization filter if available
+        // Build search query with external_id filter if available
         let searchQuery = `type:ticket ${query}`;
-        if (organizationId) {
-          searchQuery += ` organization:${organizationId}`;
+        if (externalId) {
+          searchQuery += ` external_id:${externalId}`;
         }
 
         const searchUrl = `${zendeskUrl}/search.json?query=${encodeURIComponent(searchQuery)}&sort_by=created_at&sort_order=desc`;
@@ -323,7 +323,7 @@ serve(async (req) => {
             tickets: searchResults,
             total_count: searchResults.length,
             search_query: searchQuery,
-            organization_id: organizationId
+            external_id: externalId
           }), { 
             headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
           });
