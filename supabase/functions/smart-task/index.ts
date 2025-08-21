@@ -179,10 +179,10 @@ serve(async (req) => {
         let fetchResponse;
         let fetchData;
 
-        // Strategy 1: External ID search (preferred)
+        // Strategy 1: Organization External ID search (Sensedata pattern)
         if (externalId) {
-          fetchUrl = `${zendeskUrl}/search.json?query=${encodeURIComponent(`type:ticket external_id:${externalId}`)}&sort_by=created_at&sort_order=desc&per_page=100`;
-          console.log('📋 Smart-task: Trying external_id search');
+          fetchUrl = `${zendeskUrl}/search.json?query=${encodeURIComponent(`type:ticket organization_external_id:${externalId}`)}&sort_by=created_at&sort_order=desc&per_page=100`;
+          console.log('📋 Smart-task: Trying organization_external_id search (Sensedata pattern)');
           
           try {
             fetchResponse = await fetch(fetchUrl, { headers: zendeskHeaders });
@@ -190,12 +190,12 @@ serve(async (req) => {
             
             if (fetchResponse.ok && fetchData.results?.length > 0) {
               tickets = fetchData.results;
-              console.log(`✅ Smart-task: Found ${tickets.length} tickets via external_id`);
+              console.log(`✅ Smart-task: Found ${tickets.length} tickets via organization_external_id`);
             } else {
-              console.log(`⚠️ Smart-task: External_id search failed or returned no tickets`);
+              console.log(`⚠️ Smart-task: Organization_external_id search failed or returned no tickets`);
             }
           } catch (error) {
-            console.error('❌ Smart-task: External_id search error:', error);
+            console.error('❌ Smart-task: Organization_external_id search error:', error);
           }
         }
 
@@ -284,10 +284,10 @@ serve(async (req) => {
           });
         }
 
-        // Build search query with external_id filter if available
+        // Build search query with organization_external_id filter if available
         let searchQuery = `type:ticket ${query}`;
         if (externalId) {
-          searchQuery += ` external_id:${externalId}`;
+          searchQuery += ` organization_external_id:${externalId}`;
         }
 
         const searchUrl = `${zendeskUrl}/search.json?query=${encodeURIComponent(searchQuery)}&sort_by=created_at&sort_order=desc`;
