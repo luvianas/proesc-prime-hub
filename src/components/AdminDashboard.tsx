@@ -51,7 +51,7 @@ interface SchoolCustomization {
   logo_url?: string;
   consultant_name?: string;
   consultant_id?: string;
-  zendesk_integration_url?: string;
+  zendesk_external_id?: string;
   metabase_integration_url?: string;
   dashboard_links?: any;
   created_at: string;
@@ -86,7 +86,7 @@ const AdminDashboard = () => {
     school_name: '',
     logo_url: '',
     consultant_id: '',
-    zendesk_integration_url: '',
+    zendesk_external_id: '',
     metabase_integration_url: '',
     dashboard_links: {
       financeiro: '',
@@ -380,7 +380,7 @@ const AdminDashboard = () => {
         school_name: newSchool.school_name,
         logo_url: newSchool.logo_url,
         consultant_id: newSchool.consultant_id || null,
-        zendesk_integration_url: newSchool.zendesk_integration_url,
+        zendesk_external_id: newSchool.zendesk_external_id,
         metabase_integration_url: newSchool.metabase_integration_url,
         dashboard_links: newSchool.dashboard_links,
         created_by: (await supabase.auth.getUser()).data.user?.id
@@ -395,7 +395,7 @@ const AdminDashboard = () => {
         school_name: '',
         logo_url: '',
         consultant_id: '',
-        zendesk_integration_url: '',
+        zendesk_external_id: '',
         metabase_integration_url: '',
         dashboard_links: {
           financeiro: '',
@@ -633,7 +633,7 @@ const AdminDashboard = () => {
         school_name: editingSchool.school_name,
         logo_url: editingSchool.logo_url,
         consultant_id: editingSchool.consultant_id || null,
-        zendesk_integration_url: editingSchool.zendesk_integration_url,
+        zendesk_external_id: editingSchool.zendesk_external_id,
         metabase_integration_url: editingSchool.metabase_integration_url,
         dashboard_links: editingSchool.dashboard_links
       }).eq('id', editingSchool.id);
@@ -1083,15 +1083,15 @@ const AdminDashboard = () => {
                       </Select>
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="zendeskUrl">ID da organização no Zendesk</Label>
+                      <Label htmlFor="zendeskUrl">External Id Zendesk</Label>
                       <Input 
                         id="zendeskUrl" 
-                        value={newSchool.zendesk_integration_url} 
+                        value={newSchool.zendesk_external_id} 
                         onChange={e => setNewSchool({
                           ...newSchool,
-                          zendesk_integration_url: e.target.value
+                          zendesk_external_id: e.target.value
                         })} 
-                        placeholder="123456789" 
+                        placeholder="ULBRA" 
                       />
                     </div>
                     
@@ -1499,15 +1499,15 @@ const AdminDashboard = () => {
                 )}
               </div>
               <div className="space-y-2">
-                <Label htmlFor="editZendeskUrl">ID da organização no Zendesk</Label>
+                <Label htmlFor="editZendeskUrl">External Id Zendesk</Label>
                 <Input 
                   id="editZendeskUrl" 
-                  value={editingSchool.zendesk_integration_url || ''} 
+                  value={editingSchool.zendesk_external_id || ''} 
                   onChange={e => setEditingSchool({
                     ...editingSchool,
-                    zendesk_integration_url: e.target.value
+                    zendesk_external_id: e.target.value
                   })} 
-                  placeholder="123456789"
+                  placeholder="ULBRA"
                 />
               </div>
               
