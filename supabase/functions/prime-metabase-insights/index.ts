@@ -1,9 +1,9 @@
 // Supabase Edge Function: prime-metabase-insights
-// Fetches data from Metabase (card query) and asks OpenAI to explain/interpret it.
+// Fetches data from Metabase (card query) and asks Google Gemini to explain/interpret it.
 // Configure the following secrets in your Supabase project:
 // - METABASE_SITE_URL (e.g., https://metabase.yourdomain.com)
 // - METABASE_API_KEY (Metabase API Key) or METABASE_SESSION (session token)
-// - OPENAI_API_KEY (OpenAI key)
+// - GEMINI_API (Google Gemini API key)
 
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 
@@ -55,10 +55,10 @@ Deno.serve(async (req) => {
     const METABASE_SITE_URL = Deno.env.get("METABASE_SITE_URL");
     const METABASE_API_KEY = Deno.env.get("METABASE_API_KEY");
     const METABASE_SESSION = Deno.env.get("METABASE_SESSION");
-    const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
+    const GEMINI_API_KEY = Deno.env.get("GEMINI_API");
 
-    if (!OPENAI_API_KEY) {
-      return json({ error: "OPENAI_API_KEY not configured" }, { status: 500 });
+    if (!GEMINI_API_KEY) {
+      return json({ error: "GEMINI_API key not configured" }, { status: 500 });
     }
 
     let columns: string[] = [];
@@ -94,47 +94,57 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Build prompt for OpenAI
-    const sys = [
-      `Você é um analista de dados do Proesc Prime. Explique de forma clara, objetiva e em português.`,
-      `Estruture a resposta com: Resumo executivo, Tendências, Anomalias/Riscos, Recomendações acionáveis.`,
-      `Quando possível inclua números e percentuais. Seja conciso.`,
+    // Build prompt for Google Gemini
+    const systemPrompt = [
+      `Você é um analista de dados especializado do Proesc Prime, com expertise em análise educacional e gestão escolar.`,
+      `Analise os dados apresentados e forneça insights valiosos estruturados em:`,
+      `📊 **Resumo Executivo**: Principal conclusão em 1-2 frases`,
+      `📈 **Tendências Identificadas**: Padrões e movimentos observados`,
+      `⚠️ **Alertas e Anomalias**: Pontos de atenção e riscos`,
+      `💡 **Recomendações Práticas**: 3-4 ações específicas e implementáveis`,
+      `Use números, percentuais e seja objetivo. Responda sempre em português.`,
     ].join("\n");
 
     const contextParts: string[] = [];
-    if (columns.length) contextParts.push(`Colunas: ${columns.join(", ")}`);
-    if (sampleRows.length) contextParts.push(`Amostra de linhas (até 50): ${JSON.stringify(sampleRows)}`);
-    if (dashboardUrl) contextParts.push(`URL do dashboard: ${dashboardUrl}`);
+    if (columns.length) contextParts.push(`📋 Colunas disponíveis: ${columns.join(", ")}`);
+    if (sampleRows.length) contextParts.push(`📊 Dados (amostra): ${JSON.stringify(sampleRows)}`);
+    if (dashboardUrl) contextParts.push(`🔗 Dashboard: ${dashboardUrl}`);
 
-    const userMsg = [
-      `Pergunta: ${question}`,
-      contextParts.length ? `Contexto de dados:\n${contextParts.join("\n")}` : `Sem dados do Metabase disponíveis nesta requisição.`,
-      locale ? `Locale: ${locale}` : '',
-    ].filter(Boolean).join("\n\n");
+    const fullPrompt = [
+      systemPrompt,
+      `\n🔍 **Pergunta**: ${question}`,
+      contextParts.length ? `\n📋 **Dados Disponíveis**:\n${contextParts.join("\n")}` : `\n⚠️ Sem dados do Metabase disponíveis para esta análise.`,
+      locale ? `\n🌍 Idioma: ${locale}` : '',
+    ].filter(Boolean).join("\n");
 
-    const aiRes = await fetch("https://api.openai.com/v1/chat/completions", {
+    const aiRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${GEMINI_API_KEY}`, {
       method: "POST",
       headers: {
         "content-type": "application/json",
-        Authorization: `Bearer ${OPENAI_API_KEY}`,
       },
       body: JSON.stringify({
-        model: "gpt-4o-mini",
-        messages: [
-          { role: "system", content: sys },
-          { role: "user", content: userMsg },
-        ],
-        temperature: 0.2,
+        contents: [{
+          parts: [{
+            text: fullPrompt
+          }]
+        }],
+        generationConfig: {
+          temperature: 0.3,
+          topK: 40,
+          topP: 0.95,
+          maxOutputTokens: 1024,
+        }
       }),
     });
 
     if (!aiRes.ok) {
-      const t = await aiRes.text();
-      return json({ error: "OpenAI error", details: t }, { status: 500 });
+      const errorText = await aiRes.text();
+      console.error("Gemini API error:", errorText);
+      return json({ error: "Erro na API do Gemini", details: errorText }, { status: 500 });
     }
 
     const aiJson = await aiRes.json();
-    const answer: string = aiJson?.choices?.[0]?.message?.content || "";
+    const answer: string = aiJson?.candidates?.[0]?.content?.parts?.[0]?.text || "Não foi possível gerar uma resposta.";
 
     return json({
       answer,
