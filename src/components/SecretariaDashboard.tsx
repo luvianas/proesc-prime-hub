@@ -46,7 +46,12 @@ const SecretariaDashboard = ({ onBack, dashboardUrl }: SecretariaDashboardProps)
           </Button>
           <h2 className="text-3xl font-bold text-brand">Dashboard de Secretaria</h2>
         </div>
-        <AIInsightsButton label="Explicar com IA" dashboardUrl={finalUrl} />
+        <AIInsightsButton 
+          label="Explicar com IA" 
+          dashboardUrl={finalUrl}
+          dashboardType="secretaria"
+          question="Analise os dados administrativos desta dashboard e forneça insights sobre processos da secretaria, documentação e eficiência operacional"
+        />
       </div>
 
       <Card className="w-full">

@@ -47,7 +47,12 @@ const FinancialDashboard = ({ onBack, dashboardUrl }: FinancialDashboardProps) =
           <h2 className="text-3xl font-bold text-brand">Dashboard Financeira</h2>
         </div>
         {/* IA Insights Button */}
-        <AIInsightsButton label="Explicar com IA" dashboardUrl={finalUrl} />
+        <AIInsightsButton 
+          label="Explicar com IA" 
+          dashboardUrl={finalUrl}
+          dashboardType="financeiro"
+          question="Analise os dados financeiros desta dashboard e forneça insights sobre receitas, despesas, inadimplência e recomendações para gestão financeira escolar"
+        />
       </div>
 
       <Card className="w-full">

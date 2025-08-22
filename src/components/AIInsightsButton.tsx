@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Loader2, Lightbulb } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -9,9 +10,10 @@ interface AIInsightsButtonProps {
   question?: string;
   cardId?: number;
   dashboardUrl?: string;
+  dashboardType?: 'financeiro' | 'agenda' | 'secretaria' | 'pedagogico';
 }
 
-const AIInsightsButton = ({ label = "IA: Explicar", question = "Explique os principais insights deste dashboard", cardId, dashboardUrl }: AIInsightsButtonProps) => {
+const AIInsightsButton = ({ label = "IA: Explicar", question = "Explique os principais insights deste dashboard", cardId, dashboardUrl, dashboardType }: AIInsightsButtonProps) => {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [answer, setAnswer] = useState<string>("");
@@ -23,7 +25,7 @@ const AIInsightsButton = ({ label = "IA: Explicar", question = "Explique os prin
     setAnswer("");
     try {
       const { data, error } = await supabase.functions.invoke('prime-metabase-insights', {
-        body: { question, cardId, dashboardUrl },
+        body: { question, cardId, dashboardUrl, dashboardType },
       });
       if (error) throw error;
       setAnswer((data as any)?.answer || "Sem resposta da IA.");
@@ -41,25 +43,30 @@ const AIInsightsButton = ({ label = "IA: Explicar", question = "Explique os prin
         {label}
       </Button>
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-4xl max-h-[80vh]">
           <DialogHeader>
-            <DialogTitle>Insights da IA</DialogTitle>
-            <DialogDescription>Interpretação automática baseada nos dados do Metabase.</DialogDescription>
+            <DialogTitle>💡 Insights da IA</DialogTitle>
+            <DialogDescription>Análise inteligente personalizada para esta dashboard</DialogDescription>
           </DialogHeader>
-          <div className="min-h-[160px]">
+          <ScrollArea className="h-[60vh] w-full rounded-md border p-4">
             {loading && (
               <div className="flex items-center gap-2 text-muted-foreground">
                 <Loader2 className="h-4 w-4 animate-spin" />
-                Gerando insights...
+                Analisando dados e gerando insights personalizados...
               </div>
             )}
             {!loading && error && (
-              <div className="text-destructive">{error}</div>
+              <div className="text-destructive bg-red-50 p-4 rounded-lg border border-red-200">
+                <p className="font-semibold">Erro ao gerar insights:</p>
+                <p>{error}</p>
+              </div>
             )}
             {!loading && !error && (
-              <div className="prose prose-sm max-w-none whitespace-pre-wrap">{answer}</div>
+              <div className="prose prose-sm max-w-none whitespace-pre-wrap text-foreground">
+                {answer}
+              </div>
             )}
-          </div>
+          </ScrollArea>
         </DialogContent>
       </Dialog>
     </>

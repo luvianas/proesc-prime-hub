@@ -46,7 +46,12 @@ const AgendaDashboard = ({ onBack, dashboardUrl }: AgendaDashboardProps) => {
           </Button>
           <h2 className="text-3xl font-bold text-brand">Dashboard Proesc Agenda</h2>
         </div>
-        <AIInsightsButton label="Explicar com IA" dashboardUrl={finalUrl} />
+        <AIInsightsButton 
+          label="Explicar com IA" 
+          dashboardUrl={finalUrl}
+          dashboardType="agenda"
+          question="Analise os dados de agenda desta dashboard e forneça insights sobre ocupação de horários, distribuição de agendamentos e otimização de recursos"
+        />
       </div>
 
       <Card className="w-full">

@@ -46,7 +46,12 @@ const PedagogicoDashboard = ({ onBack, dashboardUrl }: PedagogicoDashboardProps)
           </Button>
           <h2 className="text-3xl font-bold text-brand">Dashboard Pedagógica</h2>
         </div>
-        <AIInsightsButton label="Explicar com IA" dashboardUrl={finalUrl} />
+        <AIInsightsButton 
+          label="Explicar com IA" 
+          dashboardUrl={finalUrl}
+          dashboardType="pedagogico"
+          question="Analise os dados pedagógicos desta dashboard e forneça insights sobre desempenho acadêmico, notas, aproveitamento e recomendações educacionais"
+        />
       </div>
 
       <Card className="w-full">

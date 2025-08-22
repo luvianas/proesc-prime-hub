@@ -13,6 +13,7 @@ interface RequestPayload {
   params?: Record<string, unknown>;
   dashboardUrl?: string;
   locale?: string;
+  dashboardType?: 'financeiro' | 'agenda' | 'secretaria' | 'pedagogico';
 }
 
 interface MetabaseResult {
@@ -47,7 +48,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { question, cardId, params, dashboardUrl, locale }: RequestPayload = await req.json();
+    const { question, cardId, params, dashboardUrl, locale, dashboardType }: RequestPayload = await req.json();
     if (!question || typeof question !== "string") {
       return json({ error: "Missing 'question'" }, { status: 400 });
     }
@@ -94,15 +95,40 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Build prompt for Google Gemini
+    // Build context-specific prompts
+    const getContextualPrompt = (type?: string) => {
+      const basePrompt = `Você é um analista de dados especializado do Proesc Prime, com expertise em análise educacional e gestão escolar.`;
+      
+      const contextPrompts = {
+        'financeiro': `${basePrompt}\n\n🏦 **ANÁLISE FINANCEIRA EDUCACIONAL**\nAnalise os dados financeiros apresentados e forneça insights específicos para gestão financeira escolar:`,
+        'agenda': `${basePrompt}\n\n📅 **ANÁLISE DE AGENDA E AGENDAMENTOS**\nAnalise os dados de agenda apresentados e forneça insights sobre otimização de horários e recursos:`,
+        'secretaria': `${basePrompt}\n\n📋 **ANÁLISE ADMINISTRATIVA**\nAnalise os dados administrativos apresentados e forneça insights para otimização de processos secretariais:`,
+        'pedagogico': `${basePrompt}\n\n🎓 **ANÁLISE PEDAGÓGICA**\nAnalise os dados pedagógicos apresentados e forneça insights sobre desempenho acadêmico e ensino:`
+      };
+
+      return contextPrompts[type as keyof typeof contextPrompts] || `${basePrompt}\n\n📊 **ANÁLISE GERAL**\nAnalise os dados apresentados:`;
+    };
+
     const systemPrompt = [
-      `Você é um analista de dados especializado do Proesc Prime, com expertise em análise educacional e gestão escolar.`,
-      `Analise os dados apresentados e forneça insights valiosos estruturados em:`,
-      `📊 **Resumo Executivo**: Principal conclusão em 1-2 frases`,
-      `📈 **Tendências Identificadas**: Padrões e movimentos observados`,
-      `⚠️ **Alertas e Anomalias**: Pontos de atenção e riscos`,
-      `💡 **Recomendações Práticas**: 3-4 ações específicas e implementáveis`,
-      `Use números, percentuais e seja objetivo. Responda sempre em português.`,
+      getContextualPrompt(dashboardType),
+      `\n📋 **ESTRUTURA DA ANÁLISE:**`,
+      `\n🎯 **RESUMO EXECUTIVO**`,
+      `• Principal conclusão em 2-3 frases objetivas`,
+      `• Destaque o indicador mais crítico`,
+      `\n📈 **TENDÊNCIAS E PADRÕES**`,
+      `• Identifique 2-3 tendências principais`,
+      `• Compare períodos quando aplicável`,
+      `• Aponte variações sazonais ou cíclicas`,
+      `\n⚠️ **ALERTAS E PONTOS DE ATENÇÃO**`,
+      `• Liste anomalias ou desvios significativos`,
+      `• Identifique riscos potenciais`,
+      `• Destaque metas não atingidas`,
+      `\n💡 **RECOMENDAÇÕES PRÁTICAS**`,
+      `• 3-5 ações específicas e implementáveis`,
+      `• Priorize por impacto e urgência`,
+      `• Inclua prazos sugeridos quando possível`,
+      `\n🔢 **Use números, percentuais e seja quantitativo sempre que possível.**`,
+      `📝 **Mantenha um tom profissional e educativo.**`
     ].join("\n");
 
     const contextParts: string[] = [];
