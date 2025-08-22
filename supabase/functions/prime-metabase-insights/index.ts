@@ -65,8 +65,18 @@ Deno.serve(async (req) => {
     let columns: string[] = [];
     let sampleRows: any[] = [];
 
+    // Log Metabase configuration status for debugging
+    console.log("=== METABASE DEBUG INFO ===");
+    console.log("METABASE_SITE_URL:", METABASE_SITE_URL ? "configured" : "not configured");
+    console.log("METABASE_API_KEY:", METABASE_API_KEY ? "configured" : "not configured");  
+    console.log("METABASE_SESSION:", METABASE_SESSION ? "configured" : "not configured");
+    console.log("cardId provided:", cardId || "none");
+    console.log("dashboardUrl:", dashboardUrl || "none");
+    console.log("=============================");
+
     // Try to fetch Metabase data when cardId provided and Metabase is configured
     if (cardId && METABASE_SITE_URL && (METABASE_API_KEY || METABASE_SESSION)) {
+      console.log("Attempting to fetch Metabase data...");
       try {
         const url = `${METABASE_SITE_URL.replace(/\/$/, "")}/api/card/${cardId}/query`;
         const headers: Record<string, string> = {
@@ -75,13 +85,21 @@ Deno.serve(async (req) => {
         if (METABASE_API_KEY) headers["X-Metabase-Api-Key"] = METABASE_API_KEY;
         if (METABASE_SESSION) headers["X-Metabase-Session"] = METABASE_SESSION;
 
+        console.log("Metabase request URL:", url);
+        console.log("Metabase request headers:", Object.keys(headers));
+
         const mbRes = await fetch(url, {
           method: "POST",
           headers,
           body: JSON.stringify({ parameters: params || {} }),
         });
+        
+        console.log("Metabase response status:", mbRes.status);
+        
         if (!mbRes.ok) {
-          console.warn("Metabase query failed", await mbRes.text());
+          const errorText = await mbRes.text();
+          console.warn("Metabase query failed with status:", mbRes.status);
+          console.warn("Metabase error details:", errorText);
         } else {
           const data: MetabaseResult = await mbRes.json();
           const d = data.data || (data as any);
@@ -89,10 +107,20 @@ Deno.serve(async (req) => {
           const rows = d?.rows || [];
           columns = cols?.map((c: any) => c.name).filter(Boolean) || [];
           sampleRows = Array.isArray(rows) ? rows.slice(0, 50) : [];
+          
+          console.log("Metabase data fetched successfully:");
+          console.log("- Columns count:", columns.length);
+          console.log("- Rows count:", sampleRows.length);
+          console.log("- Column names:", columns);
         }
       } catch (e) {
-        console.warn("Error querying Metabase:", e);
+        console.error("Error querying Metabase:", e);
       }
+    } else {
+      console.warn("Skipping Metabase data fetch - Missing requirements:");
+      if (!cardId) console.warn("- cardId is missing");
+      if (!METABASE_SITE_URL) console.warn("- METABASE_SITE_URL secret is not configured");
+      if (!METABASE_API_KEY && !METABASE_SESSION) console.warn("- Neither METABASE_API_KEY nor METABASE_SESSION secrets are configured");
     }
 
     // Build context-specific prompts
