@@ -613,7 +613,8 @@ const AdminDashboard = () => {
         name: editingUser.name,
         email: editingUser.email,
         role: editingUser.role,
-        school_id: editingUser.role === 'gestor' ? editingUser.school_id : null
+        school_id: editingUser.role === 'gestor' ? editingUser.school_id : null,
+        avatar_url: editingUser.avatar_url
       }).eq('user_id', editingUser.user_id);
       if (error) throw error;
       toast({
@@ -844,16 +845,49 @@ const AdminDashboard = () => {
                     )}
                     
                     <div className="space-y-2">
-                      <Label htmlFor="avatar_url">URL da Foto</Label>
-                      <Input 
-                        id="avatar_url" 
-                        value={newUser.avatar_url} 
-                        onChange={e => setNewUser({
-                          ...newUser,
-                          avatar_url: e.target.value
-                        })} 
-                        placeholder="https://exemplo.com/foto.jpg" 
-                      />
+                      <Label htmlFor="avatar_upload">Foto do Usuário</Label>
+                      <div className="flex items-center gap-3">
+                        {newUser.avatar_url && (
+                          <img 
+                            src={newUser.avatar_url} 
+                            alt="Avatar preview" 
+                            className="w-16 h-16 rounded-full object-cover border-2 border-border"
+                          />
+                        )}
+                        <div className="flex-1">
+                          <input
+                            id="avatar_upload"
+                            type="file"
+                            accept="image/*"
+                            onChange={async (e) => {
+                              const file = e.target.files?.[0];
+                              if (!file) return;
+                              
+                              setUploadingUserAvatar(true);
+                              try {
+                                const url = await uploadImage(file, 'avatars');
+                                setNewUser({
+                                  ...newUser,
+                                  avatar_url: url
+                                });
+                              } catch (error) {
+                                toast({ 
+                                  title: 'Erro ao fazer upload', 
+                                  description: 'Tente novamente com uma imagem menor.', 
+                                  variant: 'destructive' 
+                                });
+                              } finally {
+                                setUploadingUserAvatar(false);
+                              }
+                            }}
+                            className="block w-full text-sm text-muted-foreground file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-primary file:text-primary-foreground hover:file:bg-primary/80"
+                            disabled={uploadingUserAvatar}
+                          />
+                          {uploadingUserAvatar && (
+                            <p className="text-xs text-muted-foreground mt-1">Fazendo upload...</p>
+                          )}
+                        </div>
+                      </div>
                     </div>
                     
                     <div className="space-y-2">
@@ -1406,6 +1440,52 @@ const AdminDashboard = () => {
                 </Select>
               </div>
               
+              <div className="space-y-2">
+                <Label htmlFor="edit_avatar_upload">Foto do Usuário</Label>
+                <div className="flex items-center gap-3">
+                  {editingUser.avatar_url && (
+                    <img 
+                      src={editingUser.avatar_url} 
+                      alt="Avatar preview" 
+                      className="w-16 h-16 rounded-full object-cover border-2 border-border"
+                    />
+                  )}
+                  <div className="flex-1">
+                    <input
+                      id="edit_avatar_upload"
+                      type="file"
+                      accept="image/*"
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+                        
+                        setUploadingEditUserAvatar(true);
+                        try {
+                          const url = await uploadImage(file, 'avatars');
+                          setEditingUser({
+                            ...editingUser,
+                            avatar_url: url
+                          });
+                        } catch (error) {
+                          toast({ 
+                            title: 'Erro ao fazer upload', 
+                            description: 'Tente novamente com uma imagem menor.', 
+                            variant: 'destructive' 
+                          });
+                        } finally {
+                          setUploadingEditUserAvatar(false);
+                        }
+                      }}
+                      className="block w-full text-sm text-muted-foreground file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-primary file:text-primary-foreground hover:file:bg-primary/80"
+                      disabled={uploadingEditUserAvatar}
+                    />
+                    {uploadingEditUserAvatar && (
+                      <p className="text-xs text-muted-foreground mt-1">Fazendo upload...</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+
               {editingUser.role === 'gestor' && (
                 <div className="space-y-2">
                   <Label htmlFor="editSchool">Escola</Label>
