@@ -1094,7 +1094,7 @@ const AdminDashboard = () => {
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="logoFile">Logo da Escola</Label>
-                      <Input 
+                      <input
                         id="logoFile" 
                         type="file" 
                         accept="image/*" 
@@ -1108,7 +1108,8 @@ const AdminDashboard = () => {
                             ...newSchool,
                             logo_url: url
                           });
-                        }} 
+                        }}
+                        className="block w-full text-sm text-muted-foreground border border-input rounded-md px-3 py-2 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-primary file:text-primary-foreground hover:file:bg-primary/80"
                       />
                       {uploadingLogoNew && <p className="text-sm text-muted-foreground">Enviando...</p>}
                       {newSchool.logo_url && <img src={newSchool.logo_url} alt="Logo da escola" className="h-12 rounded" />}
