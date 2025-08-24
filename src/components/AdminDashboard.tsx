@@ -1140,7 +1140,7 @@ const AdminDashboard = () => {
                           ...newSchool,
                           zendesk_external_id: e.target.value
                         })} 
-                        placeholder="ULBRA" 
+                        placeholder="" 
                       />
                     </div>
                     
@@ -1602,7 +1602,7 @@ const AdminDashboard = () => {
                     ...editingSchool,
                     zendesk_external_id: e.target.value
                   })} 
-                  placeholder="ULBRA"
+                  placeholder=""
                 />
               </div>
               
