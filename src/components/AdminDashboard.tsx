@@ -74,13 +74,13 @@ const AdminDashboard = () => {
   const [editingSchool, setEditingSchool] = useState<SchoolCustomization | null>(null);
   const [newUser, setNewUser] = useState({
     email: '',
-    password: '',
     name: '',
     role: 'gestor' as 'admin' | 'gestor',
     schoolId: '',
     avatar_url: '',
     consultant_whatsapp: '',
-    consultant_calendar_url: ''
+    consultant_calendar_url: '',
+    activateWithDefaultPassword: true
   });
   const [newSchool, setNewSchool] = useState({
     school_name: '',
@@ -148,6 +148,10 @@ const AdminDashboard = () => {
   // Avatar cropper state
   const [cropOpen, setCropOpen] = useState(false);
   const [cropSrc, setCropSrc] = useState<string>('');
+  
+  // Avatar upload states for user form
+  const [uploadingUserAvatar, setUploadingUserAvatar] = useState(false);
+  const [uploadingEditUserAvatar, setUploadingEditUserAvatar] = useState(false);
   
   // Pagination states
   const [currentUserPage, setCurrentUserPage] = useState(1);
@@ -417,15 +421,17 @@ const AdminDashboard = () => {
   const createUser = async () => {
     try {
       setLoading(true);
-      if (!newUser.name.trim() || !newUser.email.trim() || !newUser.password.trim() || !newUser.role) {
-        toast({ title: 'Campos obrigatórios', description: 'Preencha Nome, E-mail, Senha e Tipo de Usuário.', variant: 'destructive' });
+      if (!newUser.name.trim() || !newUser.email.trim() || !newUser.role) {
+        toast({ title: 'Campos obrigatórios', description: 'Preencha Nome, E-mail e Tipo de Usuário.', variant: 'destructive' });
         setLoading(false);
         return;
       }
 
+      const defaultPassword = newUser.activateWithDefaultPassword ? '123456' : `temp_${Date.now()}`;
+
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: newUser.email,
-        password: newUser.password,
+        password: defaultPassword,
         options: {
           data: {
             name: newUser.name,
@@ -457,13 +463,13 @@ const AdminDashboard = () => {
       setDialogOpen(false);
       setNewUser({
         email: '',
-        password: '',
         name: '',
         role: 'gestor',
         schoolId: '',
         avatar_url: '',
         consultant_whatsapp: '',
-        consultant_calendar_url: ''
+        consultant_calendar_url: '',
+        activateWithDefaultPassword: true
       });
       fetchData();
     } catch (error: any) {
@@ -784,13 +790,22 @@ const AdminDashboard = () => {
                         email: e.target.value
                       })} placeholder="email@exemplo.com" />
                     </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="password">Senha <span className="text-destructive">*</span></Label>
-                      <Input id="password" required type="password" value={newUser.password} onChange={e => setNewUser({
-                        ...newUser,
-                        password: e.target.value
-                      })} placeholder="Senha" />
-                    </div>
+                     <div className="space-y-2">
+                       <Label htmlFor="activateUser">Ativar usuário com senha padrão (123456)</Label>
+                       <div className="flex items-center space-x-2">
+                         <Switch 
+                           id="activateUser"
+                           checked={newUser.activateWithDefaultPassword} 
+                           onCheckedChange={(checked) => setNewUser({
+                             ...newUser,
+                             activateWithDefaultPassword: checked
+                           })} 
+                         />
+                         <span className="text-sm text-muted-foreground">
+                           {newUser.activateWithDefaultPassword ? "Usuário será criado com senha padrão e deve alterar no primeiro login" : "Usuário será criado inativo"}
+                         </span>
+                       </div>
+                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="role">Tipo de Usuário <span className="text-destructive">*</span></Label>
                       <Select value={newUser.role} onValueChange={(value: 'admin' | 'gestor') => setNewUser({
