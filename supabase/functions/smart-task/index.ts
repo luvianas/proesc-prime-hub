@@ -60,6 +60,16 @@ serve(async (req) => {
     const ZENDESK_SUBDOMAIN = Deno.env.get('ZENDESK_SUBDOMAIN');
     const ZENDESK_EMAIL = Deno.env.get('ZENDESK_EMAIL');
 
+    console.log('🔍 Smart-task: Zendesk credentials check:', {
+      has_oauth_token: !!ZENDESK_OAUTH_TOKEN,
+      oauth_token_length: ZENDESK_OAUTH_TOKEN?.length || 0,
+      has_api_token: !!ZENDESK_API_TOKEN,
+      has_subdomain: !!ZENDESK_SUBDOMAIN,
+      subdomain_value: ZENDESK_SUBDOMAIN,
+      has_email: !!ZENDESK_EMAIL,
+      email_value: ZENDESK_EMAIL
+    });
+
     // Check for Zendesk credentials
     if ((!ZENDESK_API_TOKEN && !ZENDESK_OAUTH_TOKEN) || !ZENDESK_SUBDOMAIN) {
       console.error('❌ Missing Zendesk credentials');
@@ -115,10 +125,11 @@ serve(async (req) => {
     // Get external_id from zendesk_external_id
     const externalId = schoolCustomizations?.zendesk_external_id;
     
-    console.log('🏢 Smart-task: External ID details:', {
+    console.log('🏢 Smart-task: School customization details:', {
       zendesk_external_id: externalId,
-      external_id_will_be_used: externalId || 'none',
-      school_customizations: schoolCustomizations || 'none'
+      zendesk_integration_url: schoolCustomizations?.zendesk_integration_url,
+      school_name: schoolCustomizations?.school_name,
+      school_customizations_object: schoolCustomizations
     });
     
     const schoolName = schoolCustomizations?.school_name;
@@ -148,7 +159,12 @@ serve(async (req) => {
       return new Response(JSON.stringify({ 
         error: 'external_id_not_configured',
         message: 'External ID do Zendesk não configurado para esta escola',
-        tickets: []
+        tickets: [],
+        debug_info: {
+          school_id: schoolId,
+          school_customizations: schoolCustomizations,
+          zendesk_external_id: externalId
+        }
       }), {
         status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -186,16 +202,65 @@ serve(async (req) => {
         let fetchUrl = '';
         let fetchResponse;
         let fetchData;
+        let searchAttempts = [];
 
-        // Strategy 1: Organization External ID search (Sensedata pattern)
-        if (externalId) {
+        // Strategy 1: Test API connectivity first
+        console.log('📋 Smart-task: Testing Zendesk API connectivity...');
+        try {
+          const testUrl = `${zendeskUrl}/tickets.json?per_page=1`;
+          const testResponse = await fetch(testUrl, { headers: zendeskHeaders });
+          const testResult = await testResponse.json();
+          
+          searchAttempts.push({
+            strategy: 'api_test',
+            url: testUrl,
+            status: testResponse.status,
+            success: testResponse.ok,
+            error: !testResponse.ok ? testResult : null
+          });
+
+          console.log(`🔍 API Test Result: ${testResponse.status}`, {
+            success: testResponse.ok,
+            has_data: testResult.tickets?.length > 0,
+            sample_ticket: testResult.tickets?.[0]?.id
+          });
+
+          if (!testResponse.ok) {
+            console.error('❌ API connectivity failed:', testResult);
+          }
+        } catch (error) {
+          console.error('💥 API test failed:', error);
+          searchAttempts.push({
+            strategy: 'api_test',
+            error: error.message
+          });
+        }
+
+        // Strategy 2: Organization External ID search (Sensedata pattern)
+        if (tickets.length === 0 && externalId) {
           fetchUrl = `${zendeskUrl}/search.json?query=${encodeURIComponent(`type:ticket organization_external_id:${externalId}`)}&sort_by=created_at&sort_order=desc&per_page=100`;
-          console.log('📋 Smart-task: Trying organization_external_id search (Sensedata pattern)');
+          console.log('📋 Smart-task: Strategy 2 - Organization external_id search');
+          console.log(`🔗 URL: ${fetchUrl}`);
           
           try {
             fetchResponse = await fetch(fetchUrl, { headers: zendeskHeaders });
             fetchData = await fetchResponse.json();
             
+            searchAttempts.push({
+              strategy: 'organization_external_id',
+              url: fetchUrl,
+              status: fetchResponse.status,
+              ticket_count: fetchData.results?.length || 0,
+              success: fetchResponse.ok && (fetchData.results?.length > 0)
+            });
+            
+            console.log(`📊 Organization external_id search result:`, {
+              status: fetchResponse.status,
+              success: fetchResponse.ok,
+              results_count: fetchData.results?.length || 0,
+              error: fetchData.error || null
+            });
+
             if (fetchResponse.ok && fetchData.results?.length > 0) {
               tickets = fetchData.results;
               console.log(`✅ Smart-task: Found ${tickets.length} tickets via organization_external_id`);
@@ -204,18 +269,118 @@ serve(async (req) => {
             }
           } catch (error) {
             console.error('❌ Smart-task: Organization_external_id search error:', error);
+            searchAttempts.push({
+              strategy: 'organization_external_id',
+              url: fetchUrl,
+              error: error.message
+            });
           }
         }
 
-        // Strategy 2: Search by school name if organization method failed
-        if (tickets.length === 0 && schoolName) {
-          fetchUrl = `${zendeskUrl}/search.json?query=${encodeURIComponent(`type:ticket "${schoolName}"`)}&sort_by=created_at&sort_order=desc`;
-          console.log('📋 Smart-task: Trying school name search');
+        // Strategy 3: Direct organization ID search (try zendesk_integration_url as org ID)
+        if (tickets.length === 0 && schoolCustomizations?.zendesk_integration_url) {
+          const organizationId = schoolCustomizations.zendesk_integration_url;
+          fetchUrl = `${zendeskUrl}/organizations/${organizationId}/tickets.json?sort_by=created_at&sort_order=desc&per_page=100`;
+          console.log('📋 Smart-task: Strategy 3 - Direct organization ID search');
+          console.log(`🔗 URL: ${fetchUrl}`);
           
           try {
             fetchResponse = await fetch(fetchUrl, { headers: zendeskHeaders });
             fetchData = await fetchResponse.json();
             
+            searchAttempts.push({
+              strategy: 'organization_id_direct',
+              url: fetchUrl,
+              status: fetchResponse.status,
+              ticket_count: fetchData.tickets?.length || 0,
+              success: fetchResponse.ok && (fetchData.tickets?.length > 0)
+            });
+            
+            console.log(`📊 Organization ID direct search result:`, {
+              status: fetchResponse.status,
+              success: fetchResponse.ok,
+              tickets_count: fetchData.tickets?.length || 0,
+              error: fetchData.error || null
+            });
+
+            if (fetchResponse.ok && fetchData.tickets?.length > 0) {
+              tickets = fetchData.tickets;
+              console.log(`✅ Smart-task: Found ${tickets.length} tickets via organization ID`);
+            } else {
+              console.log(`⚠️ Smart-task: Organization ID search failed or returned no tickets`);
+            }
+          } catch (error) {
+            console.error('❌ Smart-task: Organization ID search error:', error);
+            searchAttempts.push({
+              strategy: 'organization_id_direct',
+              url: fetchUrl,
+              error: error.message
+            });
+          }
+        }
+
+        // Strategy 4: Search by external_id in ticket fields
+        if (tickets.length === 0 && externalId) {
+          fetchUrl = `${zendeskUrl}/search.json?query=${encodeURIComponent(`type:ticket "${externalId}"`)}&sort_by=created_at&sort_order=desc&per_page=100`;
+          console.log('📋 Smart-task: Strategy 4 - External ID in ticket content search');
+          console.log(`🔗 URL: ${fetchUrl}`);
+          
+          try {
+            fetchResponse = await fetch(fetchUrl, { headers: zendeskHeaders });
+            fetchData = await fetchResponse.json();
+            
+            searchAttempts.push({
+              strategy: 'external_id_content',
+              url: fetchUrl,
+              status: fetchResponse.status,
+              ticket_count: fetchData.results?.length || 0,
+              success: fetchResponse.ok && (fetchData.results?.length > 0)
+            });
+            
+            console.log(`📊 External ID content search result:`, {
+              status: fetchResponse.status,
+              success: fetchResponse.ok,
+              results_count: fetchData.results?.length || 0
+            });
+
+            if (fetchResponse.ok && fetchData.results?.length > 0) {
+              tickets = fetchData.results;
+              console.log(`✅ Smart-task: Found ${tickets.length} tickets via external_id content search`);
+            }
+          } catch (error) {
+            console.error('❌ Smart-task: External ID content search error:', error);
+            searchAttempts.push({
+              strategy: 'external_id_content',
+              url: fetchUrl,
+              error: error.message
+            });
+          }
+        }
+
+        // Strategy 5: Search by school name
+        if (tickets.length === 0 && schoolName) {
+          fetchUrl = `${zendeskUrl}/search.json?query=${encodeURIComponent(`type:ticket "${schoolName}"`)}&sort_by=created_at&sort_order=desc&per_page=100`;
+          console.log('📋 Smart-task: Strategy 5 - School name search');
+          console.log(`🔗 URL: ${fetchUrl}`);
+          
+          try {
+            fetchResponse = await fetch(fetchUrl, { headers: zendeskHeaders });
+            fetchData = await fetchResponse.json();
+            
+            searchAttempts.push({
+              strategy: 'school_name',
+              url: fetchUrl,
+              status: fetchResponse.status,
+              ticket_count: fetchData.results?.length || 0,
+              success: fetchResponse.ok && (fetchData.results?.length > 0)
+            });
+            
+            console.log(`📊 School name search result:`, {
+              status: fetchResponse.status,
+              success: fetchResponse.ok,
+              results_count: fetchData.results?.length || 0
+            });
+
             if (fetchResponse.ok && fetchData.results?.length > 0) {
               tickets = fetchData.results;
               console.log(`✅ Smart-task: Found ${tickets.length} tickets via school name search`);
@@ -224,17 +389,30 @@ serve(async (req) => {
             }
           } catch (error) {
             console.error('❌ Smart-task: School name search error:', error);
+            searchAttempts.push({
+              strategy: 'school_name',
+              url: fetchUrl,
+              error: error.message
+            });
           }
         }
 
-        // Strategy 3: Admin gets all tickets (if user is admin and no school specific results)
+        // Strategy 6: Admin gets all tickets (if user is admin and no school specific results)
         if (tickets.length === 0 && profile.role === 'admin') {
           fetchUrl = `${zendeskUrl}/tickets.json?sort_by=created_at&sort_order=desc&per_page=100`;
-          console.log('📋 Smart-task: Admin fallback - getting all tickets');
+          console.log('📋 Smart-task: Strategy 6 - Admin fallback - getting all tickets');
           
           try {
             fetchResponse = await fetch(fetchUrl, { headers: zendeskHeaders });
             fetchData = await fetchResponse.json();
+            
+            searchAttempts.push({
+              strategy: 'admin_all_tickets',
+              url: fetchUrl,
+              status: fetchResponse.status,
+              ticket_count: fetchData.tickets?.length || 0,
+              success: fetchResponse.ok && (fetchData.tickets?.length > 0)
+            });
             
             if (fetchResponse.ok && fetchData.tickets?.length > 0) {
               tickets = fetchData.tickets;
@@ -244,6 +422,11 @@ serve(async (req) => {
             }
           } catch (error) {
             console.error('❌ Smart-task: Admin listing error:', error);
+            searchAttempts.push({
+              strategy: 'admin_all_tickets',
+              url: fetchUrl,
+              error: error.message
+            });
           }
         }
 
@@ -264,7 +447,8 @@ serve(async (req) => {
           tags: ticket.tags
         }));
 
-        console.log(`🎯 Smart-task: Returning ${transformedTickets.length} tickets`);
+        console.log(`🎯 Smart-task: Final result - returning ${transformedTickets.length} tickets`);
+        console.log(`📈 Search attempts summary:`, searchAttempts);
 
         return new Response(JSON.stringify({ 
           tickets: transformedTickets,
@@ -275,7 +459,14 @@ serve(async (req) => {
           debug_info: {
             strategies_used: tickets.length > 0 ? 'success' : 'all_failed',
             final_url: fetchUrl,
-            auth_method: ZENDESK_OAUTH_TOKEN ? 'OAuth' : 'API Token'
+            auth_method: ZENDESK_OAUTH_TOKEN ? 'OAuth' : 'API Token',
+            search_attempts: searchAttempts,
+            zendesk_credentials: {
+              has_oauth: !!ZENDESK_OAUTH_TOKEN,
+              has_api_token: !!ZENDESK_API_TOKEN,
+              subdomain: ZENDESK_SUBDOMAIN,
+              email: ZENDESK_EMAIL
+            }
           }
         }), { 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
