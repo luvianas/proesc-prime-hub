@@ -97,7 +97,7 @@ const TicketSystem = ({ onBack }: TicketSystemProps) => {
       setLoading(true);
       const { data: session } = await supabase.auth.getSession();
       
-      const { data, error } = await supabase.functions.invoke('zendesk-integration', {
+      const { data, error } = await supabase.functions.invoke('smart-task', {
         body: { action: 'list_tickets' },
         headers: {
           Authorization: `Bearer ${session?.session?.access_token}`
@@ -221,7 +221,7 @@ const TicketSystem = ({ onBack }: TicketSystemProps) => {
       setLoading(true);
       const { data: session } = await supabase.auth.getSession();
       
-      const { data, error } = await supabase.functions.invoke('zendesk-integration', {
+      const { data, error } = await supabase.functions.invoke('smart-task', {
         body: { 
           action: 'search_tickets',
           query: searchQuery

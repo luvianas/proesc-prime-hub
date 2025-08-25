@@ -79,15 +79,23 @@ serve(async (req) => {
       throw new Error('Invalid user token');
     }
 
-    // Get user profile and school info with external ID
+    // Get user profile
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
-      .select(`
-        school_id, name, email, role,
-        school_customizations!profiles_school_id_fkey(zendesk_external_id, school_name)
-      `)
+      .select('school_id, name, email, role')
       .eq('user_id', user.id)
       .single();
+    
+    // Get school customizations separately if user has school_id
+    let schoolCustomizations = null;
+    if (profile?.school_id) {
+      const { data: schoolData } = await supabase
+        .from('school_customizations')
+        .select('zendesk_external_id, school_name, zendesk_integration_url')
+        .eq('school_id', profile.school_id)
+        .single();
+      schoolCustomizations = schoolData;
+    }
 
     if (profileError || !profile) {
       console.error('Profile error:', profileError);
@@ -105,15 +113,15 @@ serve(async (req) => {
     const schoolId = profile.school_id;
     
     // Get external_id from zendesk_external_id
-    const externalId = profile.school_customizations?.[0]?.zendesk_external_id;
+    const externalId = schoolCustomizations?.zendesk_external_id;
     
     console.log('🏢 Smart-task: External ID details:', {
       zendesk_external_id: externalId,
       external_id_will_be_used: externalId || 'none',
-      school_customizations: profile.school_customizations?.[0] || 'none'
+      school_customizations: schoolCustomizations || 'none'
     });
     
-    const schoolName = profile.school_customizations?.[0]?.school_name;
+    const schoolName = schoolCustomizations?.school_name;
     
     console.log('🎯 Smart-task: Processing request:', {
       action,
