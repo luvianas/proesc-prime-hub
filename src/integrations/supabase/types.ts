@@ -7,7 +7,7 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instanciate createClient with right options
+  // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "13.0.4"
@@ -168,6 +168,7 @@ export type Database = {
           school_name: string
           theme_color: string | null
           updated_at: string
+          zendesk_external_id: string | null
           zendesk_integration_url: string | null
         }
         Insert: {
@@ -186,6 +187,7 @@ export type Database = {
           school_name: string
           theme_color?: string | null
           updated_at?: string
+          zendesk_external_id?: string | null
           zendesk_integration_url?: string | null
         }
         Update: {
@@ -204,6 +206,7 @@ export type Database = {
           school_name?: string
           theme_color?: string | null
           updated_at?: string
+          zendesk_external_id?: string | null
           zendesk_integration_url?: string | null
         }
         Relationships: [
