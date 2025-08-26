@@ -151,6 +151,29 @@ const Index = () => {
       setSavingProfile(false);
     }
   };
+  // Load user profile data on component mount
+  useEffect(() => {
+    const loadUserProfile = async () => {
+      if (!user) return;
+      
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("name,email,avatar_url,consultant_whatsapp,consultant_calendar_url")
+        .eq("user_id", user.id)
+        .single();
+        
+      if (profile) {
+        setProfileName(profile.name ?? "");
+        setProfileEmail(profile.email ?? user.email ?? "");
+        setAvatarUrl(profile.avatar_url ?? "");
+        setAdminWhatsApp(profile.consultant_whatsapp ?? "");
+        setAdminCalendarUrl(profile.consultant_calendar_url ?? "");
+      }
+    };
+    
+    loadUserProfile();
+  }, [user]);
+
   useEffect(() => {
     if (userRole !== 'gestor' || !user) return;
     const load = async () => {
