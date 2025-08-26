@@ -124,7 +124,11 @@ const ConsultorAgenda = ({ onBack, schoolData }: ConsultorAgendaProps) => {
   ];
 
   const handleWhatsAppClick = () => {
-    window.open('https://wa.me/5521982763635', '_blank');
+    if (consultantData?.consultant_whatsapp) {
+      const phone = consultantData.consultant_whatsapp.replace(/\D/g, '');
+      const formattedPhone = phone.startsWith('55') ? phone : `55${phone}`;
+      window.open(`https://wa.me/${formattedPhone}`, '_blank');
+    }
   };
 
   if (loading) {
@@ -139,7 +143,7 @@ const ConsultorAgenda = ({ onBack, schoolData }: ConsultorAgendaProps) => {
             <ArrowLeft className="h-4 w-4" />
             <span>Voltar</span>
           </Button>
-          <h2 className="text-3xl font-bold text-brand">Agenda com Consultor</h2>
+          <h2 className="text-3xl font-bold text-brand">Contate seu consultor</h2>
         </div>
         <div className="text-center py-8">Carregando dados do consultor...</div>
       </div>
@@ -157,7 +161,7 @@ const ConsultorAgenda = ({ onBack, schoolData }: ConsultorAgendaProps) => {
           <ArrowLeft className="h-4 w-4" />
           <span>Voltar</span>
         </Button>
-        <h2 className="text-3xl font-bold text-brand">Agenda com Consultor</h2>
+        <h2 className="text-3xl font-bold text-brand">Contate seu consultor</h2>
         <link rel="canonical" href={window.location.href} />
       </div>
 
@@ -176,7 +180,7 @@ const ConsultorAgenda = ({ onBack, schoolData }: ConsultorAgendaProps) => {
                     />
                   </div>
                 )}
-                <h3 className="text-xl font-semibold">Jade Sepulveda</h3>
+                <h3 className="text-xl font-semibold">{consultantData?.name || "Consultor não configurado"}</h3>
               </div>
             </CardTitle>
           </CardHeader>
@@ -202,19 +206,26 @@ const ConsultorAgenda = ({ onBack, schoolData }: ConsultorAgendaProps) => {
           <CardTitle>Calendário de Agendamentos</CardTitle>
         </CardHeader>
         <CardContent className="p-0">
-          <iframe
-            src="https://calendar.google.com/calendar/appointments/AcZssZ3bQZ1DeaPVbR4Vxjsn7HGHHaP_FpaNAdNDyGw=?gv=true"
-            title="Calendário do Consultor"
-            width="100%"
-            height="600"
-            frameBorder="0"
-            className="w-full border-0 rounded-b-lg"
-          />
+          {calendarSrc ? (
+            <iframe
+              src={calendarSrc}
+              title="Calendário do Consultor"
+              width="100%"
+              height="600"
+              frameBorder="0"
+              className="w-full border-0 rounded-b-lg"
+            />
+          ) : (
+            <div className="p-8 text-center text-gray-500">
+              <Calendar className="h-12 w-12 mx-auto mb-4 opacity-50" />
+              <p>Calendário do consultor não configurado</p>
+            </div>
+          )}
         </CardContent>
       </Card>
 
       <div className="text-sm text-gray-600 bg-blue-50 p-4 rounded-lg">
-        <p><strong>Agenda com Consultor:</strong> Visualize e agende reuniões com nossa consultora educacional. Use o WhatsApp para comunicação rápida.</p>
+        <p><strong>Contate seu consultor:</strong> Visualize e agende reuniões com seu consultor educacional. Use o WhatsApp para comunicação rápida.</p>
       </div>
     </div>
   );
