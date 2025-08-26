@@ -276,7 +276,7 @@ const Index = () => {
                     accept="image/*"
                     onChange={(e) => e.target.files && handleAvatarChange(e.target.files[0])}
                     disabled={loadingProfile}
-                    className="file:border file:border-input file:rounded-md file:px-3 file:py-1 file:text-sm file:font-medium file:bg-background file:text-foreground hover:file:bg-accent"
+                    className="file:border-2 file:border-brand file:rounded-md file:px-3 file:py-1 file:text-sm file:font-medium file:bg-background file:text-foreground hover:file:bg-accent"
                   />
                   <p className="text-xs text-muted-foreground mt-1">Use uma imagem quadrada (PNG ou JPG).</p>
                 </div>
