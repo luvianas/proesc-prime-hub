@@ -129,7 +129,7 @@ serve(async (req) => {
     }
 
     // Check if organization_id is configured for the school
-    if (profile.school_id && !schoolCustomizations?.organization_id) {
+    if (profile.school_id && (!schoolCustomizations?.organization_id || schoolCustomizations.organization_id === null)) {
       return new Response(JSON.stringify({ 
         error: 'organization_id_not_configured',
         message: 'Organization ID do Zendesk não configurado para esta escola',
@@ -145,6 +145,8 @@ serve(async (req) => {
     }
 
     const organizationId = schoolCustomizations?.organization_id;
+    
+    console.log('🎯 Zendesk-tickets: Using organization_id:', organizationId);
     
     // Zendesk API base URL
     const zendeskUrl = `https://${ZENDESK_SUBDOMAIN}.zendesk.com/api/v2`;
