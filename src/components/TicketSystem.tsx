@@ -97,8 +97,7 @@ const TicketSystem = ({ onBack }: TicketSystemProps) => {
       setLoading(true);
       const { data: session } = await supabase.auth.getSession();
       
-      const { data, error } = await supabase.functions.invoke('smart-task', {
-        body: { action: 'list_tickets' },
+      const { data, error } = await supabase.functions.invoke('zendesk-tickets', {
         headers: {
           Authorization: `Bearer ${session?.session?.access_token}`
         }
@@ -129,7 +128,7 @@ const TicketSystem = ({ onBack }: TicketSystemProps) => {
         return;
       }
 
-      if (data?.error === 'organization_not_configured') {
+      if (data?.error === 'organization_id_not_configured') {
         setSchoolInfo(prev => ({ 
           ...prev, 
           organizationNotConfigured: true 
@@ -221,11 +220,9 @@ const TicketSystem = ({ onBack }: TicketSystemProps) => {
       setLoading(true);
       const { data: session } = await supabase.auth.getSession();
       
-      const { data, error } = await supabase.functions.invoke('smart-task', {
-        body: { 
-          action: 'search_tickets',
-          query: searchQuery
-        },
+      // Para busca, vamos recarregar todos os tickets por enquanto
+      // A nova função zendesk-tickets não suporta busca ainda
+      const { data, error } = await supabase.functions.invoke('zendesk-tickets', {
         headers: {
           Authorization: `Bearer ${session?.session?.access_token}`
         }
