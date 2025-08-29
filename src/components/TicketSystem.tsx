@@ -95,6 +95,8 @@ const TicketSystem = ({ onBack }: TicketSystemProps) => {
   const loadTickets = async () => {
     try {
       setLoading(true);
+      console.log('📨 TicketSystem: Carregando tickets...');
+      
       const { data: session } = await supabase.auth.getSession();
       
       const { data, error } = await supabase.functions.invoke('zendesk-tickets', {
@@ -104,45 +106,86 @@ const TicketSystem = ({ onBack }: TicketSystemProps) => {
       });
 
       if (error) {
-        console.error('Error loading tickets:', error);
+        console.error('❌ TicketSystem: Erro na chamada da função:', error);
         toast({
           title: "Erro ao carregar tickets",
-          description: "Não foi possível carregar os tickets do Zendesk. Verifique a configuração.",
+          description: "Não foi possível conectar com o sistema de tickets. Tente novamente.",
           variant: "destructive",
         });
         return;
       }
 
-      // Handle special cases: user without school or organization not configured
-      if (data?.error === 'user_without_school') {
-        setSchoolInfo(prev => ({ 
-          ...prev, 
-          userWithoutSchool: true 
-        }));
-        toast({
-          title: "Usuário sem escola associada",
-          description: "Entre em contato com o administrador para associar sua conta a uma escola.",
-          variant: "destructive",
-        });
+      // Handle specific error cases from the function
+      if (data?.error) {
+        console.error('❌ TicketSystem: Erro retornado pela função:', data);
+        
+        switch (data.error) {
+          case 'user_without_school':
+            setSchoolInfo(prev => ({ 
+              ...prev, 
+              userWithoutSchool: true 
+            }));
+            toast({
+              title: "Usuário sem escola associada",
+              description: "Entre em contato com o administrador para associar sua conta a uma escola.",
+              variant: "destructive",
+            });
+            break;
+            
+          case 'organization_id_not_configured':
+            setSchoolInfo(prev => ({ 
+              ...prev, 
+              organizationNotConfigured: true 
+            }));
+            toast({
+              title: "Organização Zendesk não configurada",
+              description: "O ID da organização no Zendesk não foi configurado para esta escola.",
+              variant: "destructive",
+            });
+            break;
+            
+          case 'missing_api_token':
+          case 'missing_subdomain':
+          case 'missing_email':
+            toast({
+              title: "Configuração incompleta",
+              description: "As credenciais do Zendesk não estão configuradas. Entre em contato com o suporte técnico.",
+              variant: "destructive",
+            });
+            break;
+            
+          case 'zendesk_api_error':
+            toast({
+              title: "Erro na API do Zendesk",
+              description: data.message || "Erro ao consultar a API do Zendesk. Tente novamente mais tarde.",
+              variant: "destructive",
+            });
+            break;
+            
+          case 'fetch_failed':
+            toast({
+              title: "Erro de conexão",
+              description: "Não foi possível conectar com o Zendesk. Verifique sua conexão.",
+              variant: "destructive",
+            });
+            break;
+            
+          default:
+            toast({
+              title: "Erro desconhecido",
+              description: data.message || "Erro inesperado ao carregar tickets.",
+              variant: "destructive",
+            });
+        }
+        
         setTickets([]);
         return;
       }
 
-      if (data?.error === 'organization_id_not_configured') {
-        setSchoolInfo(prev => ({ 
-          ...prev, 
-          organizationNotConfigured: true 
-        }));
-        toast({
-          title: "Organização Zendesk não configurada",
-          description: "O ID da organização no Zendesk não foi configurado para esta escola.",
-          variant: "destructive",
-        });
-        setTickets([]);
-        return;
-      }
-
+      // Success case
+      console.log('✅ TicketSystem: Tickets carregados com sucesso:', data?.tickets?.length || 0);
       setTickets(data?.tickets || []);
+      
       if (data?.search_info) {
         setSchoolInfo(prev => ({ 
           ...prev, 
@@ -151,10 +194,10 @@ const TicketSystem = ({ onBack }: TicketSystemProps) => {
       }
       
     } catch (error) {
-      console.error('Error loading tickets:', error);
+      console.error('💥 TicketSystem: Erro inesperado:', error);
       toast({
-        title: "Erro ao carregar tickets",
-        description: "Erro na comunicação com o sistema de tickets.",
+        title: "Erro interno",
+        description: "Erro na comunicação com o sistema de tickets. Tente recarregar a página.",
         variant: "destructive",
       });
     } finally {

@@ -62,12 +62,26 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   useEffect(() => {
-    // Set up auth state listener
+    // Set up auth state listener with better error handling
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
+      async (event, session) => {
+        console.log('🔐 Auth state change:', event, session?.user?.id);
+        
         setSession(session);
         setUser(session?.user ?? null);
+        
+        // Handle auth errors
+        if (event === 'TOKEN_REFRESHED' && !session) {
+          console.warn('⚠️ Token refresh failed, user will be signed out');
+          toast({
+            title: "Sessão expirada",
+            description: "Sua sessão expirou. Faça login novamente.",
+            variant: "destructive",
+          });
+        }
+        
         setTimeout(() => scheduleExpiry(session ?? null), 0);
+        
         if (session?.user) {
           // Defer Supabase calls to prevent deadlock
           setTimeout(async () => {

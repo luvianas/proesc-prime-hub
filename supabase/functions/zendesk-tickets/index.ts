@@ -57,6 +57,7 @@ serve(async (req) => {
   }
 
   try {
+    // Fetch credentials from Supabase secrets more explicitly
     const ZENDESK_API_TOKEN = Deno.env.get('ZENDESK_API_TOKEN');
     const ZENDESK_SUBDOMAIN = Deno.env.get('ZENDESK_SUBDOMAIN');
     const ZENDESK_EMAIL = Deno.env.get('ZENDESK_EMAIL');
@@ -69,10 +70,41 @@ serve(async (req) => {
       email: ZENDESK_EMAIL
     });
 
-    // Check for required Zendesk credentials
-    if (!ZENDESK_API_TOKEN || !ZENDESK_SUBDOMAIN || !ZENDESK_EMAIL) {
-      console.error('❌ Missing Zendesk credentials');
-      throw new Error('Zendesk credentials not configured');
+    // Check for required Zendesk credentials with more specific error messages
+    if (!ZENDESK_API_TOKEN) {
+      console.error('❌ ZENDESK_API_TOKEN not found');
+      return new Response(JSON.stringify({ 
+        error: 'missing_api_token',
+        message: 'ZENDESK_API_TOKEN não configurado',
+        tickets: []
+      }), { 
+        status: 500, 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      });
+    }
+    
+    if (!ZENDESK_SUBDOMAIN) {
+      console.error('❌ ZENDESK_SUBDOMAIN not found');
+      return new Response(JSON.stringify({ 
+        error: 'missing_subdomain',
+        message: 'ZENDESK_SUBDOMAIN não configurado',
+        tickets: []
+      }), { 
+        status: 500, 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      });
+    }
+    
+    if (!ZENDESK_EMAIL) {
+      console.error('❌ ZENDESK_EMAIL not found');
+      return new Response(JSON.stringify({ 
+        error: 'missing_email',
+        message: 'ZENDESK_EMAIL não configurado',
+        tickets: []
+      }), { 
+        status: 500, 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      });
     }
 
     const authHeader = req.headers.get('Authorization');
