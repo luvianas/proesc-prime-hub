@@ -49,6 +49,8 @@ const mapZendeskPriority = (priority: string): string => {
 };
 
 serve(async (req) => {
+  console.log('🚀 Zendesk-tickets: Function started at', new Date().toISOString());
+  
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
