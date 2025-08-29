@@ -50,6 +50,7 @@ const mapZendeskPriority = (priority: string): string => {
 
 serve(async (req) => {
   console.log('🚀 Zendesk-tickets: Function started at', new Date().toISOString());
+  console.log('🔍 Environment check - Available env vars:', Object.keys(Deno.env.toObject()).filter(key => key.startsWith('ZENDESK')));
   
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -57,13 +58,14 @@ serve(async (req) => {
   }
 
   try {
-    // Fetch credentials from Supabase secrets more explicitly
+    // Fetch credentials from Supabase secrets with explicit logging
     const ZENDESK_API_TOKEN = Deno.env.get('ZENDESK_API_TOKEN');
-    const ZENDESK_SUBDOMAIN = Deno.env.get('ZENDESK_SUBDOMAIN');
+    const ZENDESK_SUBDOMAIN = Deno.env.get('ZENDESK_SUBDOMAIN'); 
     const ZENDESK_EMAIL = Deno.env.get('ZENDESK_EMAIL');
 
-    console.log('🔍 Zendesk-tickets: Checking credentials:', {
+    console.log('🔍 Zendesk-tickets: Credentials check:', {
       has_api_token: !!ZENDESK_API_TOKEN,
+      token_length: ZENDESK_API_TOKEN?.length || 0,
       has_subdomain: !!ZENDESK_SUBDOMAIN,
       subdomain: ZENDESK_SUBDOMAIN,
       has_email: !!ZENDESK_EMAIL,
@@ -72,10 +74,11 @@ serve(async (req) => {
 
     // Check for required Zendesk credentials with more specific error messages
     if (!ZENDESK_API_TOKEN) {
-      console.error('❌ ZENDESK_API_TOKEN not found');
+      console.error('❌ ZENDESK_API_TOKEN not found in environment');
       return new Response(JSON.stringify({ 
         error: 'missing_api_token',
-        message: 'ZENDESK_API_TOKEN não configurado',
+        message: 'ZENDESK_API_TOKEN não está configurado nas secrets do Supabase',
+        debug: 'Secret ZENDESK_API_TOKEN não encontrada no ambiente',
         tickets: []
       }), { 
         status: 500, 
@@ -84,10 +87,11 @@ serve(async (req) => {
     }
     
     if (!ZENDESK_SUBDOMAIN) {
-      console.error('❌ ZENDESK_SUBDOMAIN not found');
+      console.error('❌ ZENDESK_SUBDOMAIN not found in environment');
       return new Response(JSON.stringify({ 
         error: 'missing_subdomain',
-        message: 'ZENDESK_SUBDOMAIN não configurado',
+        message: 'ZENDESK_SUBDOMAIN não está configurado nas secrets do Supabase',
+        debug: 'Secret ZENDESK_SUBDOMAIN não encontrada no ambiente',
         tickets: []
       }), { 
         status: 500, 
@@ -96,10 +100,11 @@ serve(async (req) => {
     }
     
     if (!ZENDESK_EMAIL) {
-      console.error('❌ ZENDESK_EMAIL not found');
+      console.error('❌ ZENDESK_EMAIL not found in environment');
       return new Response(JSON.stringify({ 
         error: 'missing_email',
-        message: 'ZENDESK_EMAIL não configurado',
+        message: 'ZENDESK_EMAIL não está configurado nas secrets do Supabase',
+        debug: 'Secret ZENDESK_EMAIL não encontrada no ambiente',
         tickets: []
       }), { 
         status: 500, 
