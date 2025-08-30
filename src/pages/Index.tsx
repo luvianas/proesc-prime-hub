@@ -192,8 +192,8 @@ const Index = () => {
     load();
   }, [userRole, user]);
 
-  // Show loading state
-  if (loading) {
+  // Show loading state - também aguardar o userRole carregar para evitar flash da versão legacy
+  if (loading || (user && userRole === null)) {
     return <div className="flex items-center justify-center min-h-screen">
         <div className="text-lg">Carregando...</div>
       </div>;
@@ -215,12 +215,9 @@ const Index = () => {
 <TooltipProvider delayDuration={150}>
   <Tooltip>
     <TooltipTrigger asChild>
-      <a
-        href="https://app.proesc.com"
-        target="_blank"
-        rel="noopener noreferrer"
-        aria-label="Abrir Proesc em nova aba"
-        className="inline-flex items-center justify-center rounded-md px-2 py-1 hover:bg-accent/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ring-offset-background transition hover-scale cursor-pointer"
+      <div
+        aria-label="Logo Proesc Prime"
+        className="inline-flex items-center justify-center rounded-md px-2 py-1 cursor-default"
       >
         <img
           src="/lovable-uploads/31be6a89-85b7-486f-b156-ebe5b3557c02.png"
@@ -228,9 +225,9 @@ const Index = () => {
           className="h-10 mx-auto select-none pointer-events-none"
           loading="lazy"
         />
-      </a>
+      </div>
     </TooltipTrigger>
-    <TooltipContent side="bottom">Retornar ao Proesc</TooltipContent>
+    <TooltipContent side="bottom">Logo Proesc Prime</TooltipContent>
   </Tooltip>
 </TooltipProvider>
           </div>
@@ -394,12 +391,9 @@ const Index = () => {
 <TooltipProvider delayDuration={150}>
   <Tooltip>
     <TooltipTrigger asChild>
-      <a
-        href="https://app.proesc.com"
-        target="_blank"
-        rel="noopener noreferrer"
-        aria-label="Abrir Proesc em nova aba"
-        className="inline-flex items-center justify-center rounded-md px-2 py-1 hover:bg-accent/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ring-offset-background transition hover-scale cursor-pointer"
+      <div
+        aria-label="Logo Proesc Prime"
+        className="inline-flex items-center justify-center rounded-md px-2 py-1 cursor-default"
       >
         <img 
           src="/lovable-uploads/31be6a89-85b7-486f-b156-ebe5b3557c02.png" 
@@ -407,9 +401,9 @@ const Index = () => {
           className="h-10 mx-auto select-none pointer-events-none"
           loading="lazy"
         />
-      </a>
+      </div>
     </TooltipTrigger>
-    <TooltipContent side="bottom">Retornar ao Proesc</TooltipContent>
+    <TooltipContent side="bottom">Logo Proesc Prime</TooltipContent>
   </Tooltip>
 </TooltipProvider>
           </div>
