@@ -119,6 +119,8 @@ const TicketSystem = ({ onBack }: TicketSystemProps) => {
       if (data?.error) {
         console.error('❌ TicketSystem: Erro retornado pela função:', data);
         
+        const errorId = data.error_id ? ` (ID: ${data.error_id})` : '';
+        
         switch (data.error) {
           case 'user_without_school':
             setSchoolInfo(prev => ({ 
@@ -127,7 +129,7 @@ const TicketSystem = ({ onBack }: TicketSystemProps) => {
             }));
             toast({
               title: "Usuário sem escola associada",
-              description: "Entre em contato com o administrador para associar sua conta a uma escola.",
+              description: `Entre em contato com o administrador para associar sua conta a uma escola.${errorId}`,
               variant: "destructive",
             });
             break;
@@ -139,7 +141,7 @@ const TicketSystem = ({ onBack }: TicketSystemProps) => {
             }));
             toast({
               title: "Organização Zendesk não configurada",
-              description: "O ID da organização no Zendesk não foi configurado para esta escola.",
+              description: `O ID da organização no Zendesk não foi configurado para esta escola.${errorId}`,
               variant: "destructive",
             });
             break;
@@ -149,7 +151,7 @@ const TicketSystem = ({ onBack }: TicketSystemProps) => {
           case 'missing_email':
             toast({
               title: "Configuração incompleta",
-              description: "As credenciais do Zendesk não estão configuradas. Entre em contato com o suporte técnico.",
+              description: `As credenciais do Zendesk não estão configuradas. Entre em contato com o suporte técnico.${errorId}`,
               variant: "destructive",
             });
             break;
@@ -157,7 +159,7 @@ const TicketSystem = ({ onBack }: TicketSystemProps) => {
           case 'zendesk_api_error':
             toast({
               title: "Erro na API do Zendesk",
-              description: data.message || "Erro ao consultar a API do Zendesk. Tente novamente mais tarde.",
+              description: `${data.message || "Erro ao consultar a API do Zendesk. Tente novamente mais tarde."}${errorId}`,
               variant: "destructive",
             });
             break;
@@ -165,7 +167,15 @@ const TicketSystem = ({ onBack }: TicketSystemProps) => {
           case 'fetch_failed':
             toast({
               title: "Erro de conexão",
-              description: "Não foi possível conectar com o Zendesk. Verifique sua conexão.",
+              description: `Não foi possível conectar com o Zendesk. Verifique sua conexão.${errorId}`,
+              variant: "destructive",
+            });
+            break;
+            
+          case 'internal_server_error':
+            toast({
+              title: "Erro interno do servidor",
+              description: `${data.details || "Erro interno do servidor."}${errorId}`,
               variant: "destructive",
             });
             break;
@@ -173,7 +183,7 @@ const TicketSystem = ({ onBack }: TicketSystemProps) => {
           default:
             toast({
               title: "Erro desconhecido",
-              description: data.message || "Erro inesperado ao carregar tickets.",
+              description: `${data.message || "Erro inesperado ao carregar tickets."}${errorId}`,
               variant: "destructive",
             });
         }

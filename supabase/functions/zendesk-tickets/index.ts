@@ -270,10 +270,19 @@ serve(async (req) => {
 
     } catch (error) {
       console.error('❌ Zendesk-tickets: Fetch error:', error);
+      console.error('❌ Fetch error details:', {
+        name: error.name,
+        message: error.message,
+        stack: error.stack,
+        url: fetchUrl,
+        headers: zendeskHeaders
+      });
+      
       return new Response(JSON.stringify({ 
         error: 'fetch_failed',
         message: 'Erro ao conectar com o Zendesk',
         details: error.message,
+        error_id: crypto.randomUUID(),
         tickets: []
       }), { 
         status: 500, 
@@ -283,9 +292,19 @@ serve(async (req) => {
 
   } catch (error) {
     console.error('💥 Zendesk-tickets: Unexpected error:', error);
+    console.error('💥 Error details:', {
+      name: error.name,
+      message: error.message,
+      stack: error.stack,
+      timestamp: new Date().toISOString()
+    });
+    
     return new Response(JSON.stringify({ 
-      error: 'Internal server error',
-      message: error.message 
+      error: 'internal_server_error',
+      message: 'Erro interno no servidor',
+      details: error.message,
+      error_id: crypto.randomUUID(),
+      tickets: []
     }), { 
       status: 500, 
       headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
