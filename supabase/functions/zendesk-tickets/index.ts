@@ -50,6 +50,7 @@ const mapZendeskPriority = (priority: string): string => {
 
 serve(async (req) => {
   console.log('🚀 Zendesk-tickets: Function started at', new Date().toISOString());
+  console.log('🔄 Zendesk-tickets: Secrets refreshed - checking environment...');
   console.log('🔍 Environment check - Available env vars:', Object.keys(Deno.env.toObject()).filter(key => key.startsWith('ZENDESK')));
   
   // Handle CORS preflight requests
