@@ -58,7 +58,10 @@ serve(async (req) => {
   }
 
   try {
-    // Fetch credentials from Supabase secrets with explicit logging
+    // Force environment refresh and fetch credentials from Supabase secrets
+    const allEnvVars = Deno.env.toObject();
+    console.log('🔍 Full environment variables containing ZENDESK:', Object.entries(allEnvVars).filter(([key]) => key.includes('ZENDESK')));
+    
     const ZENDESK_API_TOKEN = Deno.env.get('ZENDESK_API_TOKEN');
     const ZENDESK_SUBDOMAIN = Deno.env.get('ZENDESK_SUBDOMAIN'); 
     const ZENDESK_EMAIL = Deno.env.get('ZENDESK_EMAIL');
