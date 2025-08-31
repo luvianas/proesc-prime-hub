@@ -46,18 +46,24 @@
     --surface-hover: 0 0% 96%;
     --surface-active: 0 0% 94%;
     
-    /* Gradients */
+    /* Gradients - Modernos e sofisticados */
     --gradient-primary: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--primary-glow)) 100%);
     --gradient-surface: linear-gradient(145deg, hsl(var(--surface)) 0%, hsl(var(--background)) 100%);
     --gradient-hero: linear-gradient(135deg, hsl(0 0% 100%) 0%, hsl(240 4.8% 95.9%) 50%, hsl(41 77% 45% / 0.05) 100%);
+    --gradient-card: linear-gradient(145deg, hsl(var(--card)) 0%, hsl(var(--background)) 100%);
+    --gradient-button: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--primary-glow)) 100%);
+    --gradient-elegant: linear-gradient(135deg, hsl(var(--background)) 0%, hsl(var(--muted)) 50%, hsl(var(--surface)) 100%);
+    --gradient-auth: linear-gradient(135deg, hsl(var(--background)) 0%, hsl(var(--primary) / 0.03) 50%, hsl(var(--primary-glow) / 0.05) 100%);
     
-    /* Shadows */
-    --shadow-sm: 0 1px 2px 0 hsl(0 0% 0% / 0.05);
-    --shadow-md: 0 4px 6px -1px hsl(0 0% 0% / 0.1), 0 2px 4px -2px hsl(0 0% 0% / 0.1);
-    --shadow-lg: 0 10px 15px -3px hsl(0 0% 0% / 0.1), 0 4px 6px -4px hsl(0 0% 0% / 0.1);
-    --shadow-xl: 0 20px 25px -5px hsl(0 0% 0% / 0.1), 0 8px 10px -6px hsl(0 0% 0% / 0.1);
-    --shadow-elegant: 0 8px 30px -12px hsl(var(--primary) / 0.25);
-    --shadow-glow: 0 0 20px hsl(var(--primary-glow) / 0.3);
+    /* Shadows - Modernos com blur suave */
+    --shadow-sm: 0 1px 3px 0 hsl(0 0% 0% / 0.1), 0 1px 2px -1px hsl(0 0% 0% / 0.06);
+    --shadow-md: 0 4px 8px -2px hsl(0 0% 0% / 0.1), 0 2px 4px -1px hsl(0 0% 0% / 0.06);
+    --shadow-lg: 0 10px 20px -4px hsl(0 0% 0% / 0.1), 0 4px 8px -2px hsl(0 0% 0% / 0.06);
+    --shadow-xl: 0 25px 50px -12px hsl(0 0% 0% / 0.12), 0 8px 16px -4px hsl(0 0% 0% / 0.06);
+    --shadow-elegant: 0 8px 32px -8px hsl(var(--primary) / 0.3), 0 4px 16px -4px hsl(var(--primary) / 0.1);
+    --shadow-glow: 0 0 24px hsl(var(--primary-glow) / 0.4), 0 0 8px hsl(var(--primary) / 0.2);
+    --shadow-interactive: 0 4px 12px -2px hsl(0 0% 0% / 0.12), 0 2px 6px -1px hsl(0 0% 0% / 0.08);
+    --shadow-floating: 0 12px 28px -8px hsl(0 0% 0% / 0.15), 0 6px 14px -4px hsl(0 0% 0% / 0.1);
     
     /* Textures and patterns */
     --texture-subtle: radial-gradient(circle at 1px 1px, hsl(var(--muted)) 1px, transparent 0);
@@ -117,17 +123,23 @@
     --surface-hover: 240 8% 15%;
     --surface-active: 240 8% 18%;
     
-    /* Dark gradients */
+    /* Dark gradients - Mais elegantes */
     --gradient-surface: linear-gradient(145deg, hsl(var(--surface)) 0%, hsl(var(--background)) 100%);
     --gradient-hero: linear-gradient(135deg, hsl(240 10% 6%) 0%, hsl(240 8% 12%) 50%, hsl(41 77% 45% / 0.1) 100%);
+    --gradient-card: linear-gradient(145deg, hsl(var(--card)) 0%, hsl(var(--background)) 100%);
+    --gradient-button: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--primary-glow)) 100%);
+    --gradient-elegant: linear-gradient(135deg, hsl(var(--background)) 0%, hsl(var(--muted)) 50%, hsl(var(--surface)) 100%);
+    --gradient-auth: linear-gradient(135deg, hsl(240 10% 6%) 0%, hsl(var(--primary) / 0.08) 50%, hsl(var(--primary-glow) / 0.1) 100%);
     
-    /* Dark shadows */
-    --shadow-sm: 0 1px 2px 0 hsl(0 0% 0% / 0.3);
-    --shadow-md: 0 4px 6px -1px hsl(0 0% 0% / 0.4), 0 2px 4px -2px hsl(0 0% 0% / 0.3);
-    --shadow-lg: 0 10px 15px -3px hsl(0 0% 0% / 0.4), 0 4px 6px -4px hsl(0 0% 0% / 0.3);
-    --shadow-xl: 0 20px 25px -5px hsl(0 0% 0% / 0.4), 0 8px 10px -6px hsl(0 0% 0% / 0.3);
-    --shadow-elegant: 0 8px 30px -12px hsl(var(--primary) / 0.4);
-    --shadow-glow: 0 0 20px hsl(var(--primary-glow) / 0.4);
+    /* Dark shadows - Mais suaves */
+    --shadow-sm: 0 1px 3px 0 hsl(0 0% 0% / 0.4), 0 1px 2px -1px hsl(0 0% 0% / 0.3);
+    --shadow-md: 0 4px 8px -2px hsl(0 0% 0% / 0.5), 0 2px 4px -1px hsl(0 0% 0% / 0.3);
+    --shadow-lg: 0 10px 20px -4px hsl(0 0% 0% / 0.5), 0 4px 8px -2px hsl(0 0% 0% / 0.3);
+    --shadow-xl: 0 25px 50px -12px hsl(0 0% 0% / 0.6), 0 8px 16px -4px hsl(0 0% 0% / 0.4);
+    --shadow-elegant: 0 8px 32px -8px hsl(var(--primary) / 0.5), 0 4px 16px -4px hsl(var(--primary) / 0.2);
+    --shadow-glow: 0 0 24px hsl(var(--primary-glow) / 0.5), 0 0 8px hsl(var(--primary) / 0.3);
+    --shadow-interactive: 0 4px 12px -2px hsl(0 0% 0% / 0.4), 0 2px 6px -1px hsl(0 0% 0% / 0.3);
+    --shadow-floating: 0 12px 28px -8px hsl(0 0% 0% / 0.6), 0 6px 14px -4px hsl(0 0% 0% / 0.4);
 
     /* Dark sidebar */
     --sidebar-background: 240 5.9% 10%;
@@ -154,46 +166,60 @@
 }
 
 @layer components {
-  /* Modern card styles */
+  /* Modern card styles - Mais sofisticados */
   .card-elegant {
-    @apply bg-card/80 backdrop-blur-sm border border-border/50;
-    box-shadow: var(--shadow-md), var(--shadow-elegant);
-    background-image: var(--gradient-surface);
+    @apply bg-card/90 backdrop-blur-md border border-border/30;
+    box-shadow: var(--shadow-interactive), var(--shadow-elegant);
+    background-image: var(--gradient-card);
+    position: relative;
+  }
+  
+  .card-elegant::before {
+    @apply absolute inset-0 rounded-lg opacity-20 pointer-events-none;
+    content: '';
+    background: linear-gradient(135deg, hsl(var(--primary) / 0.05) 0%, transparent 50%, hsl(var(--primary-glow) / 0.03) 100%);
   }
   
   .card-interactive {
-    @apply cursor-pointer transition-all duration-300;
-    @apply hover:shadow-lg hover:-translate-y-1;
+    @apply cursor-pointer transition-all duration-500 ease-out;
+    @apply hover:-translate-y-2 hover:scale-[1.02];
     box-shadow: var(--shadow-md);
+    background-image: var(--gradient-card);
   }
   
   .card-interactive:hover {
-    box-shadow: var(--shadow-lg), var(--shadow-glow);
+    box-shadow: var(--shadow-floating), var(--shadow-glow);
   }
   
-  /* Button enhancements */
+  /* Button enhancements - Mais modernos */
   .btn-elegant {
     @apply relative overflow-hidden;
     transition: var(--transition-smooth);
     box-shadow: var(--shadow-sm);
+    background-image: var(--gradient-button);
   }
   
   .btn-elegant::before {
-    @apply absolute inset-0 opacity-0 transition-opacity duration-300;
+    @apply absolute inset-0 opacity-0 transition-all duration-500;
     content: '';
-    background: linear-gradient(45deg, transparent 30%, rgba(255,255,255,0.2) 50%, transparent 70%);
-    transform: translateX(-100%);
+    background: linear-gradient(45deg, transparent 30%, rgba(255,255,255,0.3) 50%, transparent 70%);
+    transform: translateX(-100%) skewX(-15deg);
   }
   
   .btn-elegant:hover::before {
     @apply opacity-100;
-    transform: translateX(100%);
-    transition: transform 0.6s;
+    transform: translateX(100%) skewX(-15deg);
+    transition: transform 0.7s ease-out;
   }
   
   .btn-elegant:hover {
-    @apply scale-105;
-    box-shadow: var(--shadow-lg);
+    @apply scale-105 -translate-y-0.5;
+    box-shadow: var(--shadow-lg), var(--shadow-glow);
+  }
+  
+  .btn-elegant:active {
+    @apply scale-100 translate-y-0;
+    transition: all 0.1s;
   }
   
   /* Gradient backgrounds */
@@ -205,47 +231,99 @@
     background: var(--gradient-surface);
   }
   
-  /* Interactive elements */
+  /* Interactive elements - Mais refinados */
   .hover-lift {
-    @apply transition-all duration-300;
-    @apply hover:-translate-y-1 hover:shadow-lg;
+    @apply transition-all duration-500 ease-out;
+    @apply hover:-translate-y-2 hover:scale-[1.02];
+    box-shadow: var(--shadow-md);
+  }
+  
+  .hover-lift:hover {
+    box-shadow: var(--shadow-floating), var(--shadow-glow);
   }
   
   .hover-glow {
-    @apply transition-all duration-300;
+    @apply transition-all duration-400 ease-out;
   }
   
   .hover-glow:hover {
     box-shadow: var(--shadow-glow);
+    filter: brightness(1.1);
   }
   
-  /* Text effects */
+  .hover-scale {
+    @apply transition-all duration-300 ease-out;
+    @apply hover:scale-105 hover:-translate-y-1;
+  }
+  
+  .hover-float {
+    @apply transition-all duration-500 ease-out;
+    @apply hover:-translate-y-3 hover:shadow-floating;
+  }
+  
+  /* Text effects - Mais elegantes */
   .text-gradient {
     background: var(--gradient-primary);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
+    font-weight: 600;
   }
   
-  /* Border enhancements */
+  .text-shimmer {
+    background: linear-gradient(110deg, hsl(var(--foreground)) 45%, hsl(var(--primary)) 55%, hsl(var(--foreground)) 65%);
+    background-size: 200% 100%;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    animation: shimmer 2s linear infinite;
+  }
+  
+  /* Border enhancements - Mais sofisticados */
   .border-elegant {
-    @apply border border-border/30;
+    @apply border border-border/20 relative;
     background: linear-gradient(var(--card), var(--card)) padding-box,
-                linear-gradient(45deg, var(--primary), var(--primary-glow)) border-box;
+                linear-gradient(135deg, hsl(var(--primary) / 0.3), hsl(var(--primary-glow) / 0.5), hsl(var(--primary) / 0.3)) border-box;
   }
   
-  /* Texture overlays */
-  .texture-dots {
+  .border-glow {
+    @apply border border-border/30 relative;
+    box-shadow: inset 0 1px 0 hsl(var(--primary) / 0.1), 0 1px 3px hsl(var(--primary) / 0.1);
+  }
+  
+  /* Auth page specific */
+  .auth-card {
+    @apply card-elegant backdrop-blur-xl;
+    background: var(--gradient-elegant);
+    border: 1px solid hsl(var(--border) / 0.2);
+  }
+  
+  .auth-background {
+    background: var(--gradient-auth);
+    position: relative;
+  }
+  
+  .auth-background::before {
+    @apply absolute inset-0 opacity-50;
+    content: '';
     background-image: var(--texture-dots);
-    background-size: 20px 20px;
+    background-size: 40px 40px;
   }
   
-  /* Animation utilities */
+  /* Animation utilities - Mais fluidos */
   .animate-smooth {
     transition: var(--transition-smooth);
   }
   
   .animate-bounce-in {
     transition: var(--transition-bounce);
+  }
+  
+  .animate-fade-up {
+    animation: fade-in 0.6s ease-out;
+  }
+  
+  .animate-scale-in {
+    animation: scale-in 0.4s ease-out;
   }
 }

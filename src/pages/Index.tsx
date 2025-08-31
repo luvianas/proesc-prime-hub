@@ -206,10 +206,10 @@ const Index = () => {
 
   // Render admin dashboard for admin users
   if (userRole === 'admin') {
-    return <div className="min-h-screen bg-gradient-to-br from-background via-muted to-background">
-        <div className="grid grid-cols-3 items-center p-4 border-b">
+    return <div className="min-h-screen auth-background">
+        <div className="grid grid-cols-3 items-center p-4 border-b border-border/30 bg-card/90 backdrop-blur-md shadow-elegant">
           <div className="justify-self-start">
-            <h1 className="text-xl font-semibold">Sistema de Controle - Admin</h1>
+            <h1 className="text-xl font-semibold text-gradient">Sistema de Controle - Admin</h1>
           </div>
           <div className="justify-self-center">
 <TooltipProvider delayDuration={150}>
@@ -220,7 +220,7 @@ const Index = () => {
         target="_blank"
         rel="noopener noreferrer"
         aria-label="Retornar ao Proesc"
-        className="inline-flex items-center justify-center rounded-md px-2 py-1 hover:opacity-80 transition-opacity cursor-pointer"
+        className="inline-flex items-center justify-center rounded-md px-2 py-1 hover:opacity-80 transition-opacity cursor-pointer hover-scale"
       >
         <img
           src="/lovable-uploads/31be6a89-85b7-486f-b156-ebe5b3557c02.png"
@@ -240,12 +240,12 @@ const Index = () => {
               <Button onClick={openProfile} variant="outline" className="rounded-full w-12 h-12 p-0 btn-elegant hover-glow">
                 <Avatar className="w-10 h-10">
                   <AvatarImage src={avatarUrl} alt="Foto do perfil" />
-                  <AvatarFallback className="bg-primary text-primary-foreground">
+                  <AvatarFallback className="bg-gradient-primary text-white">
                     {(profileName || user.email || '').charAt(0).toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
               </Button>
-              <Button variant="outline" onClick={signOut}>
+              <Button variant="outline" onClick={signOut} className="hover-lift">
                 <LogOut className="w-4 h-4 mr-2" />
                 Sair
               </Button>
@@ -256,15 +256,15 @@ const Index = () => {
           </div>
         </div>
         <Dialog open={profileDialogOpen} onOpenChange={setProfileDialogOpen}>
-          <DialogContent className="sm:max-w-lg">
+          <DialogContent className="sm:max-w-lg card-elegant">
             <DialogHeader>
-              <DialogTitle>Meu Perfil</DialogTitle>
+              <DialogTitle className="text-gradient">Meu Perfil</DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
               <div className="flex items-center gap-4">
-                <Avatar className="h-16 w-16">
+                <Avatar className="h-16 w-16 hover-scale">
                   <AvatarImage src={avatarUrl} alt="Foto do perfil" />
-                  <AvatarFallback>
+                  <AvatarFallback className="bg-gradient-primary text-white">
                     {(profileName || user.email || '').charAt(0).toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
@@ -276,7 +276,7 @@ const Index = () => {
                     accept="image/*"
                     onChange={(e) => e.target.files && handleAvatarChange(e.target.files[0])}
                     disabled={loadingProfile}
-                    className="file:border-2 file:border-brand file:rounded-md file:px-3 file:py-1 file:text-sm file:font-medium file:bg-background file:text-foreground hover:file:bg-accent"
+                    className="border-glow file:border-2 file:border-brand file:rounded-md file:px-3 file:py-1 file:text-sm file:font-medium file:bg-background file:text-foreground hover:file:bg-accent"
                   />
                   <p className="text-xs text-muted-foreground mt-1">Use uma imagem quadrada (PNG ou JPG).</p>
                 </div>
@@ -284,11 +284,11 @@ const Index = () => {
               <div className="space-y-3">
                 <div className="space-y-2">
                   <Label htmlFor="name-admin">Nome</Label>
-                  <Input id="name-admin" value={profileName} onChange={(e) => setProfileName(e.target.value)} />
+                  <Input id="name-admin" value={profileName} onChange={(e) => setProfileName(e.target.value)} className="border-glow" />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="email-admin">E-mail</Label>
-                  <Input id="email-admin" type="email" value={profileEmail} onChange={(e) => setProfileEmail(e.target.value)} />
+                  <Input id="email-admin" type="email" value={profileEmail} onChange={(e) => setProfileEmail(e.target.value)} className="border-glow" />
                 </div>
 
                 {userRole === 'admin' && (
@@ -370,24 +370,24 @@ const Index = () => {
 
   // Render gestor dashboard for gestor users
   if (userRole === 'gestor') {
-    return <div className="min-h-screen bg-hero">
-        <div className="grid grid-cols-3 items-center p-6 border-b bg-card/80 backdrop-blur-lg shadow-medium">
+    return <div className="min-h-screen auth-background">
+        <div className="grid grid-cols-3 items-center p-6 border-b border-border/30 bg-card/90 backdrop-blur-md shadow-elegant">
           <div className="flex items-center gap-6 justify-self-start">
             {schoolHeader?.logoUrl ? (
               <img
                 src={schoolHeader.logoUrl}
                 alt={`Logo ${schoolHeader.schoolName}`}
-                className="w-16 h-16 object-contain rounded"
+                className="w-16 h-16 object-contain rounded hover-scale"
                 loading="lazy"
               />
             ) : (
-              <div className="w-16 h-16 rounded bg-primary text-primary-foreground flex items-center justify-center font-bold">
+              <div className="w-16 h-16 rounded bg-gradient-primary text-white flex items-center justify-center font-bold hover-scale">
                 {schoolHeader?.schoolName?.charAt(0).toUpperCase()}
               </div>
             )}
             <div className="hidden md:block">
-              <h1 className="text-xl font-bold text-primary">{schoolHeader?.schoolName}</h1>
-              <Badge variant="secondary" className="text-xs">Portal Prime</Badge>
+              <h1 className="text-xl font-bold text-gradient">{schoolHeader?.schoolName}</h1>
+              <Badge variant="secondary" className="text-xs bg-primary/10 text-primary border-primary/20">Portal Prime</Badge>
             </div>
           </div>
           <div className="justify-self-center">
@@ -399,7 +399,7 @@ const Index = () => {
         target="_blank"
         rel="noopener noreferrer"
         aria-label="Retornar ao Proesc"
-        className="inline-flex items-center justify-center rounded-md px-2 py-1 hover:opacity-80 transition-opacity cursor-pointer"
+        className="inline-flex items-center justify-center rounded-md px-2 py-1 hover:opacity-80 transition-opacity cursor-pointer hover-scale"
       >
         <img 
           src="/lovable-uploads/31be6a89-85b7-486f-b156-ebe5b3557c02.png" 
@@ -420,12 +420,12 @@ const Index = () => {
                       className="rounded-full w-12 h-12 p-0 btn-elegant hover-glow">
                 <Avatar className="w-10 h-10">
                   <AvatarImage src={avatarUrl} alt="Foto do perfil" />
-                  <AvatarFallback className="bg-primary text-primary-foreground">
+                  <AvatarFallback className="bg-gradient-primary text-white">
                     {schoolHeader?.schoolName?.charAt(0).toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
               </Button>
-              <Button onClick={signOut} className="btn-elegant shadow-medium">
+              <Button onClick={signOut} className="btn-elegant shadow-elegant">
                 <LogOut className="w-4 h-4 mr-2" />
                 Sair
               </Button>
