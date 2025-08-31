@@ -32,11 +32,19 @@ const Header = ({ showAI, setShowAI, schoolName }: HeaderProps) => {
           
           {/* Central Logo - Centered */}
           <div className="flex items-center justify-center flex-1">
-            <img 
-              src="/lovable-uploads/acebbdfd-931e-4b04-af8c-a6951b7e1088.png" 
-              alt="Portal Prime" 
-              className="h-12"
-            />
+            <a
+              href="https://app.proesc.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:opacity-80 transition-opacity cursor-pointer"
+              title="Retornar ao Proesc"
+            >
+              <img 
+                src="/lovable-uploads/acebbdfd-931e-4b04-af8c-a6951b7e1088.png" 
+                alt="Portal Prime" 
+                className="h-12"
+              />
+            </a>
           </div>
           
           <div className="flex items-center space-x-4">
