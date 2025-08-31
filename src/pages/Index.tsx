@@ -215,19 +215,22 @@ const Index = () => {
 <TooltipProvider delayDuration={150}>
   <Tooltip>
     <TooltipTrigger asChild>
-      <div
-        aria-label="Logo Proesc Prime"
-        className="inline-flex items-center justify-center rounded-md px-2 py-1 cursor-default"
+      <a
+        href="https://app.proesc.com"
+        target="_blank"
+        rel="noopener noreferrer"
+        aria-label="Retornar ao Proesc"
+        className="inline-flex items-center justify-center rounded-md px-2 py-1 hover:opacity-80 transition-opacity cursor-pointer"
       >
         <img
           src="/lovable-uploads/31be6a89-85b7-486f-b156-ebe5b3557c02.png"
           alt="Proesc Prime"
-          className="h-10 mx-auto select-none pointer-events-none"
+          className="h-10 mx-auto"
           loading="lazy"
         />
-      </div>
+      </a>
     </TooltipTrigger>
-    <TooltipContent side="bottom">Logo Proesc Prime</TooltipContent>
+    <TooltipContent side="bottom">Retornar ao Proesc</TooltipContent>
   </Tooltip>
 </TooltipProvider>
           </div>
@@ -391,19 +394,22 @@ const Index = () => {
 <TooltipProvider delayDuration={150}>
   <Tooltip>
     <TooltipTrigger asChild>
-      <div
-        aria-label="Logo Proesc Prime"
-        className="inline-flex items-center justify-center rounded-md px-2 py-1 cursor-default"
+      <a
+        href="https://app.proesc.com"
+        target="_blank"
+        rel="noopener noreferrer"
+        aria-label="Retornar ao Proesc"
+        className="inline-flex items-center justify-center rounded-md px-2 py-1 hover:opacity-80 transition-opacity cursor-pointer"
       >
         <img 
           src="/lovable-uploads/31be6a89-85b7-486f-b156-ebe5b3557c02.png" 
           alt="Proesc Prime" 
-          className="h-10 mx-auto select-none pointer-events-none"
+          className="h-10 mx-auto"
           loading="lazy"
         />
-      </div>
+      </a>
     </TooltipTrigger>
-    <TooltipContent side="bottom">Logo Proesc Prime</TooltipContent>
+    <TooltipContent side="bottom">Retornar ao Proesc</TooltipContent>
   </Tooltip>
 </TooltipProvider>
           </div>
