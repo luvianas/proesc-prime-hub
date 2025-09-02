@@ -164,12 +164,12 @@ export type Database = {
           id: string
           logo_url: string | null
           metabase_integration_url: string | null
+          organization_id: number | null
           school_id: string | null
           school_name: string
           theme_color: string | null
           updated_at: string
           zendesk_external_id: string | null
-          zendesk_integration_url: string | null
         }
         Insert: {
           consultant_calendar_url?: string | null
@@ -183,12 +183,12 @@ export type Database = {
           id?: string
           logo_url?: string | null
           metabase_integration_url?: string | null
+          organization_id?: number | null
           school_id?: string | null
           school_name: string
           theme_color?: string | null
           updated_at?: string
           zendesk_external_id?: string | null
-          zendesk_integration_url?: string | null
         }
         Update: {
           consultant_calendar_url?: string | null
@@ -202,12 +202,12 @@ export type Database = {
           id?: string
           logo_url?: string | null
           metabase_integration_url?: string | null
+          organization_id?: number | null
           school_id?: string | null
           school_name?: string
           theme_color?: string | null
           updated_at?: string
           zendesk_external_id?: string | null
-          zendesk_integration_url?: string | null
         }
         Relationships: [
           {
