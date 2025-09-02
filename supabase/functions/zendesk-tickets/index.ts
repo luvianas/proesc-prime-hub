@@ -192,7 +192,7 @@ serve(async (req) => {
     console.log('🎯 Zendesk-tickets: Using organization_id:', organizationId);
     
     // Zendesk API base URL
-    const zendeskUrl = `https://${ZENDESK_SUBDOMAIN}.zendesk.com/api/v2`;
+    const zendeskUrl = `https://proesc.zendesk.com/api/v2`;
     
     // Set up authentication headers with API token
     const credentials = btoa(`${ZENDESK_EMAIL}/token:${ZENDESK_API_TOKEN}`);

@@ -99,9 +99,12 @@ const TicketSystem = ({ onBack }: TicketSystemProps) => {
       
       const { data: session } = await supabase.auth.getSession();
       
-      const { data, error } = await supabase.functions.invoke('zendesk-tickets', {
+      const { data, error } = await supabase.functions.invoke('zendesk-integration', {
         headers: {
           Authorization: `Bearer ${session?.session?.access_token}`
+        },
+        body: {
+          action: 'list_tickets'
         }
       });
 
@@ -273,11 +276,14 @@ const TicketSystem = ({ onBack }: TicketSystemProps) => {
       setLoading(true);
       const { data: session } = await supabase.auth.getSession();
       
-      // Para busca, vamos recarregar todos os tickets por enquanto
-      // A nova função zendesk-tickets não suporta busca ainda
-      const { data, error } = await supabase.functions.invoke('zendesk-tickets', {
+      // Usar a função zendesk-integration para busca
+      const { data, error } = await supabase.functions.invoke('zendesk-integration', {
         headers: {
           Authorization: `Bearer ${session?.session?.access_token}`
+        },
+        body: {
+          action: 'search_tickets',
+          query: searchQuery
         }
       });
 
