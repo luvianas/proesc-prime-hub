@@ -200,7 +200,7 @@
   }
   
   .btn-elegant::before {
-    @apply absolute inset-0 opacity-0 transition-all duration-500;
+    @apply absolute inset-0 opacity-0 transition-all duration-500 pointer-events-none;
     content: '';
     background: linear-gradient(45deg, transparent 30%, rgba(255,255,255,0.3) 50%, transparent 70%);
     transform: translateX(-100%) skewX(-15deg);
@@ -304,7 +304,7 @@
   }
   
   .auth-background::before {
-    @apply absolute inset-0 opacity-50;
+    @apply absolute inset-0 opacity-50 pointer-events-none;
     content: '';
     background-image: var(--texture-dots);
     background-size: 40px 40px;
