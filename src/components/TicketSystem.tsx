@@ -99,12 +99,9 @@ const TicketSystem = ({ onBack }: TicketSystemProps) => {
       
       const { data: session } = await supabase.auth.getSession();
       
-      const { data, error } = await supabase.functions.invoke('zendesk-integration', {
+      const { data, error } = await supabase.functions.invoke('zendesk-tickets', {
         headers: {
           Authorization: `Bearer ${session?.session?.access_token}`
-        },
-        body: {
-          action: 'list_tickets'
         }
       });
 
@@ -197,12 +194,20 @@ const TicketSystem = ({ onBack }: TicketSystemProps) => {
 
       // Success case
       console.log('✅ TicketSystem: Tickets carregados com sucesso:', data?.tickets?.length || 0);
-      setTickets(data?.tickets || []);
+      const loadedTickets = data?.tickets || [];
+      setAllTickets(loadedTickets);
+      setTickets(loadedTickets);
       
-      if (data?.search_info) {
+      // Set school info from response
+      if (data?.organization_id || data?.school_name || data?.user_role) {
         setSchoolInfo(prev => ({ 
           ...prev, 
-          searchInfo: data.search_info 
+          searchInfo: {
+            organization_id: data.organization_id,
+            school_name: data.school_name,
+            user_role: data.user_role,
+            total_results: data?.total_count || data?.tickets?.length || 0
+          }
         }));
       }
       
@@ -266,38 +271,28 @@ const TicketSystem = ({ onBack }: TicketSystemProps) => {
     }
   };
 
+  const [allTickets, setAllTickets] = useState<Ticket[]>([]);
+
   const searchTickets = async () => {
     if (!searchQuery.trim()) {
-      loadTickets();
+      setTickets(allTickets);
       return;
     }
 
     try {
       setLoading(true);
-      const { data: session } = await supabase.auth.getSession();
       
-      // Usar a função zendesk-integration para busca
-      const { data, error } = await supabase.functions.invoke('zendesk-integration', {
-        headers: {
-          Authorization: `Bearer ${session?.session?.access_token}`
-        },
-        body: {
-          action: 'search_tickets',
-          query: searchQuery
-        }
-      });
+      // Filter tickets locally based on search query
+      const filteredTickets = allTickets.filter(ticket => 
+        ticket.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        ticket.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        ticket.id.includes(searchQuery) ||
+        ticket.status.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        ticket.category.toLowerCase().includes(searchQuery.toLowerCase())
+      );
 
-      if (error) {
-        throw error;
-      }
-
-      setTickets(data?.tickets || []);
-      if (data?.search_info) {
-        setSchoolInfo(prev => ({ 
-          ...prev, 
-          searchInfo: data.search_info 
-        }));
-      }
+      setTickets(filteredTickets);
+      
     } catch (error) {
       console.error('Error searching tickets:', error);
       toast({
