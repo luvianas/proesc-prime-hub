@@ -102,15 +102,16 @@ const Auth = () => {
     }
   };
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center auth-background p-4">
-      <div className="w-full max-w-3xl mb-8 flex items-center justify-center animate-fade-up" aria-hidden="false">
+    <div className="min-h-screen flex flex-col items-center justify-center auth-background p-4 select-none">
+      <div className="w-full max-w-3xl mb-8 flex items-center justify-center animate-fade-up pointer-events-none">
         <img
           src="/lovable-uploads/acebbdfd-931e-4b04-af8c-a6951b7e1088.png"
           alt="Logomarca Proesc Prime dourada"
-          className="h-20 md:h-24 object-contain hover-glow"
+          className="h-20 md:h-24 object-contain"
           loading="eager"
           width={512}
           height={128}
+          draggable={false}
         />
       </div>
       
