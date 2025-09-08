@@ -73,7 +73,9 @@ const normalizeOrganizationId = (orgId: any): string | null => {
 
 // Test Zendesk connectivity and credentials
 const testZendeskConnection = async (subdomain: string, email: string, token: string) => {
-  const testUrl = `https://${subdomain}.zendesk.com/api/v2/users/me.json`;
+  // Remove .zendesk.com if already present to avoid duplication
+  const cleanSubdomain = subdomain.replace(/\.zendesk\.com$/, '');
+  const testUrl = `https://${cleanSubdomain}.zendesk.com/api/v2/users/me.json`;
   const credentials = btoa(`${email}/token:${token}`);
   
   try {
@@ -295,7 +297,9 @@ serve(async (req) => {
     }
     
     // Dynamic Zendesk API base URL using subdomain
-    const zendeskUrl = `https://${ZENDESK_SUBDOMAIN}.zendesk.com/api/v2`;
+    // Remove .zendesk.com if already present to avoid duplication
+    const cleanSubdomain = ZENDESK_SUBDOMAIN.replace(/\.zendesk\.com$/, '');
+    const zendeskUrl = `https://${cleanSubdomain}.zendesk.com/api/v2`;
     console.log('🌐 Using Zendesk URL:', zendeskUrl);
     
     // Set up authentication headers with API token
