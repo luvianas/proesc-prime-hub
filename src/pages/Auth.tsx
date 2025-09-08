@@ -9,6 +9,7 @@ import { Separator } from '@/components/ui/separator';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useTheme } from 'next-themes';
 const Auth = () => {
   const [loginData, setLoginData] = useState({
     email: '',
@@ -24,6 +25,7 @@ const Auth = () => {
   const {
     toast
   } = useToast();
+  const { theme } = useTheme();
   useEffect(() => {
     document.title = "Prime Hub - Login";
     const desc = document.querySelector('meta[name="description"]');
@@ -105,8 +107,8 @@ const Auth = () => {
     <div className="min-h-screen flex flex-col items-center justify-center auth-background p-4 select-none">
       <div className="w-full max-w-3xl mb-8 flex items-center justify-center animate-fade-up pointer-events-none">
         <img
-          src="/lovable-uploads/acebbdfd-931e-4b04-af8c-a6951b7e1088.png"
-          alt="Logomarca Proesc Prime dourada"
+          src={theme === 'dark' ? '/lovable-uploads/4fdb5121-3424-463f-8412-5c406b323a94.png' : '/lovable-uploads/0626a168-f24c-4b7a-b03d-5aa945b1314a.png'}
+          alt="Logomarca Proesc Prime"
           className="h-20 md:h-24 object-contain"
           loading="eager"
           width={512}
