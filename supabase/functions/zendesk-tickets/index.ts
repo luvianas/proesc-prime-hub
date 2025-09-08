@@ -48,6 +48,60 @@ const mapZendeskPriority = (priority: string): string => {
   return priorityMap[priority] || priority;
 };
 
+// Convert scientific notation to integer for organization_id
+const normalizeOrganizationId = (orgId: any): string | null => {
+  if (!orgId) return null;
+  
+  // If it's already a string and looks like an integer, return as-is
+  if (typeof orgId === 'string' && /^\d+$/.test(orgId)) {
+    return orgId;
+  }
+  
+  // If it's a number (including scientific notation), convert to integer string
+  if (typeof orgId === 'number') {
+    return Math.round(orgId).toString();
+  }
+  
+  // Try to parse as float and convert to integer
+  const parsed = parseFloat(orgId.toString());
+  if (!isNaN(parsed)) {
+    return Math.round(parsed).toString();
+  }
+  
+  return null;
+};
+
+// Test Zendesk connectivity and credentials
+const testZendeskConnection = async (subdomain: string, email: string, token: string) => {
+  const testUrl = `https://${subdomain}.zendesk.com/api/v2/users/me.json`;
+  const credentials = btoa(`${email}/token:${token}`);
+  
+  try {
+    const response = await fetch(testUrl, {
+      headers: {
+        'Authorization': `Basic ${credentials}`,
+        'Content-Type': 'application/json',
+      }
+    });
+    
+    const data = await response.json();
+    
+    return {
+      success: response.ok,
+      status: response.status,
+      user: response.ok ? data.user : null,
+      error: !response.ok ? data.error || data.description : null
+    };
+  } catch (error) {
+    return {
+      success: false,
+      status: 0,
+      user: null,
+      error: `Connection failed: ${error.message}`
+    };
+  }
+};
+
 serve(async (req) => {
   console.log('🚀 Zendesk-tickets: Function started at', new Date().toISOString());
   console.log('🔄 Zendesk-tickets: Secrets refreshed - checking environment...');
@@ -116,6 +170,30 @@ serve(async (req) => {
       });
     }
 
+    // Test Zendesk connection before proceeding
+    console.log('🔍 Testing Zendesk connectivity...');
+    const connectionTest = await testZendeskConnection(ZENDESK_SUBDOMAIN, ZENDESK_EMAIL, ZENDESK_API_TOKEN);
+    
+    if (!connectionTest.success) {
+      console.error('❌ Zendesk connection failed:', connectionTest);
+      return new Response(JSON.stringify({ 
+        error: 'zendesk_connection_failed',
+        message: 'Falha na conexão com Zendesk - verifique as credenciais',
+        debug: connectionTest.error,
+        test_details: connectionTest,
+        tickets: []
+      }), { 
+        status: 500, 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      });
+    }
+    
+    console.log('✅ Zendesk connection successful:', {
+      user_id: connectionTest.user?.id,
+      user_email: connectionTest.user?.email,
+      user_role: connectionTest.user?.role
+    });
+
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
       throw new Error('No authorization header');
@@ -150,6 +228,17 @@ serve(async (req) => {
         .eq('school_id', profile.school_id)
         .single();
       schoolCustomizations = schoolData;
+      
+      // Normalize organization_id from scientific notation
+      if (schoolCustomizations && schoolCustomizations.organization_id) {
+        const normalizedOrgId = normalizeOrganizationId(schoolCustomizations.organization_id);
+        console.log('🔄 Organization ID conversion:', {
+          original: schoolCustomizations.organization_id,
+          normalized: normalizedOrgId,
+          type_original: typeof schoolCustomizations.organization_id
+        });
+        schoolCustomizations.organization_id = normalizedOrgId;
+      }
     }
 
     console.log('🏫 Zendesk-tickets: User profile loaded:', {
@@ -191,8 +280,23 @@ serve(async (req) => {
     
     console.log('🎯 Zendesk-tickets: Using organization_id:', organizationId);
     
-    // Zendesk API base URL
-    const zendeskUrl = `https://proesc.zendesk.com/api/v2`;
+    // Validate organization_id format
+    if (organizationId && !/^\d+$/.test(organizationId)) {
+      console.error('❌ Invalid organization_id format:', organizationId);
+      return new Response(JSON.stringify({ 
+        error: 'invalid_organization_id',
+        message: 'Organization ID deve ser um número válido',
+        debug: `Organization ID inválido: ${organizationId}`,
+        tickets: []
+      }), {
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+    
+    // Dynamic Zendesk API base URL using subdomain
+    const zendeskUrl = `https://${ZENDESK_SUBDOMAIN}.zendesk.com/api/v2`;
+    console.log('🌐 Using Zendesk URL:', zendeskUrl);
     
     // Set up authentication headers with API token
     const credentials = btoa(`${ZENDESK_EMAIL}/token:${ZENDESK_API_TOKEN}`);
@@ -202,6 +306,44 @@ serve(async (req) => {
     };
 
     console.log('🎯 Zendesk-tickets: Fetching tickets for organization_id:', organizationId);
+    
+    // Test if organization exists in Zendesk before fetching tickets
+    const orgTestUrl = `${zendeskUrl}/organizations/${organizationId}.json`;
+    console.log('🔍 Testing organization existence:', orgTestUrl);
+    
+    try {
+      const orgTestResponse = await fetch(orgTestUrl, { headers: zendeskHeaders });
+      const orgTestData = await orgTestResponse.json();
+      
+      if (!orgTestResponse.ok) {
+        console.error('❌ Organization not found in Zendesk:', orgTestData);
+        return new Response(JSON.stringify({ 
+          error: 'organization_not_found',
+          message: `Organização ${organizationId} não encontrada no Zendesk`,
+          debug: orgTestData.error || 'Organization does not exist',
+          tickets: []
+        }), {
+          status: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      
+      console.log('✅ Organization validated:', {
+        id: orgTestData.organization?.id,
+        name: orgTestData.organization?.name
+      });
+    } catch (orgError) {
+      console.error('❌ Error validating organization:', orgError);
+      return new Response(JSON.stringify({ 
+        error: 'organization_validation_failed',
+        message: 'Erro ao validar organização no Zendesk',
+        debug: orgError.message,
+        tickets: []
+      }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
     
     // Use the specific endpoint for organization tickets
     const fetchUrl = `${zendeskUrl}/organizations/${organizationId}/tickets.json`;
