@@ -1,13 +1,15 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeft, Clock, CheckCircle, AlertCircle, User, Calendar, MessageSquare, Activity, Loader2, Send, Reply } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { ArrowLeft, Clock, CheckCircle, AlertCircle, User, Calendar, MessageSquare, Activity, Loader2, Send, Reply, Paperclip, Bold, Italic, Link, Smile } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import ReactQuill from 'react-quill';
+import 'react-quill/dist/quill.snow.css';
 
 interface TicketDetailsPageProps {
   ticketId: string;
@@ -69,7 +71,8 @@ const TicketDetailsPage = ({ ticketId, onBack }: TicketDetailsPageProps) => {
   const [loading, setLoading] = useState(true);
   const [replyText, setReplyText] = useState('');
   const [isReplying, setIsReplying] = useState(false);
-  const [showReplyForm, setShowReplyForm] = useState(false);
+  const [attachments, setAttachments] = useState<File[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (ticketId) {
@@ -147,7 +150,7 @@ const TicketDetailsPage = ({ ticketId, onBack }: TicketDetailsPageProps) => {
           ticket_id: ticketId,
           comment_body: replyText.trim(),
           is_public: true,
-          has_attachment: false
+          has_attachment: attachments.length > 0
         },
         headers: {
           Authorization: `Bearer ${session?.session?.access_token}`
@@ -170,7 +173,7 @@ const TicketDetailsPage = ({ ticketId, onBack }: TicketDetailsPageProps) => {
           description: "Resposta enviada com sucesso",
         });
         setReplyText('');
-        setShowReplyForm(false);
+        setAttachments([]);
         // Recarregar detalhes do ticket para mostrar novo comentário
         await loadTicketDetails();
       } else {
@@ -199,6 +202,15 @@ const TicketDetailsPage = ({ ticketId, onBack }: TicketDetailsPageProps) => {
     } finally {
       setIsReplying(false);
     }
+  };
+
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(event.target.files || []);
+    setAttachments(prev => [...prev, ...files]);
+  };
+
+  const removeAttachment = (index: number) => {
+    setAttachments(prev => prev.filter((_, i) => i !== index));
   };
 
   const getStatusBadge = (status: string) => {
@@ -397,8 +409,8 @@ const TicketDetailsPage = ({ ticketId, onBack }: TicketDetailsPageProps) => {
                       });
                     }
                     
-                    // Ordenar por data (mais recente primeiro)
-                    allEvents.sort((a, b) => b.date.getTime() - a.date.getTime());
+                    // Ordenar por data (mais antigo primeiro)
+                    allEvents.sort((a, b) => a.date.getTime() - b.date.getTime());
                     
                     if (allEvents.length === 0) {
                       return (
@@ -475,52 +487,94 @@ const TicketDetailsPage = ({ ticketId, onBack }: TicketDetailsPageProps) => {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                {showReplyForm ? (
-                  <div className="space-y-4">
-                    <Textarea
+                <div className="space-y-4">
+                  {/* Rich Text Editor */}
+                  <div className="border border-input rounded-md">
+                    <ReactQuill
+                      theme="snow"
+                      value={replyText}
+                      onChange={setReplyText}
                       placeholder="Digite sua resposta..."
-                      value={replyText} 
-                      onChange={(e) => setReplyText(e.target.value)}
-                      className="min-h-[100px]"
+                      modules={{
+                        toolbar: [
+                          [{ 'header': [1, 2, 3, false] }],
+                          ['bold', 'italic', 'underline', 'strike'],
+                          [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+                          ['link', 'image'],
+                          ['clean']
+                        ],
+                      }}
+                      formats={[
+                        'header', 'bold', 'italic', 'underline', 'strike',
+                        'list', 'bullet', 'link', 'image'
+                      ]}
                     />
-                    <div className="flex justify-end space-x-2">
-                      <Button 
-                        variant="outline" 
-                        onClick={() => {
-                          setShowReplyForm(false);
-                          setReplyText('');
-                        }}
+                  </div>
+                  
+                  {/* File Attachments */}
+                  <div className="space-y-2">
+                    <div className="flex items-center space-x-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => fileInputRef.current?.click()}
                         disabled={isReplying}
                       >
-                        Cancelar
+                        <Paperclip className="h-4 w-4 mr-2" />
+                        Anexar Arquivo
                       </Button>
-                      <Button 
-                        onClick={handleAddReply}
-                        disabled={isReplying || !replyText.trim()}
-                      >
-                        {isReplying ? (
-                          <>
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            Enviando...
-                          </>
-                        ) : (
-                          <>
-                            <Send className="mr-2 h-4 w-4" />
-                            Enviar Resposta
-                          </>
-                        )}
-                      </Button>
+                      <Input
+                        ref={fileInputRef}
+                        type="file"
+                        multiple
+                        className="hidden"
+                        onChange={handleFileUpload}
+                        accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.gif,.txt"
+                      />
                     </div>
+                    
+                    {/* Show attached files */}
+                    {attachments.length > 0 && (
+                      <div className="space-y-2">
+                        <p className="text-sm font-medium">Arquivos anexados:</p>
+                        {attachments.map((file, index) => (
+                          <div key={index} className="flex items-center justify-between bg-muted p-2 rounded">
+                            <span className="text-sm">{file.name}</span>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => removeAttachment(index)}
+                              disabled={isReplying}
+                            >
+                              ×
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
-                ) : (
-                  <Button 
-                    onClick={() => setShowReplyForm(true)}
-                    className="w-full"
-                  >
-                    <Reply className="mr-2 h-4 w-4" />
-                    Responder Ticket
-                  </Button>
-                )}
+                  
+                  {/* Send Button */}
+                  <div className="flex justify-end">
+                    <Button 
+                      onClick={handleAddReply}
+                      disabled={isReplying || !replyText.trim()}
+                    >
+                      {isReplying ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Enviando...
+                        </>
+                      ) : (
+                        <>
+                          <Send className="mr-2 h-4 w-4" />
+                          Enviar Resposta
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </div>
               </CardContent>
             </Card>
           </div>
