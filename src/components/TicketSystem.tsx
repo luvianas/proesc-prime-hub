@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeft, Plus, Search, Clock, CheckCircle, AlertCircle, ExternalLink, Loader2, User } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ArrowLeft, Plus, Search, Clock, CheckCircle, AlertCircle, ExternalLink, Loader2, User, Filter, ChevronLeft, ChevronRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/components/ui/use-toast";
@@ -37,6 +38,14 @@ const TicketSystem = ({ onBack }: TicketSystemProps) => {
   const [creating, setCreating] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [newTicket, setNewTicket] = useState({ title: "", description: "", priority: "normal" });
+  
+  // Filtros e paginação
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [requesterFilter, setRequesterFilter] = useState<string>("all");
+  const [typeFilter, setTypeFilter] = useState<string>("all");
+  const [sortBy, setSortBy] = useState<"status" | "date">("status");
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
   const [schoolInfo, setSchoolInfo] = useState<{
     schoolName?: string;
     schoolId?: string;
@@ -275,36 +284,111 @@ const TicketSystem = ({ onBack }: TicketSystemProps) => {
 
   const [allTickets, setAllTickets] = useState<Ticket[]>([]);
 
-  const searchTickets = async () => {
-    if (!searchQuery.trim()) {
-      setTickets(allTickets);
-      return;
-    }
+  // Função para ordenar tickets por status e data
+  const sortTickets = (ticketsList: Ticket[]) => {
+    const statusOrder = {
+      "Em Andamento": 1, // Aberto
+      "Pendente": 2,
+      "Resolvido": 3  // Fechado
+    };
 
-    try {
-      setLoading(true);
-      
-      // Filter tickets locally based on search query
-      const filteredTickets = allTickets.filter(ticket => 
+    return [...ticketsList].sort((a, b) => {
+      if (sortBy === "status") {
+        // Primeiro por status
+        const statusA = statusOrder[a.status as keyof typeof statusOrder] || 999;
+        const statusB = statusOrder[b.status as keyof typeof statusOrder] || 999;
+        
+        if (statusA !== statusB) {
+          return statusA - statusB;
+        }
+        
+        // Depois por data (mais recente primeiro)
+        return new Date(b.created).getTime() - new Date(a.created).getTime();
+      } else {
+        // Ordenação apenas por data
+        return new Date(b.created).getTime() - new Date(a.created).getTime();
+      }
+    });
+  };
+
+  // Função para filtrar e paginar tickets
+  const getFilteredAndPaginatedTickets = () => {
+    let filtered = allTickets;
+
+    // Aplicar busca por texto
+    if (searchQuery.trim()) {
+      filtered = filtered.filter(ticket => 
         ticket.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
         ticket.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
         ticket.id.includes(searchQuery) ||
         ticket.status.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        ticket.category.toLowerCase().includes(searchQuery.toLowerCase())
+        ticket.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        ticket.requester_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        ticket.requester_email?.toLowerCase().includes(searchQuery.toLowerCase())
       );
-
-      setTickets(filteredTickets);
-      
-    } catch (error) {
-      console.error('Error searching tickets:', error);
-      toast({
-        title: "Erro na busca",
-        description: "Não foi possível buscar os tickets.",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
     }
+
+    // Filtrar por status
+    if (statusFilter !== "all") {
+      filtered = filtered.filter(ticket => ticket.status === statusFilter);
+    }
+
+    // Filtrar por solicitante
+    if (requesterFilter !== "all") {
+      filtered = filtered.filter(ticket => 
+        ticket.requester_name === requesterFilter || 
+        ticket.requester_email === requesterFilter
+      );
+    }
+
+    // Filtrar por tipo
+    if (typeFilter !== "all") {
+      filtered = filtered.filter(ticket => ticket.category === typeFilter);
+    }
+
+    // Ordenar
+    const sorted = sortTickets(filtered);
+
+    // Paginar
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    const paginated = sorted.slice(startIndex, endIndex);
+
+    return {
+      tickets: paginated,
+      totalTickets: sorted.length,
+      totalPages: Math.ceil(sorted.length / itemsPerPage)
+    };
+  };
+
+  // Obter listas únicas para filtros
+  const getUniqueRequesters = () => {
+    const requesters = new Set<string>();
+    allTickets.forEach(ticket => {
+      if (ticket.requester_name) requesters.add(ticket.requester_name);
+      if (ticket.requester_email) requesters.add(ticket.requester_email);
+    });
+    return Array.from(requesters).sort();
+  };
+
+  const getUniqueTypes = () => {
+    const types = new Set(allTickets.map(ticket => ticket.category));
+    return Array.from(types).sort();
+  };
+
+  const getUniqueStatuses = () => {
+    const statuses = new Set(allTickets.map(ticket => ticket.status));
+    return Array.from(statuses).sort();
+  };
+
+  // Resetar página quando filtros mudarem
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [statusFilter, requesterFilter, typeFilter, searchQuery, sortBy]);
+
+  const searchTickets = () => {
+    // A busca agora é feita automaticamente através dos filtros
+    setCurrentPage(1);
   };
 
   const getStatusBadge = (status: string) => {
@@ -376,20 +460,75 @@ const TicketSystem = ({ onBack }: TicketSystemProps) => {
       </div>
 
       {/* Search and Filters */}
-      <div className="flex items-center space-x-4 mb-6">
-        <div className="relative flex-1 max-w-md">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-          <Input 
-            placeholder="Buscar tickets..." 
-            className="pl-10" 
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            onKeyPress={(e) => e.key === 'Enter' && searchTickets()}
-          />
+      <div className="space-y-4 mb-6">
+        <div className="flex items-center space-x-4">
+          <div className="relative flex-1 max-w-md">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <Input 
+              placeholder="Buscar tickets..." 
+              className="pl-10" 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
+          <Button onClick={searchTickets} variant="outline">
+            <Search className="h-4 w-4" />
+          </Button>
         </div>
-        <Button onClick={searchTickets} variant="outline">
-          <Search className="h-4 w-4" />
-        </Button>
+
+        {/* Filtros */}
+        <div className="flex items-center space-x-4 p-4 bg-muted/50 rounded-lg">
+          <Filter className="h-4 w-4 text-muted-foreground" />
+          <span className="text-sm font-medium">Filtros:</span>
+          
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="w-[140px]">
+              <SelectValue placeholder="Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos status</SelectItem>
+              {getUniqueStatuses().map(status => (
+                <SelectItem key={status} value={status}>{status}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select value={requesterFilter} onValueChange={setRequesterFilter}>
+            <SelectTrigger className="w-[160px]">
+              <SelectValue placeholder="Solicitante" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos solicitantes</SelectItem>
+              {getUniqueRequesters().map(requester => (
+                <SelectItem key={requester} value={requester}>
+                  {requester.includes("@") ? requester.split("@")[0] : requester}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select value={typeFilter} onValueChange={setTypeFilter}>
+            <SelectTrigger className="w-[140px]">
+              <SelectValue placeholder="Tipo" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos tipos</SelectItem>
+              {getUniqueTypes().map(type => (
+                <SelectItem key={type} value={type}>{type}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select value={sortBy} onValueChange={(value: "status" | "date") => setSortBy(value)}>
+            <SelectTrigger className="w-[160px]">
+              <SelectValue placeholder="Ordenar por" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="status">Status e Data</SelectItem>
+              <SelectItem value="date">Data de criação</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       {/* New Ticket Form */}
@@ -431,8 +570,22 @@ const TicketSystem = ({ onBack }: TicketSystemProps) => {
           <span className="ml-2">Carregando tickets...</span>
         </div>
       ) : (
-        <div className="space-y-4">
-          {tickets.length === 0 ? (
+        <div className="space-y-6">
+          {(() => {
+            const { tickets: paginatedTickets, totalTickets, totalPages } = getFilteredAndPaginatedTickets();
+            
+            return (
+              <>
+                {/* Header de resultados */}
+                {totalTickets > 0 && (
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm text-muted-foreground">
+                      Mostrando {((currentPage - 1) * itemsPerPage) + 1} - {Math.min(currentPage * itemsPerPage, totalTickets)} de {totalTickets} tickets
+                    </p>
+                  </div>
+                )}
+
+                {paginatedTickets.length === 0 ? (
             <Card>
               <CardContent className="text-center py-8">
                 <AlertCircle className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
@@ -497,8 +650,9 @@ const TicketSystem = ({ onBack }: TicketSystemProps) => {
                 )}
               </CardContent>
             </Card>
-          ) : (
-            tickets.map((ticket) => (
+                ) : (
+                  <div className="space-y-4">
+                    {paginatedTickets.map((ticket) => (
               <Card key={ticket.id} className="hover:shadow-md transition-shadow">
                 <CardHeader>
                   <div className="flex items-start justify-between">
@@ -541,8 +695,51 @@ const TicketSystem = ({ onBack }: TicketSystemProps) => {
                   </div>
                 </CardHeader>
               </Card>
-            ))
-          )}
+                    ))}
+
+                    {/* Paginação */}
+                    {totalPages > 1 && (
+                      <div className="flex items-center justify-center space-x-2 mt-6">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                          disabled={currentPage === 1}
+                        >
+                          <ChevronLeft className="h-4 w-4" />
+                          Anterior
+                        </Button>
+                        
+                        <div className="flex items-center space-x-1">
+                          {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                            <Button
+                              key={page}
+                              variant={page === currentPage ? "default" : "outline"}
+                              size="sm"
+                              onClick={() => setCurrentPage(page)}
+                              className="w-8"
+                            >
+                              {page}
+                            </Button>
+                          ))}
+                        </div>
+                        
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                          disabled={currentPage === totalPages}
+                        >
+                          Próxima
+                          <ChevronRight className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </>
+            );
+          })()}
         </div>
       )}
 
