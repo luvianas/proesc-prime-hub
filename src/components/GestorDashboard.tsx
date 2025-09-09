@@ -23,7 +23,7 @@ interface SchoolCustomization {
   consultant_id?: string;
   consultant_whatsapp?: string;
   consultant_calendar_url?: string;
-  zendesk_external_id?: string;
+  proesc_id?: string;
   metabase_integration_url?: string;
   dashboard_links?: any;
   created_at: string;
