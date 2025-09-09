@@ -298,11 +298,11 @@ const TicketDetailsPage = ({ ticketId, onBack }: TicketDetailsPageProps) => {
                   {(() => {
                     const allEvents: any[] = [];
                     
-                    // Adicionar apenas comentários
+                    // Adicionar apenas comentários públicos
                     if (ticketDetails.comments) {
                       ticketDetails.comments.forEach(comment => {
-                        // Validar se a data do comentário é válida
-                        if (comment.created_at) {
+                        // Mostrar apenas comentários públicos
+                        if (comment.public && comment.created_at) {
                           const commentDate = new Date(comment.created_at);
                           if (!isNaN(commentDate.getTime())) {
                             allEvents.push({
