@@ -142,6 +142,10 @@ const TicketDetailsPage = ({ ticketId, onBack }: TicketDetailsPageProps) => {
   };
 
   const getPriorityColor = (priority: string) => {
+    if (!priority || typeof priority !== 'string') {
+      return 'bg-gray-100 text-gray-800';
+    }
+    
     switch (priority.toLowerCase()) {
       case 'urgent':
       case 'high':
