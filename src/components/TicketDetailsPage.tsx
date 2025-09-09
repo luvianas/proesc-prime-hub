@@ -317,14 +317,35 @@ const TicketDetailsPage = ({ ticketId, onBack }: TicketDetailsPageProps) => {
                       });
                     }
                     
-                    // Adicionar auditorias
+                    // Adicionar auditorias (filtrar atividades do sistema)
                     if (ticketDetails.audits) {
                       ticketDetails.audits.forEach(audit => {
                         if (audit.created_at) {
                           const auditDate = new Date(audit.created_at);
                           if (!isNaN(auditDate.getTime())) {
                             audit.events.forEach(event => {
-                              if (event.type !== 'Comment') { // Evitar duplicar comentários
+                              // Filtrar atividades do sistema que não queremos mostrar
+                              const systemEvents = [
+                                'Notification',
+                                'AgentWorkTime',
+                                'FirstReplyTime', 
+                                'RequesterWorkTime',
+                                'SlaPolicy',
+                                'Metric'
+                              ];
+                              
+                              const isSystemEvent = systemEvents.some(sysEvent => 
+                                event.type === sysEvent || 
+                                (event.field_name && [
+                                  'agent_work_time',
+                                  'first_reply_time', 
+                                  'requester_work_time',
+                                  'sla_policy',
+                                  'metric'
+                                ].includes(event.field_name))
+                              );
+                              
+                              if (event.type !== 'Comment' && !isSystemEvent) { // Evitar duplicar comentários e filtrar eventos do sistema
                                 allEvents.push({
                                   type: 'audit',
                                   data: { ...event, audit },

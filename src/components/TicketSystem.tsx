@@ -678,7 +678,7 @@ const TicketSystem = ({ onBack }: TicketSystemProps) => {
                     {paginatedTickets.map((ticket) => (
               <Card 
                 key={ticket.id} 
-                className="hover:shadow-md transition-shadow cursor-pointer"
+                className="hover:shadow-lg hover:scale-[1.02] transition-all duration-200 cursor-pointer hover:border-primary/20"
                 onClick={() => openTicketDetails(ticket.id)}
               >
                 <CardHeader>
