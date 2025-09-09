@@ -457,6 +457,91 @@ serve(async (req) => {
       'Content-Type': 'application/json',
     };
 
+    // Handle add comment request
+    if (action === 'add-comment' && ticketId) {
+      console.log('💬 Adding comment to ticket:', ticketId);
+      
+      try {
+        const { comment_body, is_public = true, has_attachment = false } = await req.json();
+        
+        if (!comment_body || comment_body.trim() === '') {
+          return new Response(JSON.stringify({
+            error: 'comment_body_required',
+            message: 'Corpo do comentário é obrigatório'
+          }), {
+            status: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          });
+        }
+
+        // Validar que apenas comentários públicos e com anexo são permitidos
+        if (!is_public && !has_attachment) {
+          return new Response(JSON.stringify({
+            error: 'invalid_comment_type',
+            message: 'Apenas comentários públicos ou com anexo são permitidos'
+          }), {
+            status: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          });
+        }
+
+        // Preparar dados do comentário com informações do usuário logado
+        const commentData = {
+          ticket: {
+            comment: {
+              body: comment_body,
+              public: is_public,
+              author_id: null // Zendesk irá usar o usuário autenticado
+            }
+          }
+        };
+
+        console.log('📝 Adding comment data:', {
+          ticket_id: ticketId,
+          is_public: is_public,
+          user_name: profile.name,
+          user_email: profile.email,
+          comment_length: comment_body.length
+        });
+
+        // Enviar comentário para o Zendesk
+        const commentResponse = await fetch(`${zendeskUrl}/tickets/${ticketId}.json`, {
+          method: 'PUT',
+          headers: zendeskHeaders,
+          body: JSON.stringify(commentData)
+        });
+
+        if (!commentResponse.ok) {
+          const errorData = await commentResponse.json();
+          console.error('❌ Error adding comment:', errorData);
+          throw new Error(`Failed to add comment: ${commentResponse.status} - ${errorData.description || errorData.error}`);
+        }
+
+        const result = await commentResponse.json();
+        console.log('✅ Comment added successfully to ticket:', ticketId);
+
+        return new Response(JSON.stringify({
+          success: true,
+          message: 'Comentário adicionado com sucesso',
+          ticket_id: ticketId,
+          comment_id: result.audit?.id
+        }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+
+      } catch (error) {
+        console.error('❌ Error adding comment:', error);
+        return new Response(JSON.stringify({
+          error: 'add_comment_failed',
+          message: 'Erro ao adicionar comentário',
+          details: error.message
+        }), {
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+    }
+
     // Handle ticket details request
     if (action === 'get-ticket-details' && ticketId) {
       console.log('🔍 Fetching detailed information for ticket:', ticketId);

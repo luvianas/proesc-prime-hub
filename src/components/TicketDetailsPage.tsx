@@ -2,7 +2,8 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Clock, CheckCircle, AlertCircle, User, Calendar, MessageSquare, Activity, Loader2 } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { ArrowLeft, Clock, CheckCircle, AlertCircle, User, Calendar, MessageSquare, Activity, Loader2, Send, Reply } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
 import { format } from "date-fns";
@@ -66,6 +67,9 @@ const TicketDetailsPage = ({ ticketId, onBack }: TicketDetailsPageProps) => {
   const { toast } = useToast();
   const [ticketDetails, setTicketDetails] = useState<TicketDetails | null>(null);
   const [loading, setLoading] = useState(true);
+  const [replyText, setReplyText] = useState('');
+  const [isReplying, setIsReplying] = useState(false);
+  const [showReplyForm, setShowReplyForm] = useState(false);
 
   useEffect(() => {
     if (ticketId) {
@@ -108,16 +112,83 @@ const TicketDetailsPage = ({ ticketId, onBack }: TicketDetailsPageProps) => {
         return;
       }
 
+      console.log('Ticket details loaded:', data);
       setTicketDetails(data);
     } catch (error) {
-      console.error('Error loading ticket details:', error);
+      console.error('Error in loadTicketDetails:', error);
       toast({
-        title: "Erro interno",
-        description: "Erro inesperado ao carregar detalhes do ticket.",
+        title: "Erro",
+        description: "Erro interno ao carregar ticket",
         variant: "destructive",
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleAddReply = async () => {
+    if (!replyText.trim()) {
+      toast({
+        title: "Erro",
+        description: "Digite uma resposta antes de enviar",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      setIsReplying(true);
+
+      const { data: session } = await supabase.auth.getSession();
+
+      const { data, error } = await supabase.functions.invoke('zendesk-tickets', {
+        body: {
+          action: 'add-comment',
+          ticket_id: ticketId,
+          comment_body: replyText.trim(),
+          is_public: true,
+          has_attachment: false
+        },
+        headers: {
+          Authorization: `Bearer ${session?.session?.access_token}`
+        }
+      });
+
+      if (error) {
+        console.error('Error adding reply:', error);
+        toast({
+          title: "Erro",
+          description: "Não foi possível enviar a resposta",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (data?.success) {
+        toast({
+          title: "Sucesso",
+          description: "Resposta enviada com sucesso",
+        });
+        setReplyText('');
+        setShowReplyForm(false);
+        // Recarregar detalhes do ticket para mostrar novo comentário
+        await loadTicketDetails();
+      } else {
+        toast({
+          title: "Erro", 
+          description: data?.message || "Erro ao enviar resposta",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error('Error in handleAddReply:', error);
+      toast({
+        title: "Erro",
+        description: "Erro interno ao enviar resposta",
+        variant: "destructive",
+      });
+    } finally {
+      setIsReplying(false);
     }
   };
 
@@ -383,6 +454,64 @@ const TicketDetailsPage = ({ ticketId, onBack }: TicketDetailsPageProps) => {
                     ));
                   })()}
                 </div>
+              </CardContent>
+            </Card>
+
+            {/* Formulário de Resposta */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-2">
+                  <Reply className="h-5 w-5" />
+                  <span>Adicionar Resposta</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {showReplyForm ? (
+                  <div className="space-y-4">
+                    <Textarea
+                      placeholder="Digite sua resposta..."
+                      value={replyText} 
+                      onChange={(e) => setReplyText(e.target.value)}
+                      className="min-h-[100px]"
+                    />
+                    <div className="flex justify-end space-x-2">
+                      <Button 
+                        variant="outline" 
+                        onClick={() => {
+                          setShowReplyForm(false);
+                          setReplyText('');
+                        }}
+                        disabled={isReplying}
+                      >
+                        Cancelar
+                      </Button>
+                      <Button 
+                        onClick={handleAddReply}
+                        disabled={isReplying || !replyText.trim()}
+                      >
+                        {isReplying ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Enviando...
+                          </>
+                        ) : (
+                          <>
+                            <Send className="mr-2 h-4 w-4" />
+                            Enviar Resposta
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <Button 
+                    onClick={() => setShowReplyForm(true)}
+                    className="w-full"
+                  >
+                    <Reply className="mr-2 h-4 w-4" />
+                    Responder Ticket
+                  </Button>
+                )}
               </CardContent>
             </Card>
           </div>
