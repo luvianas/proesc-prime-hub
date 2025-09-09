@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeft, Plus, Search, Clock, CheckCircle, AlertCircle, ExternalLink, Loader2 } from "lucide-react";
+import { ArrowLeft, Plus, Search, Clock, CheckCircle, AlertCircle, ExternalLink, Loader2, User } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/components/ui/use-toast";
@@ -24,6 +24,8 @@ interface Ticket {
   category: string;
   zendesk_id?: number;
   zendesk_url?: string;
+  requester_name?: string;
+  requester_email?: string;
 }
 
 const TicketSystem = ({ onBack }: TicketSystemProps) => {
@@ -522,6 +524,15 @@ const TicketSystem = ({ onBack }: TicketSystemProps) => {
                       </div>
                       <CardTitle className="text-lg">{ticket.title}</CardTitle>
                       <CardDescription>{ticket.description}</CardDescription>
+                      {(ticket.requester_name || ticket.requester_email) && (
+                        <div className="flex items-center space-x-1 text-sm text-muted-foreground mt-2">
+                          <User className="h-4 w-4" />
+                          <span>
+                            Solicitado por: {ticket.requester_name || 'Usuário'}
+                            {ticket.requester_email && ` (${ticket.requester_email})`}
+                          </span>
+                        </div>
+                      )}
                     </div>
                     <div className="text-right text-sm text-gray-500">
                       <p>Criado em</p>

@@ -24,6 +24,8 @@ interface Ticket {
   requester_id?: string;
   assignee_id?: string;
   tags?: string[];
+  requester_name?: string;
+  requester_email?: string;
 }
 
 const mapZendeskStatus = (status: string): string => {
@@ -386,22 +388,61 @@ serve(async (req) => {
         console.log(`⚠️ Zendesk-tickets: No tickets found for organization ${organizationId}`);
       }
 
+      // Get unique requester IDs to fetch user data in batch
+      const requesterIds = [...new Set(tickets
+        .map((ticket: any) => ticket.requester_id)
+        .filter(Boolean)
+      )];
+
+      // Fetch requester data in batch if we have any requester IDs
+      let requestersData: { [key: string]: { name: string; email: string } } = {};
+      
+      if (requesterIds.length > 0) {
+        try {
+          const requestersUrl = `${zendeskUrl}/users/show_many.json?ids=${requesterIds.join(',')}`;
+          const requestersResponse = await fetch(requestersUrl, { headers: zendeskHeaders });
+          
+          if (requestersResponse.ok) {
+            const requestersJson = await requestersResponse.json();
+            requestersData = requestersJson.users.reduce((acc: any, user: any) => {
+              acc[user.id.toString()] = {
+                name: user.name || 'Usuário',
+                email: user.email || ''
+              };
+              return acc;
+            }, {});
+            console.log(`👥 Zendesk-tickets: Fetched data for ${Object.keys(requestersData).length} requesters`);
+          } else {
+            console.warn('⚠️ Zendesk-tickets: Failed to fetch requesters data:', requestersResponse.status);
+          }
+        } catch (error) {
+          console.warn('⚠️ Zendesk-tickets: Error fetching requesters data:', error);
+        }
+      }
+
       // Transform tickets to our format
-      const transformedTickets: Ticket[] = tickets.map((ticket: any) => ({
-        id: ticket.id.toString(),
-        title: ticket.subject || 'Sem título',
-        description: ticket.description || '',
-        status: mapZendeskStatus(ticket.status),
-        priority: mapZendeskPriority(ticket.priority),
-        created: ticket.created_at,
-        category: ticket.type || 'question',
-        zendesk_id: ticket.id,
-        zendesk_url: ticket.url,
-        organization_id: ticket.organization_id?.toString(),
-        requester_id: ticket.requester_id?.toString(),
-        assignee_id: ticket.assignee_id?.toString(),
-        tags: ticket.tags
-      }));
+      const transformedTickets: Ticket[] = tickets.map((ticket: any) => {
+        const requesterId = ticket.requester_id?.toString();
+        const requesterInfo = requesterId ? requestersData[requesterId] : null;
+        
+        return {
+          id: ticket.id.toString(),
+          title: ticket.subject || 'Sem título',
+          description: ticket.description || '',
+          status: mapZendeskStatus(ticket.status),
+          priority: mapZendeskPriority(ticket.priority),
+          created: ticket.created_at,
+          category: ticket.type || 'question',
+          zendesk_id: ticket.id,
+          zendesk_url: ticket.url,
+          organization_id: ticket.organization_id?.toString(),
+          requester_id: requesterId,
+          assignee_id: ticket.assignee_id?.toString(),
+          tags: ticket.tags,
+          requester_name: requesterInfo?.name,
+          requester_email: requesterInfo?.email
+        };
+      });
 
       console.log(`🎯 Zendesk-tickets: Returning ${transformedTickets.length} tickets`);
 
