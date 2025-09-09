@@ -243,13 +243,14 @@ serve(async (req) => {
   const url = new URL(req.url);
   let ticketId = url.searchParams.get('ticketId');
   let action = url.searchParams.get('action');
+  let requestBody = null;
   
   // Check if it's a POST request with body data
   if (req.method === 'POST') {
     try {
-      const body = await req.json();
-      ticketId = body.ticket_id || ticketId;
-      action = body.action || action;
+      requestBody = await req.json();
+      ticketId = requestBody.ticket_id || ticketId;
+      action = requestBody.action || action;
       console.log('📥 POST request body:', { action, ticket_id: ticketId });
     } catch (error) {
       console.log('⚠️ Failed to parse POST body, using query params only');
@@ -462,7 +463,7 @@ serve(async (req) => {
       console.log('💬 Adding comment to ticket:', ticketId);
       
       try {
-        const { comment_body, is_public = true, has_attachment = false } = await req.json();
+        const { comment_body, is_public = true, has_attachment = false } = requestBody || {};
         
         if (!comment_body || comment_body.trim() === '') {
           return new Response(JSON.stringify({
