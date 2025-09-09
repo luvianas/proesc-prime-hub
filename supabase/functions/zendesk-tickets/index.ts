@@ -73,6 +73,129 @@ const normalizeOrganizationId = (orgId: any): string | null => {
   return null;
 };
 
+// Function to get detailed ticket information including comments and audits
+const getTicketDetails = async (ticketId: string, subdomain: string, email: string, token: string) => {
+  const cleanSubdomain = subdomain.replace(/\.zendesk\.com$/, '');
+  const baseUrl = `https://${cleanSubdomain}.zendesk.com/api/v2`;
+  const credentials = btoa(`${email}/token:${token}`);
+  const headers = {
+    'Authorization': `Basic ${credentials}`,
+    'Content-Type': 'application/json',
+  };
+
+  try {
+    console.log(`🎫 Fetching ticket details for ID: ${ticketId}`);
+    
+    // Fetch ticket basic info
+    const ticketResponse = await fetch(`${baseUrl}/tickets/${ticketId}.json`, { headers });
+    if (!ticketResponse.ok) {
+      throw new Error(`Failed to fetch ticket: ${ticketResponse.status}`);
+    }
+    const ticketData = await ticketResponse.json();
+    const ticket = ticketData.ticket;
+
+    // Fetch ticket comments
+    console.log(`💬 Fetching comments for ticket ${ticketId}`);
+    const commentsResponse = await fetch(`${baseUrl}/tickets/${ticketId}/comments.json`, { headers });
+    let comments = [];
+    if (commentsResponse.ok) {
+      const commentsData = await commentsResponse.json();
+      comments = commentsData.comments || [];
+      console.log(`✅ Found ${comments.length} comments`);
+    } else {
+      console.warn(`⚠️ Failed to fetch comments: ${commentsResponse.status}`);
+    }
+
+    // Fetch ticket audits
+    console.log(`📋 Fetching audits for ticket ${ticketId}`);
+    const auditsResponse = await fetch(`${baseUrl}/tickets/${ticketId}/audits.json`, { headers });
+    let audits = [];
+    if (auditsResponse.ok) {
+      const auditsData = await auditsResponse.json();
+      audits = auditsData.audits || [];
+      console.log(`✅ Found ${audits.length} audits`);
+    } else {
+      console.warn(`⚠️ Failed to fetch audits: ${auditsResponse.status}`);
+    }
+
+    // Get unique user IDs from comments and audits
+    const userIds = new Set();
+    comments.forEach(comment => {
+      if (comment.author_id) userIds.add(comment.author_id);
+    });
+    audits.forEach(audit => {
+      if (audit.author_id) userIds.add(audit.author_id);
+    });
+
+    // Fetch user information
+    let usersData = {};
+    if (userIds.size > 0) {
+      console.log(`👥 Fetching user data for ${userIds.size} users`);
+      const usersResponse = await fetch(`${baseUrl}/users/show_many.json?ids=${Array.from(userIds).join(',')}`, { headers });
+      if (usersResponse.ok) {
+        const usersJson = await usersResponse.json();
+        usersData = usersJson.users.reduce((acc: any, user: any) => {
+          acc[user.id] = {
+            name: user.name || 'Usuário',
+            email: user.email || ''
+          };
+          return acc;
+        }, {});
+        console.log(`✅ Fetched data for ${Object.keys(usersData).length} users`);
+      }
+    }
+
+    // Transform the ticket data
+    const transformedTicket = {
+      id: ticket.id.toString(),
+      title: ticket.subject || 'Sem título',
+      description: ticket.description || '',
+      status: mapZendeskStatus(ticket.status),
+      priority: mapZendeskPriority(ticket.priority),
+      created: ticket.created_at,
+      category: ticket.type || 'question',
+      zendesk_id: ticket.id,
+      requester_name: ticket.requester_id ? (usersData[ticket.requester_id]?.name || 'Usuário') : null,
+      requester_email: ticket.requester_id ? (usersData[ticket.requester_id]?.email || '') : null,
+      comments: comments.map(comment => ({
+        id: comment.id,
+        type: comment.type,
+        body: comment.body,
+        html_body: comment.html_body,
+        author_id: comment.author_id,
+        created_at: comment.created_at,
+        public: comment.public,
+        author: usersData[comment.author_id] || null
+      })),
+      audits: audits.map(audit => ({
+        id: audit.id,
+        ticket_id: audit.ticket_id,
+        created_at: audit.created_at,
+        author_id: audit.author_id,
+        events: audit.events,
+        author: usersData[audit.author_id] || null
+      }))
+    };
+
+    console.log(`✅ Ticket details prepared for ID: ${ticketId}`);
+    
+    return new Response(JSON.stringify(transformedTicket), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    });
+
+  } catch (error) {
+    console.error(`❌ Error fetching ticket details for ${ticketId}:`, error);
+    return new Response(JSON.stringify({
+      error: 'ticket_details_fetch_failed',
+      message: 'Erro ao buscar detalhes do ticket',
+      details: error.message
+    }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    });
+  }
+};
+
 // Test Zendesk connectivity and credentials
 const testZendeskConnection = async (subdomain: string, email: string, token: string) => {
   // Remove .zendesk.com if already present to avoid duplication
@@ -118,8 +241,20 @@ serve(async (req) => {
 
   // Parse request body to check for ticket details request
   const url = new URL(req.url);
-  const ticketId = url.searchParams.get('ticketId');
-  const action = url.searchParams.get('action');
+  let ticketId = url.searchParams.get('ticketId');
+  let action = url.searchParams.get('action');
+  
+  // Check if it's a POST request with body data
+  if (req.method === 'POST') {
+    try {
+      const body = await req.json();
+      ticketId = body.ticket_id || ticketId;
+      action = body.action || action;
+      console.log('📥 POST request body:', { action, ticket_id: ticketId });
+    } catch (error) {
+      console.log('⚠️ Failed to parse POST body, using query params only');
+    }
+  }
 
   try {
     // Force environment refresh and fetch credentials from Supabase secrets
@@ -288,6 +423,12 @@ serve(async (req) => {
     const organizationId = schoolCustomizations?.organization_id;
     
     console.log('🎯 Zendesk-tickets: Using organization_id:', organizationId);
+    
+    // Handle get_ticket_details action
+    if (action === 'get_ticket_details' && ticketId) {
+      console.log(`🔍 Fetching details for ticket ${ticketId}`);
+      return await getTicketDetails(ticketId, ZENDESK_SUBDOMAIN, ZENDESK_EMAIL, ZENDESK_API_TOKEN);
+    }
     
     // Validate organization_id format
     if (organizationId && !/^\d+$/.test(organizationId)) {
