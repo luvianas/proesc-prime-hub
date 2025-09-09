@@ -177,6 +177,27 @@ const TicketDetailsPage = ({ ticketId, onBack }: TicketDetailsPageProps) => {
     }
   };
 
+  const safeFormatDate = (dateValue: string | Date | null | undefined, formatString: string = 'dd/MM/yyyy HH:mm'): string => {
+    if (!dateValue) {
+      return 'Data não disponível';
+    }
+    
+    try {
+      const date = typeof dateValue === 'string' ? new Date(dateValue) : dateValue;
+      
+      // Verificar se a data é válida
+      if (isNaN(date.getTime())) {
+        console.warn('Invalid date value:', dateValue);
+        return 'Data inválida';
+      }
+      
+      return format(date, formatString, { locale: ptBR });
+    } catch (error) {
+      console.error('Error formatting date:', error, 'Date value:', dateValue);
+      return 'Erro ao formatar data';
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background">
@@ -244,7 +265,7 @@ const TicketDetailsPage = ({ ticketId, onBack }: TicketDetailsPageProps) => {
                   <div className="text-sm text-muted-foreground text-right">
                     <div className="flex items-center space-x-1 mb-1">
                       <Calendar className="h-4 w-4" />
-                      <span>Criado em {format(new Date(ticketDetails.created), 'dd/MM/yyyy HH:mm', { locale: ptBR })}</span>
+                      <span>Criado em {safeFormatDate(ticketDetails.created)}</span>
                     </div>
                   </div>
                 </div>
@@ -276,26 +297,41 @@ const TicketDetailsPage = ({ ticketId, onBack }: TicketDetailsPageProps) => {
                     // Adicionar comentários
                     if (ticketDetails.comments) {
                       ticketDetails.comments.forEach(comment => {
-                        allEvents.push({
-                          type: 'comment',
-                          data: comment,
-                          date: new Date(comment.created_at)
-                        });
+                        // Validar se a data do comentário é válida
+                        if (comment.created_at) {
+                          const commentDate = new Date(comment.created_at);
+                          if (!isNaN(commentDate.getTime())) {
+                            allEvents.push({
+                              type: 'comment',
+                              data: comment,
+                              date: commentDate
+                            });
+                          } else {
+                            console.warn('Invalid comment date:', comment.created_at);
+                          }
+                        }
                       });
                     }
                     
                     // Adicionar auditorias
                     if (ticketDetails.audits) {
                       ticketDetails.audits.forEach(audit => {
-                        audit.events.forEach(event => {
-                          if (event.type !== 'Comment') { // Evitar duplicar comentários
-                            allEvents.push({
-                              type: 'audit',
-                              data: { ...event, audit },
-                              date: new Date(audit.created_at)
+                        if (audit.created_at) {
+                          const auditDate = new Date(audit.created_at);
+                          if (!isNaN(auditDate.getTime())) {
+                            audit.events.forEach(event => {
+                              if (event.type !== 'Comment') { // Evitar duplicar comentários
+                                allEvents.push({
+                                  type: 'audit',
+                                  data: { ...event, audit },
+                                  date: auditDate
+                                });
+                              }
                             });
+                          } else {
+                            console.warn('Invalid audit date:', audit.created_at);
                           }
-                        });
+                        }
                       });
                     }
                     
@@ -343,7 +379,7 @@ const TicketDetailsPage = ({ ticketId, onBack }: TicketDetailsPageProps) => {
                               )}
                             </div>
                             <span className="text-xs text-muted-foreground">
-                              {format(event.date, 'dd/MM/yyyy HH:mm', { locale: ptBR })}
+                              {safeFormatDate(event.date)}
                             </span>
                           </div>
                           <div className="mt-1">
