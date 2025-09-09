@@ -229,6 +229,88 @@ const testZendeskConnection = async (subdomain: string, email: string, token: st
   }
 };
 
+// Process ReactQuill HTML content for Zendesk
+const processQuillHtml = (htmlContent: string) => {
+  let processedHtml = htmlContent;
+  const base64Images: string[] = [];
+  
+  // Extract base64 images and replace with placeholders
+  const base64ImageRegex = /<img[^>]*src="data:image\/([^;]+);base64,([^"]+)"[^>]*>/gi;
+  let match;
+  let imageIndex = 0;
+  
+  while ((match = base64ImageRegex.exec(htmlContent)) !== null) {
+    const [fullMatch, format, base64Data] = match;
+    base64Images.push(`data:image/${format};base64,${base64Data}`);
+    
+    // Replace base64 image with placeholder text
+    const placeholder = `[Imagem ${imageIndex + 1} - ${format.toUpperCase()}]`;
+    processedHtml = processedHtml.replace(fullMatch, placeholder);
+    imageIndex++;
+  }
+  
+  // Clean up HTML for better Zendesk compatibility
+  processedHtml = processedHtml
+    .replace(/<div>/gi, '<p>')
+    .replace(/<\/div>/gi, '</p>')
+    .replace(/<p><\/p>/gi, '<br>')
+    .replace(/(<p[^>]*>)\s*<br>\s*(<\/p>)/gi, '$1$2')
+    .replace(/^\s*<br>\s*/gi, '')
+    .replace(/\s*<br>\s*$/gi, '');
+  
+  return {
+    html: processedHtml,
+    base64Images: base64Images
+  };
+};
+
+// Upload base64 image to Zendesk as attachment
+const uploadImageToZendesk = async (
+  ticketId: string,
+  base64Data: string,
+  filename: string,
+  subdomain: string,
+  email: string,
+  token: string
+) => {
+  const cleanSubdomain = subdomain.replace(/\.zendesk\.com$/, '');
+  const baseUrl = `https://${cleanSubdomain}.zendesk.com/api/v2`;
+  const credentials = btoa(`${email}/token:${token}`);
+  
+  try {
+    // Convert base64 to blob
+    const base64Response = await fetch(base64Data);
+    const blob = await base64Response.blob();
+    
+    // Create form data
+    const formData = new FormData();
+    formData.append('uploaded_data', blob, filename);
+    
+    // Upload to Zendesk
+    const uploadResponse = await fetch(`${baseUrl}/uploads.json?filename=${encodeURIComponent(filename)}`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Basic ${credentials}`,
+      },
+      body: formData
+    });
+    
+    if (!uploadResponse.ok) {
+      console.error(`❌ Failed to upload image: ${uploadResponse.status}`);
+      return null;
+    }
+    
+    const uploadResult = await uploadResponse.json();
+    console.log(`✅ Image uploaded successfully:`, uploadResult.upload.token);
+    
+    return uploadResult.upload.token;
+    
+  } catch (error) {
+    console.error('❌ Error uploading image:', error);
+    return null;
+  }
+};
+
 // Validate if user exists in Zendesk
 const validateZendeskUser = async (userEmail: string, subdomain: string, email: string, token: string) => {
   const cleanSubdomain = subdomain.replace(/\.zendesk\.com$/, '');
@@ -564,13 +646,46 @@ serve(async (req) => {
 
         console.log('✅ User validated in Zendesk, proceeding with comment');
 
+        // Processar HTML do ReactQuill
+        console.log('🔄 Processing ReactQuill HTML content...');
+        const { html: processedHtml, base64Images } = processQuillHtml(comment_body);
+        
+        // Upload de imagens se houver
+        const uploadTokens: string[] = [];
+        if (base64Images.length > 0) {
+          console.log(`📎 Found ${base64Images.length} base64 images, uploading...`);
+          
+          for (let i = 0; i < base64Images.length; i++) {
+            const base64Data = base64Images[i];
+            const format = base64Data.match(/data:image\/([^;]+);base64/)?.[1] || 'png';
+            const filename = `image_${Date.now()}_${i + 1}.${format}`;
+            
+            const uploadToken = await uploadImageToZendesk(
+              ticketId,
+              base64Data,
+              filename,
+              ZENDESK_SUBDOMAIN,
+              ZENDESK_EMAIL,
+              ZENDESK_API_TOKEN
+            );
+            
+            if (uploadToken) {
+              uploadTokens.push(uploadToken);
+            }
+          }
+          
+          console.log(`✅ Successfully uploaded ${uploadTokens.length}/${base64Images.length} images`);
+        }
+
         // Preparar dados do comentário com o author_id do usuário real
         const commentData = {
           ticket: {
             comment: {
-              body: comment_body,
+              html_body: processedHtml, // Usar html_body para manter formatação
+              body: processedHtml.replace(/<[^>]*>/g, ''), // Fallback de texto simples
               public: is_public,
-              author_id: userValidation.userId // Usar o ID real do usuário no Zendesk
+              author_id: userValidation.userId, // Usar o ID real do usuário no Zendesk
+              uploads: uploadTokens // Adicionar anexos se houver
             }
           }
         };
