@@ -229,6 +229,66 @@ const testZendeskConnection = async (subdomain: string, email: string, token: st
   }
 };
 
+// Validate if user exists in Zendesk
+const validateZendeskUser = async (userEmail: string, subdomain: string, email: string, token: string) => {
+  const cleanSubdomain = subdomain.replace(/\.zendesk\.com$/, '');
+  const baseUrl = `https://${cleanSubdomain}.zendesk.com/api/v2`;
+  const credentials = btoa(`${email}/token:${token}`);
+  
+  try {
+    console.log(`🔍 Validating Zendesk user: ${userEmail}`);
+    
+    // Use search API to find user by email
+    const searchUrl = `${baseUrl}/search.json?query=type:user email:${encodeURIComponent(userEmail)}`;
+    const response = await fetch(searchUrl, {
+      headers: {
+        'Authorization': `Basic ${credentials}`,
+        'Content-Type': 'application/json',
+      }
+    });
+    
+    if (!response.ok) {
+      console.error(`❌ Failed to search user: ${response.status}`);
+      return { exists: false, userId: null, error: `Search failed: ${response.status}` };
+    }
+    
+    const data = await response.json();
+    const users = data.results || [];
+    
+    // Find exact email match (case insensitive)
+    const user = users.find((u: any) => 
+      u.email && u.email.toLowerCase() === userEmail.toLowerCase()
+    );
+    
+    if (user) {
+      console.log(`✅ User found in Zendesk:`, {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        active: user.active
+      });
+      
+      return { 
+        exists: true, 
+        userId: user.id, 
+        user: {
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          active: user.active
+        }
+      };
+    } else {
+      console.log(`❌ User not found in Zendesk: ${userEmail}`);
+      return { exists: false, userId: null, error: 'User not found' };
+    }
+    
+  } catch (error) {
+    console.error(`❌ Error validating Zendesk user:`, error);
+    return { exists: false, userId: null, error: error.message };
+  }
+};
+
 serve(async (req) => {
   console.log('🚀 Zendesk-tickets: Function started at', new Date().toISOString());
   console.log('🔄 Zendesk-tickets: Secrets refreshed - checking environment...');
@@ -486,13 +546,31 @@ serve(async (req) => {
           });
         }
 
-        // Preparar dados do comentário com informações do usuário logado
+        // Validar se o usuário existe no Zendesk antes de permitir comentário
+        console.log('🔍 Validating user in Zendesk:', profile.email);
+        const userValidation = await validateZendeskUser(profile.email, ZENDESK_SUBDOMAIN, ZENDESK_EMAIL, ZENDESK_API_TOKEN);
+        
+        if (!userValidation.exists) {
+          console.log('❌ User not found in Zendesk, blocking comment');
+          return new Response(JSON.stringify({
+            error: 'user_not_found_in_zendesk',
+            message: 'Usuário não encontrado no Zendesk. Entre em contato com o administrador para criar seu acesso.',
+            details: 'Para enviar comentários em tickets, você precisa ter uma conta ativa no sistema Zendesk da sua escola.'
+          }), {
+            status: 403,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          });
+        }
+
+        console.log('✅ User validated in Zendesk, proceeding with comment');
+
+        // Preparar dados do comentário com o author_id do usuário real
         const commentData = {
           ticket: {
             comment: {
               body: comment_body,
               public: is_public,
-              author_id: null // Zendesk irá usar o usuário autenticado
+              author_id: userValidation.userId // Usar o ID real do usuário no Zendesk
             }
           }
         };
@@ -502,6 +580,7 @@ serve(async (req) => {
           is_public: is_public,
           user_name: profile.name,
           user_email: profile.email,
+          zendesk_user_id: userValidation.userId,
           comment_length: comment_body.length
         });
 
@@ -525,7 +604,12 @@ serve(async (req) => {
           success: true,
           message: 'Comentário adicionado com sucesso',
           ticket_id: ticketId,
-          comment_id: result.audit?.id
+          comment_id: result.audit?.id,
+          author_info: {
+            zendesk_user_id: userValidation.userId,
+            name: userValidation.user?.name,
+            email: userValidation.user?.email
+          }
         }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         });

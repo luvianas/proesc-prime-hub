@@ -174,11 +174,20 @@ const TicketDetailsPage = ({ ticketId, onBack }: TicketDetailsPageProps) => {
         // Recarregar detalhes do ticket para mostrar novo comentário
         await loadTicketDetails();
       } else {
-        toast({
-          title: "Erro", 
-          description: data?.message || "Erro ao enviar resposta",
-          variant: "destructive",
-        });
+        // Tratar erro específico de usuário não encontrado no Zendesk
+        if (data?.error === 'user_not_found_in_zendesk') {
+          toast({
+            title: "Acesso Necessário",
+            description: data.message || "Usuário não encontrado no Zendesk. Entre em contato com o administrador para criar seu acesso.",
+            variant: "destructive",
+          });
+        } else {
+          toast({
+            title: "Erro", 
+            description: data?.message || "Erro ao enviar resposta",
+            variant: "destructive",
+          });
+        }
       }
     } catch (error) {
       console.error('Error in handleAddReply:', error);
