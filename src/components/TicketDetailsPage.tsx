@@ -294,11 +294,11 @@ const TicketDetailsPage = ({ ticketId, onBack }: TicketDetailsPageProps) => {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {/* Combinar comentários e auditorias e ordenar por data */}
+                  {/* Mostrar apenas comentários/conversas */}
                   {(() => {
                     const allEvents: any[] = [];
                     
-                    // Adicionar comentários
+                    // Adicionar apenas comentários
                     if (ticketDetails.comments) {
                       ticketDetails.comments.forEach(comment => {
                         // Validar se a data do comentário é válida
@@ -312,49 +312,6 @@ const TicketDetailsPage = ({ ticketId, onBack }: TicketDetailsPageProps) => {
                             });
                           } else {
                             console.warn('Invalid comment date:', comment.created_at);
-                          }
-                        }
-                      });
-                    }
-                    
-                    // Adicionar auditorias (filtrar atividades do sistema)
-                    if (ticketDetails.audits) {
-                      ticketDetails.audits.forEach(audit => {
-                        if (audit.created_at) {
-                          const auditDate = new Date(audit.created_at);
-                          if (!isNaN(auditDate.getTime())) {
-                            audit.events.forEach(event => {
-                              // Filtrar atividades do sistema que não queremos mostrar
-                              const systemEvents = [
-                                'Notification',
-                                'AgentWorkTime',
-                                'FirstReplyTime', 
-                                'RequesterWorkTime',
-                                'SlaPolicy',
-                                'Metric'
-                              ];
-                              
-                              const isSystemEvent = systemEvents.some(sysEvent => 
-                                event.type === sysEvent || 
-                                (event.field_name && [
-                                  'agent_work_time',
-                                  'first_reply_time', 
-                                  'requester_work_time',
-                                  'sla_policy',
-                                  'metric'
-                                ].includes(event.field_name))
-                              );
-                              
-                              if (event.type !== 'Comment' && !isSystemEvent) { // Evitar duplicar comentários e filtrar eventos do sistema
-                                allEvents.push({
-                                  type: 'audit',
-                                  data: { ...event, audit },
-                                  date: auditDate
-                                });
-                              }
-                            });
-                          } else {
-                            console.warn('Invalid audit date:', audit.created_at);
                           }
                         }
                       });
