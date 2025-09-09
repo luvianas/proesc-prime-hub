@@ -116,6 +116,11 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // Parse request body to check for ticket details request
+  const url = new URL(req.url);
+  const ticketId = url.searchParams.get('ticketId');
+  const action = url.searchParams.get('action');
+
   try {
     // Force environment refresh and fetch credentials from Supabase secrets
     const allEnvVars = Deno.env.toObject();
@@ -310,6 +315,129 @@ serve(async (req) => {
       'Authorization': `Basic ${credentials}`,
       'Content-Type': 'application/json',
     };
+
+    // Handle ticket details request
+    if (action === 'get-ticket-details' && ticketId) {
+      console.log('🔍 Fetching detailed information for ticket:', ticketId);
+      
+      try {
+        // Fetch ticket details, comments, and audits in parallel
+        const [ticketResponse, commentsResponse, auditsResponse] = await Promise.all([
+          fetch(`${zendeskUrl}/tickets/${ticketId}.json`, { headers: zendeskHeaders }),
+          fetch(`${zendeskUrl}/tickets/${ticketId}/comments.json`, { headers: zendeskHeaders }),
+          fetch(`${zendeskUrl}/tickets/${ticketId}/audits.json`, { headers: zendeskHeaders })
+        ]);
+
+        if (!ticketResponse.ok) {
+          throw new Error(`Ticket not found: ${ticketResponse.status}`);
+        }
+
+        const [ticketData, commentsData, auditsData] = await Promise.all([
+          ticketResponse.json(),
+          commentsResponse.ok ? commentsResponse.json() : { comments: [] },
+          auditsResponse.ok ? auditsResponse.json() : { audits: [] }
+        ]);
+
+        // Get unique user IDs for batch fetching user data
+        const userIds = new Set<string>();
+        
+        // Add users from comments
+        commentsData.comments?.forEach((comment: any) => {
+          if (comment.author_id) userIds.add(comment.author_id.toString());
+        });
+        
+        // Add users from audits
+        auditsData.audits?.forEach((audit: any) => {
+          if (audit.author_id) userIds.add(audit.author_id.toString());
+        });
+
+        // Fetch user data in batch
+        let usersData: { [key: string]: any } = {};
+        if (userIds.size > 0) {
+          const usersResponse = await fetch(
+            `${zendeskUrl}/users/show_many.json?ids=${Array.from(userIds).join(',')}`, 
+            { headers: zendeskHeaders }
+          );
+          if (usersResponse.ok) {
+            const users = await usersResponse.json();
+            usersData = users.users.reduce((acc: any, user: any) => {
+              acc[user.id.toString()] = user;
+              return acc;
+            }, {});
+          }
+        }
+
+        // Process comments with user data
+        const processedComments = commentsData.comments?.map((comment: any) => {
+          const author = usersData[comment.author_id?.toString()];
+          return {
+            id: comment.id,
+            body: comment.body,
+            html_body: comment.html_body,
+            plain_body: comment.plain_body,
+            public: comment.public,
+            author_id: comment.author_id,
+            author_name: author?.name || 'Usuário',
+            author_email: author?.email || '',
+            author_role: author?.role || 'end-user',
+            created_at: comment.created_at,
+            attachments: comment.attachments || []
+          };
+        }) || [];
+
+        // Process audits with user data
+        const processedAudits = auditsData.audits?.map((audit: any) => {
+          const author = usersData[audit.author_id?.toString()];
+          return {
+            id: audit.id,
+            author_id: audit.author_id,
+            author_name: author?.name || 'Sistema',
+            author_email: author?.email || '',
+            author_role: author?.role || 'system',
+            created_at: audit.created_at,
+            events: audit.events || []
+          };
+        }) || [];
+
+        // Transform ticket data
+        const transformedTicket = {
+          id: ticketData.ticket.id.toString(),
+          title: ticketData.ticket.subject || 'Sem título',
+          description: ticketData.ticket.description || '',
+          status: mapZendeskStatus(ticketData.ticket.status),
+          priority: mapZendeskPriority(ticketData.ticket.priority),
+          created: ticketData.ticket.created_at,
+          updated: ticketData.ticket.updated_at,
+          category: ticketData.ticket.type || 'question',
+          zendesk_id: ticketData.ticket.id,
+          zendesk_url: ticketData.ticket.url,
+          organization_id: ticketData.ticket.organization_id?.toString(),
+          requester_id: ticketData.ticket.requester_id?.toString(),
+          assignee_id: ticketData.ticket.assignee_id?.toString(),
+          tags: ticketData.ticket.tags,
+          comments: processedComments,
+          audits: processedAudits
+        };
+
+        return new Response(JSON.stringify({ 
+          ticket: transformedTicket,
+          success: true
+        }), { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        });
+
+      } catch (error) {
+        console.error('❌ Error fetching ticket details:', error);
+        return new Response(JSON.stringify({ 
+          error: 'ticket_details_failed',
+          message: 'Erro ao carregar detalhes do ticket',
+          details: error.message
+        }), { 
+          status: 500, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        });
+      }
+    }
 
     console.log('🎯 Zendesk-tickets: Fetching tickets for organization_id:', organizationId);
     

@@ -6,10 +6,11 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, Plus, Search, Clock, CheckCircle, AlertCircle, ExternalLink, Loader2, User, Filter, ChevronLeft, ChevronRight } from "lucide-react";
+import { ArrowLeft, Plus, Search, Clock, CheckCircle, AlertCircle, ExternalLink, Loader2, User, Filter, ChevronLeft, ChevronRight, Eye } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/components/ui/use-toast";
+import TicketDetailsModal from "./TicketDetailsModal";
 
 interface TicketSystemProps {
   onBack: () => void;
@@ -59,6 +60,8 @@ const TicketSystem = ({ onBack }: TicketSystemProps) => {
     role?: string;
     school_id?: string;
   }>({});
+  const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
+  const [showTicketDetails, setShowTicketDetails] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -411,6 +414,16 @@ const TicketSystem = ({ onBack }: TicketSystemProps) => {
     }
   };
 
+  const openTicketDetails = (ticketId: string) => {
+    setSelectedTicketId(ticketId);
+    setShowTicketDetails(true);
+  };
+
+  const closeTicketDetails = () => {
+    setSelectedTicketId(null);
+    setShowTicketDetails(false);
+  };
+
 
 
   return (
@@ -688,9 +701,20 @@ const TicketSystem = ({ onBack }: TicketSystemProps) => {
                         </div>
                       )}
                     </div>
-                    <div className="text-right text-sm text-gray-500">
-                      <p>Criado em</p>
-                      <p>{new Date(ticket.created).toLocaleDateString('pt-BR')}</p>
+                    <div className="text-right space-y-2">
+                      <div className="text-sm text-gray-500">
+                        <p>Criado em</p>
+                        <p>{new Date(ticket.created).toLocaleDateString('pt-BR')}</p>
+                      </div>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => openTicketDetails(ticket.id)}
+                        className="flex items-center space-x-1"
+                      >
+                        <Eye className="h-4 w-4" />
+                        <span>Ver Detalhes</span>
+                      </Button>
                     </div>
                   </div>
                 </CardHeader>
@@ -740,10 +764,17 @@ const TicketSystem = ({ onBack }: TicketSystemProps) => {
               </>
             );
           })()}
-        </div>
-      )}
+         </div>
+       )}
 
-    </div>
+      {/* Ticket Details Modal */}
+      <TicketDetailsModal
+        ticketId={selectedTicketId}
+        isOpen={showTicketDetails}
+        onClose={closeTicketDetails}
+      />
+
+     </div>
   );
 };
 
