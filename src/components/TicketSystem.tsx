@@ -6,11 +6,11 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, Plus, Search, Clock, CheckCircle, AlertCircle, ExternalLink, Loader2, User, Filter, ChevronLeft, ChevronRight, Eye } from "lucide-react";
+import { ArrowLeft, Plus, Search, Clock, CheckCircle, AlertCircle, ExternalLink, Loader2, User, Filter, ChevronLeft, ChevronRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/components/ui/use-toast";
-import TicketDetailsModal from "./TicketDetailsModal";
+import TicketDetailsPage from "./TicketDetailsPage";
 
 interface TicketSystemProps {
   onBack: () => void;
@@ -426,6 +426,16 @@ const TicketSystem = ({ onBack }: TicketSystemProps) => {
 
 
 
+  // Se estiver mostrando detalhes, renderizar a página de detalhes
+  if (showTicketDetails && selectedTicketId) {
+    return (
+      <TicketDetailsPage 
+        ticketId={selectedTicketId} 
+        onBack={closeTicketDetails}
+      />
+    );
+  }
+
   return (
     <div>
       {/* Header */}
@@ -666,7 +676,11 @@ const TicketSystem = ({ onBack }: TicketSystemProps) => {
                 ) : (
                   <div className="space-y-4">
                     {paginatedTickets.map((ticket) => (
-              <Card key={ticket.id} className="hover:shadow-md transition-shadow">
+              <Card 
+                key={ticket.id} 
+                className="hover:shadow-md transition-shadow cursor-pointer"
+                onClick={() => openTicketDetails(ticket.id)}
+              >
                 <CardHeader>
                   <div className="flex items-start justify-between">
                     <div className="space-y-2">
@@ -677,17 +691,6 @@ const TicketSystem = ({ onBack }: TicketSystemProps) => {
                           <span className="ml-1">{ticket.status}</span>
                         </Badge>
                         <Badge variant="secondary">{ticket.category}</Badge>
-                        {ticket.zendesk_url && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => window.open(ticket.zendesk_url, '_blank')}
-                            className="text-xs"
-                          >
-                            <ExternalLink className="h-3 w-3 mr-1" />
-                            Ver no Zendesk
-                          </Button>
-                        )}
                       </div>
                       <CardTitle className="text-lg">{ticket.title}</CardTitle>
                       <CardDescription>{ticket.description}</CardDescription>
@@ -706,15 +709,6 @@ const TicketSystem = ({ onBack }: TicketSystemProps) => {
                         <p>Criado em</p>
                         <p>{new Date(ticket.created).toLocaleDateString('pt-BR')}</p>
                       </div>
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={() => openTicketDetails(ticket.id)}
-                        className="flex items-center space-x-1"
-                      >
-                        <Eye className="h-4 w-4" />
-                        <span>Ver Detalhes</span>
-                      </Button>
                     </div>
                   </div>
                 </CardHeader>
@@ -767,12 +761,6 @@ const TicketSystem = ({ onBack }: TicketSystemProps) => {
          </div>
        )}
 
-      {/* Ticket Details Modal */}
-      <TicketDetailsModal
-        ticketId={selectedTicketId}
-        isOpen={showTicketDetails}
-        onClose={closeTicketDetails}
-      />
 
      </div>
   );
