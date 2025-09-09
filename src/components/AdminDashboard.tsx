@@ -52,6 +52,7 @@ interface SchoolCustomization {
   consultant_name?: string;
   consultant_id?: string;
   proesc_id?: string;
+  organization_id?: number;
   metabase_integration_url?: string;
   dashboard_links?: any;
   created_at: string;
@@ -87,6 +88,7 @@ const AdminDashboard = () => {
     logo_url: '',
     consultant_id: '',
     proesc_id: '',
+    organization_id: '',
     metabase_integration_url: '',
     dashboard_links: {
       financeiro: '',
@@ -385,6 +387,7 @@ const AdminDashboard = () => {
         logo_url: newSchool.logo_url,
         consultant_id: newSchool.consultant_id || null,
         proesc_id: newSchool.proesc_id,
+        organization_id: newSchool.organization_id ? parseInt(newSchool.organization_id) : null,
         metabase_integration_url: newSchool.metabase_integration_url,
         dashboard_links: newSchool.dashboard_links,
         created_by: (await supabase.auth.getUser()).data.user?.id
@@ -400,6 +403,7 @@ const AdminDashboard = () => {
         logo_url: '',
         consultant_id: '',
         proesc_id: '',
+        organization_id: '',
         metabase_integration_url: '',
         dashboard_links: {
           financeiro: '',
@@ -641,6 +645,7 @@ const AdminDashboard = () => {
         logo_url: editingSchool.logo_url,
         consultant_id: editingSchool.consultant_id || null,
         proesc_id: editingSchool.proesc_id,
+        organization_id: editingSchool.organization_id,
         metabase_integration_url: editingSchool.metabase_integration_url,
         dashboard_links: editingSchool.dashboard_links
       }).eq('id', editingSchool.id);
@@ -1144,6 +1149,19 @@ const AdminDashboard = () => {
                         placeholder="Ex: 1, 3487" 
                       />
                     </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="organizationId">Número da organização no Zendesk</Label>
+                      <Input 
+                        id="organizationId" 
+                        value={newSchool.organization_id} 
+                        onChange={e => setNewSchool({
+                          ...newSchool,
+                          organization_id: e.target.value
+                        })} 
+                        placeholder="Ex: 12345, 98765" 
+                        type="number"
+                      />
+                    </div>
                     
                     <div className="space-y-4">
                       <h4 className="font-medium">Links dos Dashboards (Metabase)</h4>
@@ -1604,6 +1622,19 @@ const AdminDashboard = () => {
                     proesc_id: e.target.value
                   })} 
                   placeholder="Ex: 1, 3487"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="editOrganizationId">Número da organização no Zendesk</Label>
+                <Input 
+                  id="editOrganizationId" 
+                  value={editingSchool.organization_id?.toString() || ''} 
+                  onChange={e => setEditingSchool({
+                    ...editingSchool,
+                    organization_id: e.target.value ? parseInt(e.target.value) : undefined
+                  })} 
+                  placeholder="Ex: 12345, 98765"
+                  type="number"
                 />
               </div>
               

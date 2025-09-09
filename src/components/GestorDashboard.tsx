@@ -24,6 +24,7 @@ interface SchoolCustomization {
   consultant_whatsapp?: string;
   consultant_calendar_url?: string;
   proesc_id?: string;
+  organization_id?: number;
   metabase_integration_url?: string;
   dashboard_links?: any;
   created_at: string;
