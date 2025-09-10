@@ -151,44 +151,57 @@ Deno.serve(async (req) => {
 
     // Build context-specific prompts
     const getContextualPrompt = (type?: string) => {
-      const basePrompt = `Você é um analista de dados especializado do Proesc Prime, com expertise em análise educacional e gestão escolar.`;
+      const basePrompt = `Você é um analista de dados especializado do Proesc Prime, com expertise em análise educacional e gestão escolar.
+      
+⚠️ **IMPORTANTE**: Analise SOMENTE os dados que estão sendo exibidos no dashboard atual com os filtros aplicados. NÃO faça análises gerais da escola.`;
       
       const contextPrompts = {
-        'financeiro': `${basePrompt}\n\n🏦 **ANÁLISE FINANCEIRA EDUCACIONAL**\nAnalise os dados financeiros apresentados e forneça insights específicos para gestão financeira escolar:`,
-        'agenda': `${basePrompt}\n\n📅 **ANÁLISE DE AGENDA E AGENDAMENTOS**\nAnalise os dados de agenda apresentados e forneça insights sobre otimização de horários e recursos:`,
-        'secretaria': `${basePrompt}\n\n📋 **ANÁLISE ADMINISTRATIVA**\nAnalise os dados administrativos apresentados e forneça insights para otimização de processos secretariais:`,
-        'pedagogico': `${basePrompt}\n\n🎓 **ANÁLISE PEDAGÓGICA**\nAnalise os dados pedagógicos apresentados e forneça insights sobre desempenho acadêmico e ensino:`
+        'financeiro': `${basePrompt}\n\n🏦 **ANÁLISE FINANCEIRA DOS DADOS FILTRADOS**\nAnalise especificamente os dados financeiros apresentados no dashboard com os filtros atuais aplicados:`,
+        'agenda': `${basePrompt}\n\n📅 **ANÁLISE DOS AGENDAMENTOS FILTRADOS**\nAnalise especificamente os dados de agenda apresentados no dashboard com os filtros atuais aplicados:`,
+        'secretaria': `${basePrompt}\n\n📋 **ANÁLISE ADMINISTRATIVA DOS DADOS FILTRADOS**\nAnalise especificamente os dados administrativos apresentados no dashboard com os filtros atuais aplicados:`,
+        'pedagogico': `${basePrompt}\n\n🎓 **ANÁLISE PEDAGÓGICA DOS DADOS FILTRADOS**\nAnalise especificamente os dados pedagógicos apresentados no dashboard com os filtros atuais aplicados:`
       };
 
-      return contextPrompts[type as keyof typeof contextPrompts] || `${basePrompt}\n\n📊 **ANÁLISE GERAL**\nAnalise os dados apresentados:`;
+      return contextPrompts[type as keyof typeof contextPrompts] || `${basePrompt}\n\n📊 **ANÁLISE DOS DADOS FILTRADOS**\nAnalise especificamente os dados apresentados no dashboard com os filtros atuais:`;
     };
 
     const systemPrompt = [
       getContextualPrompt(dashboardType),
-      `\n📋 **ESTRUTURA DA ANÁLISE:**`,
-      `\n🎯 **RESUMO EXECUTIVO**`,
-      `• Principal conclusão em 2-3 frases objetivas`,
-      `• Destaque o indicador mais crítico`,
-      `\n📈 **TENDÊNCIAS E PADRÕES**`,
-      `• Identifique 2-3 tendências principais`,
-      `• Compare períodos quando aplicável`,
-      `• Aponte variações sazonais ou cíclicas`,
-      `\n⚠️ **ALERTAS E PONTOS DE ATENÇÃO**`,
-      `• Liste anomalias ou desvios significativos`,
-      `• Identifique riscos potenciais`,
-      `• Destaque metas não atingidas`,
-      `\n💡 **RECOMENDAÇÕES PRÁTICAS**`,
-      `• 3-5 ações específicas e implementáveis`,
-      `• Priorize por impacto e urgência`,
-      `• Inclua prazos sugeridos quando possível`,
-      `\n🔢 **Use números, percentuais e seja quantitativo sempre que possível.**`,
-      `📝 **Mantenha um tom profissional e educativo.**`
+      `\n📋 **ESTRUTURA DA ANÁLISE (FOCO NOS DADOS FILTRADOS):**`,
+      `\n🎯 **RESUMO DOS DADOS ATUAIS**`,
+      `• Identifique claramente o período/escopo dos dados (ex: "mês de X", "turma Y", etc.)`,
+      `• Mencione os filtros ativos que definem este conjunto de dados`,
+      `• Principal conclusão específica dos dados em tela`,
+      `\n📈 **ANÁLISE DOS DADOS APRESENTADOS**`,
+      `• Interprete APENAS as métricas visíveis no dashboard atual`,
+      `• Identifique padrões dentro do conjunto de dados filtrado`,
+      `• Compare valores apenas dentro do escopo atual (se aplicável)`,
+      `\n⚠️ **INSIGHTS DOS DADOS ESPECÍFICOS**`,
+      `• Destaque pontos importantes dos dados filtrados`,
+      `• Identifique oportunidades baseadas no conjunto atual`,
+      `• Sinalize alertas específicos do período/segmento analisado`,
+      `\n💡 **AÇÕES PARA ESTE CONTEXTO ESPECÍFICO**`,
+      `• 3-4 ações práticas baseadas nos dados atuais em tela`,
+      `• Recomendações específicas para o período/filtro aplicado`,
+      `• Sugestões de filtros adicionais para aprofundar esta análise`,
+      `\n🎯 **SEJA ESPECÍFICO**: Sempre referencie que está analisando os dados com filtros atuais, não a escola inteira.`,
+      `📊 **Use os números exatos dos dados apresentados no dashboard.**`
     ].join("\n");
 
     const contextParts: string[] = [];
-    if (columns.length) contextParts.push(`📋 Colunas disponíveis: ${columns.join(", ")}`);
-    if (sampleRows.length) contextParts.push(`📊 Dados (amostra): ${JSON.stringify(sampleRows)}`);
-    if (dashboardUrl) contextParts.push(`🔗 Dashboard: ${dashboardUrl}`);
+    
+    // Add filter context first to emphasize scope
+    if (params && Object.keys(params).length > 0) {
+      contextParts.push(`🔧 **FILTROS APLICADOS**: ${JSON.stringify(params, null, 2)}`);
+    }
+    
+    if (dashboardType) {
+      contextParts.push(`📊 **TIPO DE DASHBOARD**: ${dashboardType}`);
+    }
+    
+    if (columns.length) contextParts.push(`📋 **Colunas dos dados filtrados**: ${columns.join(", ")}`);
+    if (sampleRows.length) contextParts.push(`📈 **Dados específicos do dashboard**: ${JSON.stringify(sampleRows)}`);
+    if (dashboardUrl) contextParts.push(`🔗 **Dashboard ativo**: ${dashboardUrl}`);
 
     const fullPrompt = [
       systemPrompt,
