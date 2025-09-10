@@ -16,6 +16,9 @@ import AgendaDashboard from '@/components/AgendaDashboard';
 import NovidadesCarousel from '@/components/NovidadesCarousel';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
 import { logEvent } from '@/lib/analytics';
+import { useSchool } from '@/contexts/SchoolContext';
+import { ArrowLeft } from 'lucide-react';
+import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '@/components/ui/tooltip';
 interface SchoolCustomization {
   id: string;
   school_name: string;
@@ -36,28 +39,22 @@ interface UserProfile {
   name: string;
   email: string;
 }
-
 interface GestorDashboardProps {
   isAdminMode?: boolean;
-  selectedSchoolId?: string;
-  onBackToSelection?: () => void;
 }
 
-const GestorDashboard = ({ isAdminMode, selectedSchoolId, onBackToSelection }: GestorDashboardProps = {}) => {
+const GestorDashboard = ({ isAdminMode = false }: GestorDashboardProps) => {
   const [schoolData, setSchoolData] = useState<SchoolCustomization | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeSection, setActiveSection] = useState<'home' | 'tickets' | 'consultor-agenda' | 'dash-financeiro' | 'dash-agenda' | 'dash-secretaria' | 'dash-pedagogico'>('home');
   const [showAssistant, setShowAssistant] = useState(false);
-  const {
-    user
-  } = useAuth();
-  const {
-    toast
-  } = useToast();
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const { selectedSchool, clearSelection, isAdminMode: adminMode } = useSchool();
   useEffect(() => {
     fetchSchoolData();
-  }, [user, selectedSchoolId, isAdminMode]);
+  }, [user, selectedSchool, isAdminMode]);
   useEffect(() => {
     document.title = 'Prime Hub - Gestor';
     const desc = 'Portal Prime para gestores: tickets, agenda do consultor e dashboards.';
@@ -93,46 +90,55 @@ const GestorDashboard = ({ isAdminMode, selectedSchoolId, onBackToSelection }: G
     if (!user) return;
     
     try {
-      let schoolIdToUse: string;
-      
-      if (isAdminMode && selectedSchoolId) {
-        // In admin mode, use the selected school ID directly
-        schoolIdToUse = selectedSchoolId;
+      // If admin mode and school is selected, use selected school data
+      if (isAdminMode && selectedSchool) {
+        const { data: school, error: schoolError } = await supabase
+          .from('school_customizations')
+          .select('*')
+          .eq('id', selectedSchool.id)
+          .single();
+        
+        if (schoolError) throw schoolError;
+        
+        setSchoolData(school);
         setUserProfile({
-          school_id: selectedSchoolId,
-          name: user.email || 'Admin User',
+          school_id: selectedSchool.id,
+          name: user.email || 'Admin',
           email: user.email || ''
         });
-      } else {
-        // Normal gestor mode - get school_id from user profile
-        const {
-          data: profile,
-          error: profileError
-        } = await supabase.from('profiles').select('school_id, name, email').eq('user_id', user.id).single();
-        
-        if (profileError) throw profileError;
-        if (!profile?.school_id) {
-          toast({
-            title: "Aviso",
-            description: "Nenhuma escola associada a este usuário.",
-            variant: "destructive"
-          });
-          setLoading(false);
-          return;
-        }
-        
-        setUserProfile(profile);
-        schoolIdToUse = profile.school_id;
+        setLoading(false);
+        return;
       }
-
-      console.log('👤 GestorDashboard: Profile carregado, school_id:', schoolIdToUse);
-      console.log('🎯 School ID para banners:', schoolIdToUse);
       
-      const {
-        data: school,
-        error: schoolError
-      } = await supabase.from('school_customizations').select('*').eq('school_id', schoolIdToUse).maybeSingle();
+      // Normal flow for gestor users
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('school_id, name, email')
+        .eq('user_id', user.id)
+        .single();
+        
+      if (profileError) throw profileError;
       
+      if (!profile?.school_id) {
+        toast({
+          title: "Aviso",
+          description: "Nenhuma escola associada a este usuário.",
+          variant: "destructive"
+        });
+        setLoading(false);
+        return;
+      }
+      
+      setUserProfile(profile);
+      console.log('👤 GestorDashboard: Profile carregado:', profile);
+      console.log('🎯 School ID para banners:', profile.school_id);
+      
+      const { data: school, error: schoolError } = await supabase
+        .from('school_customizations')
+        .select('*')
+        .eq('school_id', profile.school_id)
+        .maybeSingle();
+        
       if (schoolError) throw schoolError;
       setSchoolData(school);
     } catch (error: any) {
@@ -189,52 +195,104 @@ const GestorDashboard = ({ isAdminMode, selectedSchoolId, onBackToSelection }: G
         {showAssistant && <AIAssistant onClose={() => setShowAssistant(false)} />}
       </div>;
   }
-  return <div className="min-h-screen bg-hero">
-      {/* Admin Header */}
-      {isAdminMode && onBackToSelection && (
-        <div className="bg-card/90 backdrop-blur-md border-b border-border/30 shadow-elegant">
-          <div className="container mx-auto px-6 py-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                {schoolData?.logo_url ? (
-                  <img
-                    src={schoolData.logo_url}
-                    alt={`Logo ${schoolData.school_name}`}
-                    className="w-12 h-12 object-contain rounded hover-scale"
-                  />
-                ) : (
-                  <div className="w-12 h-12 rounded bg-gradient-primary text-white flex items-center justify-center font-bold">
-                    {schoolData?.school_name?.charAt(0).toUpperCase()}
-                  </div>
-                )}
-                <div>
-                  <h1 className="text-xl font-bold text-gradient">{schoolData?.school_name}</h1>
-                  <div className="flex items-center gap-2">
-                    <Badge variant="secondary" className="text-xs bg-primary/10 text-primary border-primary/20">
-                      Portal Prime
-                    </Badge>
-                    <Badge variant="outline" className="text-xs bg-orange-500/10 text-orange-600 border-orange-500/20">
-                      Modo Admin
-                    </Badge>
-                  </div>
+  return (
+    <>
+      {/* Admin Mode - Full Header */}
+      {isAdminMode && (
+        <div className="min-h-screen auth-background">
+          <div className="grid grid-cols-3 items-center p-6 border-b border-border/30 bg-card/90 backdrop-blur-md shadow-elegant">
+            <div className="flex items-center gap-6 justify-self-start">
+              {schoolData?.logo_url ? (
+                <img
+                  src={schoolData.logo_url}
+                  alt={`Logo ${schoolData.school_name}`}
+                  className="w-16 h-16 object-contain rounded hover-scale"
+                  loading="lazy"
+                />
+              ) : (
+                <div className="w-16 h-16 rounded bg-gradient-primary text-white flex items-center justify-center font-bold hover-scale">
+                  {schoolData?.school_name?.charAt(0).toUpperCase()}
+                </div>
+              )}
+              <div className="hidden md:block">
+                <h1 className="text-xl font-bold text-gradient">{schoolData?.school_name}</h1>
+                <div className="flex items-center gap-2">
+                  <Badge variant="secondary" className="text-xs bg-primary/10 text-primary border-primary/20">
+                    Portal Prime
+                  </Badge>
+                  <Badge variant="outline" className="text-xs bg-orange-500/10 text-orange-600 border-orange-500/20">
+                    Modo Admin
+                  </Badge>
                 </div>
               </div>
-              <Button onClick={onBackToSelection} variant="outline" className="gap-2">
-                ← Voltar à Seleção
-              </Button>
             </div>
+            
+            <div className="justify-self-center">
+              <TooltipProvider delayDuration={150}>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <a
+                      href="https://app.proesc.com"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      aria-label="Retornar ao Proesc"
+                      className="inline-flex items-center justify-center rounded-md px-2 py-1 hover:opacity-80 transition-opacity cursor-pointer hover-scale"
+                    >
+                      <img
+                        src="/lovable-uploads/31be6a89-85b7-486f-b156-ebe5b3557c02.png"
+                        alt="Proesc Prime"
+                        className="h-10 mx-auto"
+                        loading="lazy"
+                      />
+                    </a>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom">Retornar ao Proesc</TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
+            
+            <div className="justify-self-end flex items-center gap-3">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={clearSelection}
+                className="hover-lift"
+              >
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Voltar à Seleção
+              </Button>
+              <ThemeToggle />
+            </div>
+          </div>
+          
+          <div className="container mx-auto p-6 space-y-8">
+            {/* Content */}
+            {renderContent()}
           </div>
         </div>
       )}
       
-      <div className="container mx-auto p-6 space-y-8">
+      {/* Normal Gestor Mode */}
+      {!isAdminMode && (
+        <div className="min-h-screen bg-hero">
+          <div className="container mx-auto p-6 space-y-8">
+            {renderContent()}
+          </div>
+        </div>
+      )}
+    </>
+  );
+
+  function renderContent() {
+    return (
+      <>
         {/* Welcome Message */}
         <div className="text-left py-8 animate-fade-in">
           <h1 className="text-5xl font-bold mb-4 text-gradient">
-            Bem-vindo ao seu Portal Prime
+            {isAdminMode ? `Portal ${schoolData?.school_name}` : 'Bem-vindo ao seu Portal Prime'}  
           </h1>
           <p className="text-xl text-muted-foreground">
-            Gerencie sua escola com excelência
+            {isAdminMode ? 'Visualizando como administrador' : 'Gerencie sua escola com excelência'}
           </p>
         </div>
 
@@ -325,7 +383,8 @@ const GestorDashboard = ({ isAdminMode, selectedSchoolId, onBackToSelection }: G
 
 
         {showAssistant && <AIAssistant onClose={() => setShowAssistant(false)} />}
-      </div>
-    </div>;
+      </>
+    );
+  }
 };
 export default GestorDashboard;

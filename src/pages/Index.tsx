@@ -7,8 +7,6 @@ import { useAuth } from "@/hooks/useAuth";
 import AdminDashboard from "@/components/AdminDashboard";
 import UserDashboard from "@/components/UserDashboard";
 import GestorDashboard from "@/components/GestorDashboard";
-import { SchoolSelector } from "@/components/SchoolSelector";
-import { useSchool } from "@/contexts/SchoolContext";
 import AIAssistant from "@/components/AIAssistant";
 import TicketSystem from "@/components/TicketSystem";
 import FinancialDashboard from "@/components/FinancialDashboard";
@@ -36,6 +34,8 @@ import ImageCropperDialog from "@/components/ImageCropperDialog";
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip";
 import MobileActionsMenu from "@/components/MobileActionsMenu";
 import Footer from "@/components/Footer";
+import SchoolSelector from "@/components/SchoolSelector";
+import { useSchool } from "@/contexts/SchoolContext";
 const Index = () => {
   const [showAI, setShowAI] = useState(false);
   const [activeSection, setActiveSection] = useState("dashboard");
@@ -47,8 +47,8 @@ const Index = () => {
     signOut,
     mustChangePassword,
   } = useAuth();
-  const { selectedSchoolId, selectSchool, clearSelection } = useSchool();
-  const [showAdminPanel, setShowAdminPanel] = useState(false);
+  
+  const { selectedSchool, isAdminMode } = useSchool();
   const [schoolHeader, setSchoolHeader] = useState<{
     schoolName: string;
     logoUrl?: string;
@@ -208,39 +208,15 @@ const Index = () => {
     return <Navigate to="/auth" replace />;
   }
 
-  // Render admin dashboard for admin users
+  // Render admin dashboard or school selector for admin users
   if (userRole === 'admin') {
-    // If admin panel is selected, show AdminDashboard
-    if (showAdminPanel) {
-      return (
-        <div className="min-h-screen auth-background">
-          <div className="bg-card/90 backdrop-blur-md border-b border-border/30 shadow-elegant">
-            <div className="container mx-auto px-6 py-4">
-              <div className="flex items-center justify-between">
-                <h1 className="text-xl font-bold text-gradient">Sistema de Controle - Admin</h1>
-                <Button onClick={() => setShowAdminPanel(false)} variant="outline" className="gap-2">
-                  ← Voltar à Seleção
-                </Button>
-              </div>
-            </div>
-          </div>
-          <AdminDashboard />
-          <Footer />
-        </div>
-      );
+    // If admin has selected a school, show GestorDashboard in admin mode
+    if (selectedSchool && isAdminMode) {
+      return <GestorDashboard isAdminMode={true} />;
     }
-
-    // If no school selected, show school selector
-    if (!selectedSchoolId) {
-      return <SchoolSelector onSelectAdmin={() => setShowAdminPanel(true)} />;
-    }
-
-    // If school selected, show GestorDashboard in admin mode
-    return <GestorDashboard 
-      isAdminMode={true} 
-      selectedSchoolId={selectedSchoolId} 
-      onBackToSelection={clearSelection} 
-    />;
+    
+    // Otherwise show school selector
+    return <SchoolSelector />;
   }
 
   // Render gestor dashboard for gestor users

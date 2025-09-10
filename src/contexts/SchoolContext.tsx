@@ -1,26 +1,48 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useState, ReactNode } from 'react';
+
+interface SchoolData {
+  id: string;
+  school_name: string;
+  logo_url?: string;
+  consultant_name?: string;
+  consultant_whatsapp?: string;
+  consultant_calendar_url?: string;
+  proesc_id?: string;
+  organization_id?: number;
+  metabase_integration_url?: string;
+  dashboard_links?: any;
+}
 
 interface SchoolContextType {
-  selectedSchoolId: string | null;
-  selectSchool: (schoolId: string) => void;
+  selectedSchool: SchoolData | null;
+  selectSchool: (school: SchoolData) => void;
   clearSelection: () => void;
+  isAdminMode: boolean;
 }
 
 const SchoolContext = createContext<SchoolContextType | undefined>(undefined);
 
-export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [selectedSchoolId, setSelectedSchoolId] = useState<string | null>(null);
+export const SchoolProvider = ({ children }: { children: ReactNode }) => {
+  const [selectedSchool, setSelectedSchool] = useState<SchoolData | null>(null);
+  const [isAdminMode, setIsAdminMode] = useState(false);
 
-  const selectSchool = (schoolId: string) => {
-    setSelectedSchoolId(schoolId);
+  const selectSchool = (school: SchoolData) => {
+    setSelectedSchool(school);
+    setIsAdminMode(true);
   };
 
   const clearSelection = () => {
-    setSelectedSchoolId(null);
+    setSelectedSchool(null);
+    setIsAdminMode(false);
   };
 
   return (
-    <SchoolContext.Provider value={{ selectedSchoolId, selectSchool, clearSelection }}>
+    <SchoolContext.Provider value={{
+      selectedSchool,
+      selectSchool,
+      clearSelection,
+      isAdminMode,
+    }}>
       {children}
     </SchoolContext.Provider>
   );
