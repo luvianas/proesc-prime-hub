@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { LogOut, ArrowLeft } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -37,12 +37,42 @@ const AdminHeader = () => {
   const [cropperOpen, setCropperOpen] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
+  // Load profile data when component mounts
+  useEffect(() => {
+    const loadInitialProfileData = async () => {
+      if (!user) return;
+      
+      try {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("name,email,avatar_url,consultant_whatsapp,consultant_calendar_url")
+          .eq("user_id", user.id)
+          .single();
+        
+        if (profile) {
+          setAdminProfile({
+            name: profile.name ?? "",
+            email: profile.email ?? user.email ?? "",
+            avatar_url: profile.avatar_url ?? "",
+            consultant_whatsapp: profile.consultant_whatsapp ?? "",
+            consultant_calendar_url: profile.consultant_calendar_url ?? ""
+          });
+        }
+      } catch (error) {
+        console.error('Erro ao carregar dados iniciais do perfil:', error);
+      }
+    };
+
+    loadInitialProfileData();
+  }, [user]);
+
   const openProfile = async () => {
     if (!user) return;
     setProfileDialogOpen(true);
     setLoadingProfile(true);
     
     try {
+      // Reload fresh data when opening dialog
       const { data: profile } = await supabase
         .from("profiles")
         .select("name,email,avatar_url,consultant_whatsapp,consultant_calendar_url")
