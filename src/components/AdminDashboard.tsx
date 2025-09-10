@@ -9,7 +9,7 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
-import { Plus, Users, Settings, Trash2, School, Edit3, Minimize2, Maximize2, User, Key } from 'lucide-react';
+import { Plus, Users, Settings, Trash2, School, Edit3, Minimize2, Maximize2, User, Key, LogOut } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
@@ -19,6 +19,7 @@ import UsageDashboard from '@/components/UsageDashboard';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
 import ImageCropperDialog from '@/components/ImageCropperDialog';
+import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 interface User {
   id: string;
   user_id: string;
@@ -679,7 +680,137 @@ const AdminDashboard = ({ onBack }: AdminDashboardProps) => {
   }
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
+    <div className="min-h-screen auth-background">
+      {/* Admin Header */}
+      <div className="grid grid-cols-3 items-center p-6 border-b border-border/30 bg-card/90 backdrop-blur-md shadow-elegant">
+        <div className="flex items-center gap-6 justify-self-start">
+          <div className="w-16 h-16 rounded bg-gradient-primary text-white flex items-center justify-center font-bold hover-scale">
+            A
+          </div>
+          <div className="hidden md:block">
+            <h1 className="text-xl font-bold text-gradient">Sistema de Controle - Admin</h1>
+            <Badge variant="outline" className="text-xs bg-orange-500/10 text-orange-600 border-orange-500/20">
+              Painel Administrativo
+            </Badge>
+          </div>
+        </div>
+        
+        <div className="justify-self-center">
+          <TooltipProvider delayDuration={150}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <a href="https://app.proesc.com" target="_blank" rel="noopener noreferrer" aria-label="Retornar ao Proesc" className="inline-flex items-center justify-center rounded-md px-2 py-1 hover:opacity-80 transition-opacity cursor-pointer hover-scale">
+                  <img src="/lovable-uploads/31be6a89-85b7-486f-b156-ebe5b3557c02.png" alt="Proesc Prime" className="h-10 mx-auto" loading="lazy" />
+                </a>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">Retornar ao Proesc</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </div>
+        
+        <div className="justify-self-end flex items-center gap-3">
+          <ThemeToggle />
+          <Dialog open={profileDialogOpen} onOpenChange={setProfileDialogOpen}>
+            <DialogTrigger asChild>
+              <Button variant="ghost" size="sm" className="gap-2 hover-lift" onClick={openAdminProfile}>
+                <Avatar className="h-8 w-8">
+                  <AvatarImage src={adminProfile.avatar_url} alt="Avatar" />
+                  <AvatarFallback>
+                    {user?.email?.charAt(0).toUpperCase() || "A"}
+                  </AvatarFallback>
+                </Avatar>
+                <span className="hidden md:inline">Perfil</span>
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle>Perfil do Administrador</DialogTitle>
+              </DialogHeader>
+              {loadingProfile ? <div className="p-4 text-center">Carregando...</div> : (
+                <div className="space-y-4">
+                  <div className="flex flex-col items-center gap-4">
+                    <div className="relative">
+                      <Avatar className="h-20 w-20">
+                        <AvatarImage src={adminProfile.avatar_url} alt="Avatar" />
+                        <AvatarFallback className="text-2xl">
+                          {adminProfile.name?.charAt(0) || user?.email?.charAt(0).toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                      <Button size="sm" variant="outline" className="absolute -bottom-2 -right-2 h-8 w-8 rounded-full p-0" onClick={() => {
+                        const input = document.createElement('input');
+                        input.type = 'file';
+                        input.accept = 'image/*';
+                        input.onchange = (e) => {
+                          const file = (e.target as HTMLInputElement)?.files?.[0];
+                          if (file) {
+                            const url = URL.createObjectURL(file);
+                            setCropSrc(url);
+                            setCropOpen(true);
+                          }
+                        };
+                        input.click();
+                      }}>
+                        <Edit3 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    <div>
+                      <Label htmlFor="adminName">Nome</Label>
+                      <Input id="adminName" value={adminProfile.name} onChange={(e) => setAdminProfile(prev => ({ ...prev, name: e.target.value }))} placeholder="Seu nome" />
+                    </div>
+                    
+                    <div>
+                      <Label htmlFor="adminEmail">Email</Label>
+                      <Input id="adminEmail" type="email" value={adminProfile.email} onChange={(e) => setAdminProfile(prev => ({ ...prev, email: e.target.value }))} placeholder="seu@email.com" />
+                    </div>
+
+                    <div>
+                      <Label htmlFor="adminWhatsapp">WhatsApp (opcional)</Label>
+                      <Input id="adminWhatsapp" value={adminProfile.consultant_whatsapp} onChange={(e) => setAdminProfile(prev => ({ ...prev, consultant_whatsapp: e.target.value }))} placeholder="Ex: 11999999999" />
+                    </div>
+
+                    <div>
+                      <Label htmlFor="adminCalendar">Link do Calendário (opcional)</Label>
+                      <Input id="adminCalendar" value={adminProfile.consultant_calendar_url} onChange={(e) => setAdminProfile(prev => ({ ...prev, consultant_calendar_url: e.target.value }))} placeholder="https://calendly.com/seu-link" />
+                    </div>
+
+                    <div>
+                      <Label htmlFor="adminNewPassword">Nova Senha (opcional)</Label>
+                      <Input id="adminNewPassword" type="password" value={adminNewPassword} onChange={(e) => setAdminNewPassword(e.target.value)} placeholder="Digite nova senha" />
+                    </div>
+
+                    <div>
+                      <Label htmlFor="adminConfirmPassword">Confirmar Nova Senha</Label>
+                      <Input id="adminConfirmPassword" type="password" value={adminConfirmPassword} onChange={(e) => setAdminConfirmPassword(e.target.value)} placeholder="Confirme a nova senha" />
+                    </div>
+                  </div>
+
+                  <div className="flex gap-3">
+                    <Button variant="outline" onClick={() => setProfileDialogOpen(false)} className="flex-1">
+                      Cancelar
+                    </Button>
+                    <Button onClick={saveAdminProfile} disabled={savingProfile} className="flex-1">
+                      {savingProfile ? 'Salvando...' : 'Salvar'}
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </DialogContent>
+          </Dialog>
+          <Button variant="destructive" size="sm" onClick={() => {
+            supabase.auth.signOut();
+            window.location.href = '/';
+          }} className="gap-2 hover-lift">
+            <LogOut className="w-4 h-4" />
+            <span className="hidden md:inline">Sair</span>
+          </Button>
+        </div>
+      </div>
+      
+      {/* Content */}
+      <div className="container mx-auto p-6 space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">Painel Administrativo</h1>
@@ -687,75 +818,6 @@ const AdminDashboard = ({ onBack }: AdminDashboardProps) => {
         </div>
         {/* Tema e perfil movidos para o cabeçalho global */}
       </div>
-
-      {/* Admin Profile Dialog */}
-      <Dialog open={profileDialogOpen} onOpenChange={setProfileDialogOpen}>
-        <DialogContent className="sm:max-w-lg">
-          <DialogHeader>
-            <DialogTitle>Meu Perfil - Admin</DialogTitle>
-            <DialogDescription>Gerencie suas informações pessoais e credenciais</DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="flex items-center gap-4">
-              <Avatar className="h-16 w-16">
-                <AvatarImage src={adminProfile.avatar_url} alt="Foto do perfil" />
-                <AvatarFallback>
-                  {adminProfile.name?.charAt(0).toUpperCase() || 'A'}
-                </AvatarFallback>
-              </Avatar>
-                <div>
-                  <Label htmlFor="avatar">Foto do perfil</Label>
-                  <Input
-                    id="avatar"
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => {
-                      const f = e.target.files?.[0];
-                      if (!f) return;
-                      const url = URL.createObjectURL(f);
-                      setCropSrc(url);
-                      setCropOpen(true);
-                    }}
-                    disabled={loadingProfile}
-                  />
-                </div>
-            </div>
-            <div className="space-y-3">
-              <div className="space-y-2">
-                <Label htmlFor="name">Nome</Label>
-                <Input id="name" value={adminProfile.name} onChange={(e) => setAdminProfile(prev => ({ ...prev, name: e.target.value }))} />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="email">E-mail</Label>
-                <Input id="email" type="email" value={adminProfile.email} onChange={(e) => setAdminProfile(prev => ({ ...prev, email: e.target.value }))} />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="whatsapp">WhatsApp</Label>
-                <Input id="whatsapp" value={adminProfile.consultant_whatsapp} onChange={(e) => setAdminProfile(prev => ({ ...prev, consultant_whatsapp: e.target.value }))} placeholder="(11) 99999-9999" />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="calendar">Link de incorporação da agenda</Label>
-                <Input id="calendar" value={adminProfile.consultant_calendar_url} onChange={(e) => setAdminProfile(prev => ({ ...prev, consultant_calendar_url: e.target.value }))} placeholder="https://calendar.google.com/calendar/embed?..." />
-              </div>
-              <div className="grid md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="password">Nova senha</Label>
-                  <Input id="password" type="password" value={adminNewPassword} onChange={(e) => setAdminNewPassword(e.target.value)} />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="confirmPassword">Confirmar senha</Label>
-                  <Input id="confirmPassword" type="password" value={adminConfirmPassword} onChange={(e) => setAdminConfirmPassword(e.target.value)} />
-                </div>
-              </div>
-            </div>
-          </div>
-          <div className="flex justify-end gap-2 pt-2">
-            <Button variant="ghost" onClick={() => setProfileDialogOpen(false)}>Cancelar</Button>
-            <Button onClick={saveAdminProfile} disabled={savingProfile}>{savingProfile ? 'Salvando...' : 'Salvar'}</Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-
 
       {!minimized && (
         <Tabs defaultValue="users" className="space-y-4">
@@ -1780,6 +1842,7 @@ const AdminDashboard = ({ onBack }: AdminDashboardProps) => {
         </DialogContent>
       </Dialog>
       <ImageCropperDialog open={cropOpen} onOpenChange={setCropOpen} imageSrc={cropSrc} onConfirm={uploadCroppedAvatar} />
+      </div>
     </div>
   );
 };

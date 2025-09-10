@@ -200,62 +200,11 @@ const GestorDashboard = ({
         {showAssistant && <AIAssistant onClose={() => setShowAssistant(false)} />}
       </div>;
   }
-  return <>
-      {/* Admin Mode - Full Header */}
-      {isAdminMode && <div className="min-h-screen auth-background">
-          <div className="grid grid-cols-3 items-center p-6 border-b border-border/30 bg-card/90 backdrop-blur-md shadow-elegant">
-            <div className="flex items-center gap-6 justify-self-start">
-              {schoolData?.logo_url ? <img src={schoolData.logo_url} alt={`Logo ${schoolData.school_name}`} className="w-16 h-16 object-contain rounded hover-scale" loading="lazy" /> : <div className="w-16 h-16 rounded bg-gradient-primary text-white flex items-center justify-center font-bold hover-scale">
-                  {schoolData?.school_name?.charAt(0).toUpperCase()}
-                </div>}
-              <div className="hidden md:block">
-                <h1 className="text-xl font-bold text-gradient">{schoolData?.school_name}</h1>
-                <div className="flex items-center gap-2">
-                  <Badge variant="secondary" className="text-xs bg-primary/10 text-primary border-primary/20">
-                    Portal Prime
-                  </Badge>
-                  <Badge variant="outline" className="text-xs bg-orange-500/10 text-orange-600 border-orange-500/20">
-                    Modo Admin
-                  </Badge>
-                </div>
-              </div>
-            </div>
-            
-            <div className="justify-self-center">
-              <TooltipProvider delayDuration={150}>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <a href="https://app.proesc.com" target="_blank" rel="noopener noreferrer" aria-label="Retornar ao Proesc" className="inline-flex items-center justify-center rounded-md px-2 py-1 hover:opacity-80 transition-opacity cursor-pointer hover-scale">
-                      <img src="/lovable-uploads/31be6a89-85b7-486f-b156-ebe5b3557c02.png" alt="Proesc Prime" className="h-10 mx-auto" loading="lazy" />
-                    </a>
-                  </TooltipTrigger>
-                  <TooltipContent side="bottom">Retornar ao Proesc</TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            </div>
-            
-            <div className="justify-self-end flex items-center gap-3">
-              <Button variant="outline" size="sm" onClick={clearSelection} className="hover-lift">
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Voltar à Seleção
-              </Button>
-              <ThemeToggle />
-            </div>
-          </div>
-          
-          <div className="container mx-auto p-6 space-y-8">
-            {/* Content */}
-            {renderContent()}
-          </div>
-        </div>}
-      
-      {/* Normal Gestor Mode */}
-      {!isAdminMode && <div className="min-h-screen bg-hero">
-          <div className="container mx-auto p-6 space-y-8">
-            {renderContent()}
-          </div>
-        </div>}
-    </>;
+  return <div className="min-h-screen bg-hero">
+      <div className="container mx-auto p-6 space-y-8">
+        {renderContent()}
+      </div>
+    </div>;
   function renderContent() {
     return <>
         {/* Welcome Message */}
