@@ -756,11 +756,31 @@ const AdminDashboard = () => {
       {!minimized && (
         <Tabs defaultValue="users" className="space-y-4">
           <div className="flex items-center justify-between">
-            <TabsList>
-              <TabsTrigger value="users">Usuários</TabsTrigger>
-              <TabsTrigger value="schools">Instituições</TabsTrigger>
-              <TabsTrigger value="banners">Novidades</TabsTrigger>
-              <TabsTrigger value="usage">Dados de Uso</TabsTrigger>
+            <TabsList className="bg-muted/50 p-1 rounded-lg border border-border">
+              <TabsTrigger 
+                value="users" 
+                className="data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm data-[state=active]:border data-[state=active]:border-primary/50 hover:bg-accent hover:text-accent-foreground hover:border hover:border-primary/30 transition-all duration-200"
+              >
+                Usuários
+              </TabsTrigger>
+              <TabsTrigger 
+                value="schools" 
+                className="data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm data-[state=active]:border data-[state=active]:border-primary/50 hover:bg-accent hover:text-accent-foreground hover:border hover:border-primary/30 transition-all duration-200"
+              >
+                Instituições
+              </TabsTrigger>
+              <TabsTrigger 
+                value="banners" 
+                className="data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm data-[state=active]:border data-[state=active]:border-primary/50 hover:bg-accent hover:text-accent-foreground hover:border hover:border-primary/30 transition-all duration-200"
+              >
+                Novidades
+              </TabsTrigger>
+              <TabsTrigger 
+                value="usage" 
+                className="data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm data-[state=active]:border data-[state=active]:border-primary/50 hover:bg-accent hover:text-accent-foreground hover:border hover:border-primary/30 transition-all duration-200"
+              >
+                Dados de Uso
+              </TabsTrigger>
             </TabsList>
           </div>
 
