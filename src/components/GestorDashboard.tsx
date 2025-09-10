@@ -36,7 +36,11 @@ interface UserProfile {
   name: string;
   email: string;
 }
-const GestorDashboard = () => {
+interface GestorDashboardProps {
+  adminViewSchoolId?: string;
+}
+
+const GestorDashboard = ({ adminViewSchoolId }: GestorDashboardProps) => {
   const [schoolData, setSchoolData] = useState<SchoolCustomization | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
@@ -48,9 +52,11 @@ const GestorDashboard = () => {
   const {
     toast
   } = useToast();
+  
+  const isAdminView = !!adminViewSchoolId;
   useEffect(() => {
     fetchSchoolData();
-  }, [user]);
+  }, [user, adminViewSchoolId]);
   useEffect(() => {
     document.title = 'Prime Hub - Gestor';
     const desc = 'Portal Prime para gestores: tickets, agenda do consultor e dashboards.';
@@ -83,30 +89,47 @@ const GestorDashboard = () => {
   };
 
   const fetchSchoolData = async () => {
-    if (!user) return;
+    if (!user && !adminViewSchoolId) return;
+    
     try {
-      // First get user profile with school_id
-      const {
-        data: profile,
-        error: profileError
-      } = await supabase.from('profiles').select('school_id, name, email').eq('user_id', user.id).single();
-      if (profileError) throw profileError;
-      if (!profile?.school_id) {
-        toast({
-          title: "Aviso",
-          description: "Nenhuma escola associada a este usuário.",
-          variant: "destructive"
+      let schoolId: string;
+      
+      if (adminViewSchoolId) {
+        // Admin view - use provided school ID
+        schoolId = adminViewSchoolId;
+        // Create mock profile for admin view
+        setUserProfile({
+          school_id: adminViewSchoolId,
+          name: 'Admin User',
+          email: user?.email || 'admin@example.com'
         });
-        setLoading(false);
-        return;
+      } else {
+        // Regular gestor view - get user profile
+        const {
+          data: profile,
+          error: profileError
+        } = await supabase.from('profiles').select('school_id, name, email').eq('user_id', user.id).single();
+        if (profileError) throw profileError;
+        if (!profile?.school_id) {
+          toast({
+            title: "Aviso",
+            description: "Nenhuma escola associada a este usuário.",
+            variant: "destructive"
+          });
+          setLoading(false);
+          return;
+        }
+        setUserProfile(profile);
+        schoolId = profile.school_id;
       }
-      setUserProfile(profile);
-      console.log('👤 GestorDashboard: Profile carregado:', profile);
-      console.log('🎯 School ID para banners:', profile.school_id);
+      
+      console.log('👤 GestorDashboard: Profile carregado, School ID:', schoolId);
+      console.log('🎯 School ID para banners:', schoolId);
+      
       const {
         data: school,
         error: schoolError
-      } = await supabase.from('school_customizations').select('*').eq('school_id', profile.school_id).maybeSingle();
+      } = await supabase.from('school_customizations').select('*').eq('school_id', schoolId).maybeSingle();
       if (schoolError) throw schoolError;
       setSchoolData(school);
     } catch (error: any) {
@@ -165,23 +188,36 @@ const GestorDashboard = () => {
   }
   return <div className="min-h-screen bg-hero">
       <div className="container mx-auto p-6 space-y-8">
+        {/* Admin viewing indicator */}
+        {isAdminView && (
+          <div className="bg-primary/10 border border-primary/20 rounded-lg px-4 py-3 mb-6">
+            <div className="flex items-center gap-2 text-sm">
+              <Badge variant="secondary">Admin View</Badge>
+              <span className="text-primary font-medium">Visualizando como Admin:</span>
+              <span className="font-semibold">{schoolData?.school_name}</span>
+            </div>
+          </div>
+        )}
+
         {/* Welcome Message */}
         <div className="text-left py-8 animate-fade-in">
           <h1 className="text-5xl font-bold mb-4 text-gradient">
-            Bem-vindo ao seu Portal Prime
+            {isAdminView ? schoolData?.school_name : 'Bem-vindo ao seu Portal Prime'}
           </h1>
           <p className="text-xl text-muted-foreground">
-            Gerencie sua escola com excelência
+            {isAdminView ? 'Portal da escola - Visualização de administrador' : 'Gerencie sua escola com excelência'}
           </p>
         </div>
 
         {/* Novidades - Carrossel de Banners */}
         <NovidadesCarousel schoolId={userProfile.school_id} />
 
-        {/* Alternar tema */}
-        <div className="flex justify-end">
-          <ThemeToggle />
-        </div>
+        {/* Alternar tema - only show for regular gestor view */}
+        {!isAdminView && (
+          <div className="flex justify-end">
+            <ThemeToggle />
+          </div>
+        )}
 
         {/* Destaques */}
         <section className="grid md:grid-cols-2 gap-8">
@@ -261,7 +297,8 @@ const GestorDashboard = () => {
         </section>
 
 
-        {showAssistant && <AIAssistant onClose={() => setShowAssistant(false)} />}
+        {/* AI Assistant - only show for regular gestor view */}
+        {!isAdminView && showAssistant && <AIAssistant onClose={() => setShowAssistant(false)} />}
       </div>
     </div>;
 };
