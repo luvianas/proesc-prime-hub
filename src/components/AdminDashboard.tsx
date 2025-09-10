@@ -1344,7 +1344,12 @@ const AdminDashboard = () => {
                   <div className="space-y-4">
                     <div className="space-y-2">
                       <Label>Imagem (JPG ou PNG)</Label>
-                      <Input type="file" accept="image/png, image/jpeg" onChange={(e) => setBannerFile(e.target.files?.[0] || null)} />
+                      <Input 
+                        type="file" 
+                        accept="image/png, image/jpeg" 
+                        onChange={(e) => setBannerFile(e.target.files?.[0] || null)} 
+                        className="border-2 border-dashed border-muted-foreground/50 hover:border-primary hover:bg-accent/50 transition-all duration-200 cursor-pointer file:cursor-pointer file:border-0 file:bg-primary file:text-primary-foreground file:px-4 file:py-2 file:rounded-md file:mr-4 hover:file:bg-primary/90"
+                      />
                     </div>
                     <div className="space-y-2">
                       <Label>Título</Label>
