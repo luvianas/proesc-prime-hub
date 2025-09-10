@@ -48,7 +48,7 @@ const Index = () => {
     mustChangePassword,
   } = useAuth();
   
-  const { selectedSchool, isAdminMode } = useSchool();
+  const { selectedSchool, isAdminMode, clearSelection } = useSchool();
   const [schoolHeader, setSchoolHeader] = useState<{
     schoolName: string;
     logoUrl?: string;
@@ -210,9 +210,144 @@ const Index = () => {
 
   // Render admin dashboard or school selector for admin users
   if (userRole === 'admin') {
-    // If admin has selected a school, show GestorDashboard in admin mode
+    // If admin has selected a school, show GestorDashboard in admin mode with header
     if (selectedSchool && isAdminMode) {
-      return <GestorDashboard isAdminMode={true} />;
+      return <div className="min-h-screen auth-background">
+        <div className="grid grid-cols-3 items-center p-6 border-b border-border/30 bg-card/90 backdrop-blur-md shadow-elegant">
+          <div className="flex items-center gap-6 justify-self-start">
+            {selectedSchool.logo_url ? (
+              <img
+                src={selectedSchool.logo_url}
+                alt={`Logo ${selectedSchool.school_name}`}
+                className="w-16 h-16 object-contain rounded hover-scale"
+                loading="lazy"
+              />
+            ) : (
+              <div className="w-16 h-16 rounded bg-gradient-primary text-white flex items-center justify-center font-bold hover-scale">
+                {selectedSchool.school_name?.charAt(0).toUpperCase()}
+              </div>
+            )}
+            <div className="hidden md:block">
+              <h1 className="text-xl font-bold text-gradient">{selectedSchool.school_name}</h1>
+              <Badge variant="secondary" className="text-xs bg-destructive/10 text-destructive border-destructive/20">Sistema de Controle - Admin</Badge>
+            </div>
+          </div>
+          <div className="justify-self-center">
+            <TooltipProvider delayDuration={150}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <a
+                    href="https://app.proesc.com"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label="Retornar ao Proesc"
+                    className="inline-flex items-center justify-center rounded-md px-2 py-1 hover:opacity-80 transition-opacity cursor-pointer hover-scale"
+                  >
+                    <img 
+                      src="/lovable-uploads/31be6a89-85b7-486f-b156-ebe5b3557c02.png" 
+                      alt="Proesc Prime" 
+                      className="h-10 mx-auto"
+                      loading="lazy"
+                    />
+                  </a>
+                </TooltipTrigger>
+                <TooltipContent side="bottom">Retornar ao Proesc</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
+          <div className="justify-self-end flex items-center gap-3">
+            <div className="hidden md:flex items-center gap-3">
+              <Button onClick={clearSelection} variant="outline" className="btn-elegant hover-glow">
+                ← Voltar à Seleção
+              </Button>
+              <ThemeToggle />
+              <Button onClick={openProfile} variant="outline" 
+                      className="rounded-full w-12 h-12 p-0 btn-elegant hover-glow">
+                <Avatar className="w-10 h-10">
+                  <AvatarImage src={avatarUrl} alt="Foto do perfil" />
+                  <AvatarFallback className="bg-gradient-primary text-white">
+                    <User className="w-5 h-5" />
+                  </AvatarFallback>
+                </Avatar>
+              </Button>
+              <Button onClick={signOut} className="btn-elegant shadow-elegant">
+                <LogOut className="w-4 h-4 mr-2" />
+                Sair
+              </Button>
+            </div>
+            <div className="md:hidden">
+              <MobileActionsMenu onOpenProfile={openProfile} />
+            </div>
+          </div>
+        </div>
+        <Dialog open={profileDialogOpen} onOpenChange={setProfileDialogOpen}>
+          <DialogContent className="sm:max-w-lg">
+            <DialogHeader>
+              <DialogTitle>Meu Perfil</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="flex items-center gap-4">
+                <Avatar className="h-16 w-16">
+                  <AvatarImage src={avatarUrl} alt="Foto do perfil" />
+                  <AvatarFallback>
+                    <User className="w-8 h-8" />
+                  </AvatarFallback>
+                </Avatar>
+                <div>
+                  <Label htmlFor="avatar">Foto do perfil</Label>
+                  <Input
+                    id="avatar"
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => e.target.files && handleAvatarChange(e.target.files[0])}
+                    disabled={loadingProfile}
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">Use uma imagem quadrada (PNG ou JPG).</p>
+                </div>
+              </div>
+              <div className="space-y-3">
+                <div className="space-y-2">
+                  <Label htmlFor="name">Nome</Label>
+                  <Input id="name" value={profileName} onChange={(e) => setProfileName(e.target.value)} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="email">E-mail</Label>
+                  <Input id="email" type="email" value={profileEmail} onChange={(e) => setProfileEmail(e.target.value)} />
+                </div>
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="password">Nova senha</Label>
+                    <Input id="password" type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="confirmPassword">Confirmar senha</Label>
+                    <Input id="confirmPassword" type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} />
+                  </div>
+                </div>
+                {userRole === 'admin' && (
+                  <>
+                    <div className="space-y-2">
+                      <Label htmlFor="whatsapp">WhatsApp</Label>
+                      <Input id="whatsapp" value={adminWhatsApp} onChange={(e) => setAdminWhatsApp(e.target.value)} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="calendar">URL do Calendário</Label>
+                      <Input id="calendar" value={adminCalendarUrl} onChange={(e) => setAdminCalendarUrl(e.target.value)} />
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button variant="ghost" onClick={() => setProfileDialogOpen(false)}>Cancelar</Button>
+              <Button onClick={saveProfile} disabled={savingProfile}>{savingProfile ? 'Salvando...' : 'Salvar'}</Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+        <ImageCropperDialog open={cropOpen} onOpenChange={setCropOpen} imageSrc={cropSrc} onConfirm={uploadCroppedAvatar} />
+        <GestorDashboard isAdminMode={true} />
+        <Footer />
+      </div>;
     }
     
     // Otherwise show school selector
