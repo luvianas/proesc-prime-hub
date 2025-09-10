@@ -34,8 +34,6 @@ import ImageCropperDialog from "@/components/ImageCropperDialog";
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip";
 import MobileActionsMenu from "@/components/MobileActionsMenu";
 import Footer from "@/components/Footer";
-import SchoolSelector from "@/components/SchoolSelector";
-import { useSchool } from "@/contexts/SchoolContext";
 const Index = () => {
   const [showAI, setShowAI] = useState(false);
   const [activeSection, setActiveSection] = useState("dashboard");
@@ -47,8 +45,6 @@ const Index = () => {
     signOut,
     mustChangePassword,
   } = useAuth();
-  
-  const { selectedSchool, isAdminMode, clearSelection } = useSchool();
   const [schoolHeader, setSchoolHeader] = useState<{
     schoolName: string;
     logoUrl?: string;
@@ -208,69 +204,48 @@ const Index = () => {
     return <Navigate to="/auth" replace />;
   }
 
-  // Render admin dashboard or school selector for admin users
+  // Render admin dashboard for admin users
   if (userRole === 'admin') {
-    // If admin has selected a school, show GestorDashboard in admin mode with header
-    if (selectedSchool && isAdminMode) {
-      return <div className="min-h-screen auth-background">
-        <div className="grid grid-cols-3 items-center p-6 border-b border-border/30 bg-card/90 backdrop-blur-md shadow-elegant">
-          <div className="flex items-center gap-6 justify-self-start">
-            {selectedSchool.logo_url ? (
-              <img
-                src={selectedSchool.logo_url}
-                alt={`Logo ${selectedSchool.school_name}`}
-                className="w-16 h-16 object-contain rounded hover-scale"
-                loading="lazy"
-              />
-            ) : (
-              <div className="w-16 h-16 rounded bg-gradient-primary text-white flex items-center justify-center font-bold hover-scale">
-                {selectedSchool.school_name?.charAt(0).toUpperCase()}
-              </div>
-            )}
-            <div className="hidden md:block">
-              <h1 className="text-xl font-bold text-gradient">{selectedSchool.school_name}</h1>
-              <Badge variant="secondary" className="text-xs bg-destructive/10 text-destructive border-destructive/20">Sistema de Controle - Admin</Badge>
-            </div>
+    return <div className="min-h-screen auth-background">
+        <div className="grid grid-cols-3 items-center p-4 border-b border-border/30 bg-card/90 backdrop-blur-md shadow-elegant">
+          <div className="justify-self-start">
+            <h1 className="text-xl font-semibold text-gradient">Sistema de Controle - Admin</h1>
           </div>
           <div className="justify-self-center">
-            <TooltipProvider delayDuration={150}>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <a
-                    href="https://app.proesc.com"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    aria-label="Retornar ao Proesc"
-                    className="inline-flex items-center justify-center rounded-md px-2 py-1 hover:opacity-80 transition-opacity cursor-pointer hover-scale"
-                  >
-                    <img 
-                      src="/lovable-uploads/31be6a89-85b7-486f-b156-ebe5b3557c02.png" 
-                      alt="Proesc Prime" 
-                      className="h-10 mx-auto"
-                      loading="lazy"
-                    />
-                  </a>
-                </TooltipTrigger>
-                <TooltipContent side="bottom">Retornar ao Proesc</TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
+<TooltipProvider delayDuration={150}>
+  <Tooltip>
+    <TooltipTrigger asChild>
+      <a
+        href="https://app.proesc.com"
+        target="_blank"
+        rel="noopener noreferrer"
+        aria-label="Retornar ao Proesc"
+        className="inline-flex items-center justify-center rounded-md px-2 py-1 hover:opacity-80 transition-opacity cursor-pointer hover-scale"
+      >
+        <img
+          src="/lovable-uploads/31be6a89-85b7-486f-b156-ebe5b3557c02.png"
+          alt="Proesc Prime"
+          className="h-10 mx-auto"
+          loading="lazy"
+        />
+      </a>
+    </TooltipTrigger>
+    <TooltipContent side="bottom">Retornar ao Proesc</TooltipContent>
+  </Tooltip>
+</TooltipProvider>
           </div>
           <div className="justify-self-end flex items-center gap-3">
             <div className="hidden md:flex items-center gap-3">
-              <Button onClick={clearSelection} variant="outline" className="btn-elegant hover-glow">
-                ← Voltar à Seleção
-              </Button>
               <ThemeToggle />
-              <Button onClick={openProfile} variant="outline" 
-                      className="rounded-full w-12 h-12 p-0 btn-elegant hover-glow">
+              <Button onClick={openProfile} variant="outline" className="rounded-full w-12 h-12 p-0 btn-elegant hover-glow">
                 <Avatar className="w-10 h-10">
                   <AvatarImage src={avatarUrl} alt="Foto do perfil" />
                   <AvatarFallback className="bg-gradient-primary text-white">
-                    <User className="w-5 h-5" />
+                    {(profileName || user.email || '').charAt(0).toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
               </Button>
-              <Button onClick={signOut} className="btn-elegant shadow-elegant">
+              <Button variant="outline" onClick={signOut} className="hover-lift">
                 <LogOut className="w-4 h-4 mr-2" />
                 Sair
               </Button>
@@ -281,61 +256,149 @@ const Index = () => {
           </div>
         </div>
         <Dialog open={profileDialogOpen} onOpenChange={setProfileDialogOpen}>
-          <DialogContent className="sm:max-w-lg">
+          <DialogContent className="sm:max-w-lg card-elegant">
             <DialogHeader>
-              <DialogTitle>Meu Perfil</DialogTitle>
+              <DialogTitle className="text-gradient">Meu Perfil</DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
               <div className="flex items-center gap-4">
-                <Avatar className="h-16 w-16">
+                <Avatar className="h-16 w-16 hover-scale">
                   <AvatarImage src={avatarUrl} alt="Foto do perfil" />
-                  <AvatarFallback>
-                    <User className="w-8 h-8" />
+                  <AvatarFallback className="bg-gradient-primary text-white">
+                    {(profileName || user.email || '').charAt(0).toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
                 <div>
-                  <Label htmlFor="avatar">Foto do perfil</Label>
+                  <Label htmlFor="avatar-admin">Foto do perfil</Label>
                   <Input
-                    id="avatar"
+                    id="avatar-admin"
                     type="file"
                     accept="image/*"
                     onChange={(e) => e.target.files && handleAvatarChange(e.target.files[0])}
                     disabled={loadingProfile}
+                    className="border-glow file:border-2 file:border-brand file:rounded-md file:px-3 file:py-1 file:text-sm file:font-medium file:bg-background file:text-foreground hover:file:bg-accent"
                   />
                   <p className="text-xs text-muted-foreground mt-1">Use uma imagem quadrada (PNG ou JPG).</p>
                 </div>
               </div>
               <div className="space-y-3">
                 <div className="space-y-2">
-                  <Label htmlFor="name">Nome</Label>
-                  <Input id="name" value={profileName} onChange={(e) => setProfileName(e.target.value)} />
+                  <Label htmlFor="name-admin">Nome</Label>
+                  <Input id="name-admin" value={profileName} onChange={(e) => setProfileName(e.target.value)} className="border-glow" />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="email">E-mail</Label>
-                  <Input id="email" type="email" value={profileEmail} onChange={(e) => setProfileEmail(e.target.value)} />
+                  <Label htmlFor="email-admin">E-mail</Label>
+                  <Input id="email-admin" type="email" value={profileEmail} onChange={(e) => setProfileEmail(e.target.value)} className="border-glow" />
                 </div>
+
+                {userRole === 'admin' && (
+                  <div className="grid md:grid-cols-2 gap-4">
+                     <div className="space-y-2">
+                       <Label htmlFor="wa-admin">WhatsApp do Consultor</Label>
+                       <div className="flex gap-2">
+                         <Input 
+                           id="wa-admin" 
+                           placeholder="(55) 99999-9999" 
+                           value={adminWhatsApp} 
+                           onChange={(e) => {
+                             const value = e.target.value.replace(/\D/g, '');
+                             let formatted = value;
+                             if (value.length >= 2) {
+                               formatted = `(${value.slice(0, 2)})`;
+                               if (value.length >= 3) {
+                                 formatted += ` ${value.slice(2, 7)}`;
+                                 if (value.length >= 7) {
+                                   formatted += `-${value.slice(7, 11)}`;
+                                 }
+                               }
+                             }
+                             setAdminWhatsApp(formatted);
+                           }}
+                           maxLength={15}
+                         />
+                         <Dialog>
+                           <DialogTrigger asChild>
+                             <Button variant="outline" size="sm" className="px-3">
+                               📞
+                             </Button>
+                           </DialogTrigger>
+                           <DialogContent className="sm:max-w-md">
+                             <DialogHeader>
+                               <DialogTitle>Formato do WhatsApp</DialogTitle>
+                             </DialogHeader>
+                             <div className="space-y-4">
+                               <div className="space-y-2">
+                                 <Label>Formato correto:</Label>
+                                 <div className="bg-muted p-3 rounded-md text-sm">
+                                   <p><strong>Exemplo:</strong> (55) 99999-9999</p>
+                                   <p className="text-muted-foreground mt-1">
+                                     • Inclua o código do país (55 para Brasil)
+                                   </p>
+                                   <p className="text-muted-foreground">
+                                     • Use o formato: (DD) NNNNN-NNNN
+                                   </p>
+                                   <p className="text-muted-foreground">
+                                     • DD = Código de área (DDD)
+                                   </p>
+                                   <p className="text-muted-foreground">
+                                     • NNNNN-NNNN = Número do celular
+                                   </p>
+                                 </div>
+                               </div>
+                               <div className="space-y-2">
+                                 <Label htmlFor="phone-input">Digite o número:</Label>
+                                 <Input 
+                                   id="phone-input"
+                                   placeholder="Digite apenas números"
+                                   onChange={(e) => {
+                                     const value = e.target.value.replace(/\D/g, '');
+                                     let formatted = value;
+                                     if (value.length >= 2) {
+                                       formatted = `(${value.slice(0, 2)})`;
+                                       if (value.length >= 3) {
+                                         formatted += ` ${value.slice(2, 7)}`;
+                                         if (value.length >= 7) {
+                                           formatted += `-${value.slice(7, 11)}`;
+                                         }
+                                       }
+                                     }
+                                     setAdminWhatsApp(formatted);
+                                   }}
+                                   maxLength={11}
+                                 />
+                               </div>
+                               <div className="text-sm text-muted-foreground">
+                                 <p><strong>Número atual:</strong> {adminWhatsApp || 'Nenhum número inserido'}</p>
+                               </div>
+                             </div>
+                           </DialogContent>
+                         </Dialog>
+                       </div>
+                     </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="cal-admin">Link de incorporação do Google Calendar</Label>
+                      <textarea 
+                        id="cal-admin" 
+                        placeholder="<iframe ...> ou URL" 
+                        value={adminCalendarUrl} 
+                        onChange={(e)=>setAdminCalendarUrl(e.target.value)}
+                        className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 resize-vertical"
+                        rows={3}
+                      />
+                    </div>
+                  </div>
+                )}
+
                 <div className="grid md:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="password">Nova senha</Label>
-                    <Input id="password" type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} />
+                    <Label htmlFor="password-admin">Nova senha</Label>
+                    <Input id="password-admin" type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="confirmPassword">Confirmar senha</Label>
-                    <Input id="confirmPassword" type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} />
+                    <Label htmlFor="confirmPassword-admin">Confirmar senha</Label>
+                    <Input id="confirmPassword-admin" type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} />
                   </div>
                 </div>
-                {userRole === 'admin' && (
-                  <>
-                    <div className="space-y-2">
-                      <Label htmlFor="whatsapp">WhatsApp</Label>
-                      <Input id="whatsapp" value={adminWhatsApp} onChange={(e) => setAdminWhatsApp(e.target.value)} />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="calendar">URL do Calendário</Label>
-                      <Input id="calendar" value={adminCalendarUrl} onChange={(e) => setAdminCalendarUrl(e.target.value)} />
-                    </div>
-                  </>
-                )}
               </div>
             </div>
             <div className="flex justify-end gap-2 pt-2">
@@ -345,13 +408,49 @@ const Index = () => {
           </DialogContent>
         </Dialog>
         <ImageCropperDialog open={cropOpen} onOpenChange={setCropOpen} imageSrc={cropSrc} onConfirm={uploadCroppedAvatar} />
-        <GestorDashboard isAdminMode={true} />
+        {/* Force password change dialog */}
+        {mustChangePassword && !forceDismissed && (
+          <Dialog open onOpenChange={() => {}}>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle>Defina uma nova senha</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-3">
+                <div>
+                  <Label htmlFor="newpass-admin">Nova senha</Label>
+                  <Input id="newpass-admin" type="password" value={forceNewPassword} onChange={(e)=>setForceNewPassword(e.target.value)} />
+                </div>
+                <div>
+                  <Label htmlFor="confpass-admin">Confirmar senha</Label>
+                  <Input id="confpass-admin" type="password" value={forceConfirmPassword} onChange={(e)=>setForceConfirmPassword(e.target.value)} />
+                </div>
+                <Button disabled={forcingChange} onClick={async ()=>{
+                  if (forceNewPassword.length < 8 || !/[A-Z]/.test(forceNewPassword) || !/[a-z]/.test(forceNewPassword) || !/\d/.test(forceNewPassword)) {
+                    toast({ title: 'Senha fraca', description: 'Use 8+ caracteres com maiúscula, minúscula e número.', variant: 'destructive' });
+                    return;
+                  }
+                  if (forceNewPassword !== forceConfirmPassword) {
+                    toast({ title: 'Senhas não conferem', variant: 'destructive' });
+                    return;
+                  }
+                  try {
+                    setForcingChange(true);
+                    const { error: authErr } = await supabase.auth.updateUser({ password: forceNewPassword });
+                    if (authErr) throw authErr;
+                    await supabase.from('profiles').update({ must_change_password: false } as any).eq('user_id', user!.id);
+                    toast({ title: 'Senha alterada com sucesso' });
+                    setForceDismissed(true);
+                  } catch (e:any) {
+                    toast({ title: 'Erro ao alterar senha', description: e.message, variant: 'destructive' });
+                  } finally { setForcingChange(false); }
+                }}>{forcingChange ? 'Salvando...' : 'Salvar'}</Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+        )}
+        <AdminDashboard />
         <Footer />
       </div>;
-    }
-    
-    // Otherwise show school selector
-    return <SchoolSelector />;
   }
 
   // Render gestor dashboard for gestor users
