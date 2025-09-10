@@ -95,6 +95,7 @@ const SecretariaDashboard = ({ onBack, dashboardUrl }: SecretariaDashboardProps)
         </div>
         <AIInsightsButton 
           label="Explicar com IA" 
+          cardId={43}
           dashboardUrl={embedUrl || ''}
           dashboardType="secretaria"
           question="Analise os dados administrativos desta dashboard e forneça insights sobre processos da secretaria, documentação e eficiência operacional"

@@ -54,7 +54,7 @@ Deno.serve(async (req) => {
     }
 
     const METABASE_SITE_URL = Deno.env.get("METABASE_SITE_URL");
-    const METABASE_API_KEY = Deno.env.get("METABASE_API_KEY");
+    const METABASE_TOKEN = Deno.env.get("METABASE_TOKEN");
     const METABASE_SESSION = Deno.env.get("METABASE_SESSION");
     const GEMINI_API_KEY = Deno.env.get("GEMINI_API");
 
@@ -68,21 +68,21 @@ Deno.serve(async (req) => {
     // Log Metabase configuration status for debugging
     console.log("=== METABASE DEBUG INFO ===");
     console.log("METABASE_SITE_URL:", METABASE_SITE_URL ? "configured" : "not configured");
-    console.log("METABASE_API_KEY:", METABASE_API_KEY ? "configured" : "not configured");  
+    console.log("METABASE_TOKEN:", METABASE_TOKEN ? "configured" : "not configured");  
     console.log("METABASE_SESSION:", METABASE_SESSION ? "configured" : "not configured");
     console.log("cardId provided:", cardId || "none");
     console.log("dashboardUrl:", dashboardUrl || "none");
     console.log("=============================");
 
     // Try to fetch Metabase data when cardId provided and Metabase is configured
-    if (cardId && METABASE_SITE_URL && (METABASE_API_KEY || METABASE_SESSION)) {
+    if (cardId && METABASE_SITE_URL && (METABASE_TOKEN || METABASE_SESSION)) {
       console.log("Attempting to fetch Metabase data...");
       try {
         const url = `${METABASE_SITE_URL.replace(/\/$/, "")}/api/card/${cardId}/query`;
         const headers: Record<string, string> = {
           "content-type": "application/json",
         };
-        if (METABASE_API_KEY) headers["X-Metabase-Api-Key"] = METABASE_API_KEY;
+        if (METABASE_TOKEN) headers["X-Metabase-Api-Key"] = METABASE_TOKEN;
         if (METABASE_SESSION) headers["X-Metabase-Session"] = METABASE_SESSION;
 
         console.log("Metabase request URL:", url);
@@ -120,7 +120,7 @@ Deno.serve(async (req) => {
       console.warn("Skipping Metabase data fetch - Missing requirements:");
       if (!cardId) console.warn("- cardId is missing");
       if (!METABASE_SITE_URL) console.warn("- METABASE_SITE_URL secret is not configured");
-      if (!METABASE_API_KEY && !METABASE_SESSION) console.warn("- Neither METABASE_API_KEY nor METABASE_SESSION secrets are configured");
+      if (!METABASE_TOKEN && !METABASE_SESSION) console.warn("- Neither METABASE_TOKEN nor METABASE_SESSION secrets are configured");
     }
 
     // Build context-specific prompts

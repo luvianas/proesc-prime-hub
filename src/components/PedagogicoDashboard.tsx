@@ -95,6 +95,7 @@ const PedagogicoDashboard = ({ onBack, dashboardUrl }: PedagogicoDashboardProps)
         </div>
         <AIInsightsButton 
           label="Explicar com IA" 
+          cardId={131}
           dashboardUrl={embedUrl || ''}
           dashboardType="pedagogico"
           question="Analise os dados pedagógicos desta dashboard e forneça insights sobre desempenho acadêmico, notas, aproveitamento e recomendações educacionais"

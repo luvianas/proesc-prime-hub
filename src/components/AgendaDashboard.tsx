@@ -95,6 +95,7 @@ const AgendaDashboard = ({ onBack, dashboardUrl }: AgendaDashboardProps) => {
         </div>
         <AIInsightsButton 
           label="Explicar com IA" 
+          cardId={12278}
           dashboardUrl={embedUrl || ''}
           dashboardType="agenda"
           question="Analise os dados de agenda desta dashboard e forneça insights sobre ocupação de horários, distribuição de agendamentos e otimização de recursos"

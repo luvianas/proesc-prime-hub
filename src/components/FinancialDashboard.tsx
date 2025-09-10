@@ -96,6 +96,7 @@ const FinancialDashboard = ({ onBack, dashboardUrl }: FinancialDashboardProps) =
         {/* IA Insights Button */}
         <AIInsightsButton 
           label="Explicar com IA" 
+          cardId={52}
           dashboardUrl={embedUrl || ''}
           dashboardType="financeiro"
           question="Analise os dados financeiros desta dashboard e forneça insights sobre receitas, despesas, inadimplência e recomendações para gestão financeira escolar"
