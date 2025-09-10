@@ -24,7 +24,7 @@ import QuickActions from "@/components/QuickActions";
 import DashboardGrid from "@/components/DashboardGrid";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
@@ -43,7 +43,7 @@ const Index = () => {
     userRole,
     loading,
     signOut,
-    mustChangePassword
+    mustChangePassword,
   } = useAuth();
   const [schoolHeader, setSchoolHeader] = useState<{
     schoolName: string;
@@ -51,6 +51,7 @@ const Index = () => {
     consultantName?: string;
     userName?: string;
   } | null>(null);
+
   const [profileDialogOpen, setProfileDialogOpen] = useState(false);
   const [profileName, setProfileName] = useState("");
   const [profileEmail, setProfileEmail] = useState("");
@@ -69,16 +70,18 @@ const Index = () => {
   // Avatar cropper state
   const [cropOpen, setCropOpen] = useState(false);
   const [cropSrc, setCropSrc] = useState<string>("");
-  const {
-    toast
-  } = useToast();
+
+  const { toast } = useToast();
+
   const openProfile = async () => {
     if (!user) return;
     setProfileDialogOpen(true);
     setLoadingProfile(true);
-    const {
-      data: profile
-    } = await supabase.from("profiles").select("name,email,avatar_url,consultant_whatsapp,consultant_calendar_url").eq("user_id", user.id).single();
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("name,email,avatar_url,consultant_whatsapp,consultant_calendar_url")
+      .eq("user_id", user.id)
+      .single();
     setProfileName(profile?.name ?? "");
     setProfileEmail(profile?.email ?? user.email ?? "");
     setAvatarUrl(profile?.avatar_url ?? "");
@@ -86,82 +89,55 @@ const Index = () => {
     setAdminCalendarUrl(profile?.consultant_calendar_url ?? "");
     setLoadingProfile(false);
   };
+
   const handleAvatarChange = async (file: File) => {
     if (!user || !file) return;
     const url = URL.createObjectURL(file);
     setCropSrc(url);
     setCropOpen(true);
   };
+
   const uploadCroppedAvatar = async (blob: Blob) => {
     if (!user) return;
     setLoadingProfile(true);
     const path = `${user.id}/${Date.now()}-avatar.png`;
-    const {
-      error: uploadError
-    } = await supabase.storage.from("avatars").upload(path, blob, {
-      upsert: true,
-      contentType: 'image/png'
-    });
+    const { error: uploadError } = await supabase.storage
+      .from("avatars")
+      .upload(path, blob, { upsert: true, contentType: 'image/png' });
     if (uploadError) {
-      toast({
-        title: "Erro ao enviar imagem",
-        description: uploadError.message,
-        variant: "destructive"
-      });
+      toast({ title: "Erro ao enviar imagem", description: uploadError.message, variant: "destructive" });
       setLoadingProfile(false);
       return;
     }
-    const {
-      data: publicUrlData
-    } = supabase.storage.from("avatars").getPublicUrl(path);
+    const { data: publicUrlData } = supabase.storage.from("avatars").getPublicUrl(path);
     const url = publicUrlData.publicUrl;
     setAvatarUrl(url);
-    await supabase.from("profiles").update({
-      avatar_url: url
-    }).eq("user_id", user.id);
+    await supabase.from("profiles").update({ avatar_url: url }).eq("user_id", user.id);
     setLoadingProfile(false);
-    toast({
-      title: "Foto atualizada"
-    });
+    toast({ title: "Foto atualizada" });
   };
+
   const saveProfile = async () => {
     if (!user) return;
     if (newPassword && newPassword !== confirmPassword) {
-      toast({
-        title: "Senhas não conferem",
-        variant: "destructive"
-      });
+      toast({ title: "Senhas não conferem", variant: "destructive" });
       return;
     }
     setSavingProfile(true);
     try {
-      const updates: {
-        email?: string;
-        password?: string;
-      } = {};
+      const updates: { email?: string; password?: string } = {};
       if (profileEmail && profileEmail !== user.email) updates.email = profileEmail;
       if (newPassword) updates.password = newPassword;
       if (updates.email || updates.password) {
-        const {
-          error: authErr
-        } = await supabase.auth.updateUser(updates);
+        const { error: authErr } = await supabase.auth.updateUser(updates);
         if (authErr) throw authErr;
       }
-      const {
-        error: profErr
-      } = await supabase.from("profiles").update({
-        name: profileName,
-        email: profileEmail,
-        avatar_url: avatarUrl,
-        ...(userRole === 'admin' ? {
-          consultant_whatsapp: adminWhatsApp,
-          consultant_calendar_url: adminCalendarUrl
-        } : {})
-      }).eq("user_id", user.id);
+      const { error: profErr } = await supabase
+        .from("profiles")
+        .update({ name: profileName, email: profileEmail, avatar_url: avatarUrl, ...(userRole === 'admin' ? { consultant_whatsapp: adminWhatsApp, consultant_calendar_url: adminCalendarUrl } : {}) })
+        .eq("user_id", user.id);
       if (profErr) throw profErr;
-      toast({
-        title: "Perfil atualizado com sucesso"
-      });
+      toast({ title: "Perfil atualizado com sucesso" });
       setProfileDialogOpen(false);
       setNewPassword("");
       setConfirmPassword("");
@@ -169,7 +145,7 @@ const Index = () => {
       toast({
         title: "Erro ao atualizar perfil",
         description: e.message,
-        variant: "destructive"
+        variant: "destructive",
       });
     } finally {
       setSavingProfile(false);
@@ -179,9 +155,13 @@ const Index = () => {
   useEffect(() => {
     const loadUserProfile = async () => {
       if (!user) return;
-      const {
-        data: profile
-      } = await supabase.from("profiles").select("name,email,avatar_url,consultant_whatsapp,consultant_calendar_url").eq("user_id", user.id).single();
+      
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("name,email,avatar_url,consultant_whatsapp,consultant_calendar_url")
+        .eq("user_id", user.id)
+        .single();
+        
       if (profile) {
         setProfileName(profile.name ?? "");
         setProfileEmail(profile.email ?? user.email ?? "");
@@ -190,18 +170,16 @@ const Index = () => {
         setAdminCalendarUrl(profile.consultant_calendar_url ?? "");
       }
     };
+    
     loadUserProfile();
   }, [user]);
+
   useEffect(() => {
     if (userRole !== 'gestor' || !user) return;
     const load = async () => {
-      const {
-        data: profile
-      } = await supabase.from('profiles').select('school_id, name').eq('user_id', user.id).single();
+      const { data: profile } = await supabase.from('profiles').select('school_id, name').eq('user_id', user.id).single();
       if (!profile?.school_id) return;
-      const {
-        data: school
-      } = await supabase.from('school_customizations').select('school_name, logo_url').eq('school_id', profile.school_id).maybeSingle();
+      const { data: school } = await supabase.from('school_customizations').select('school_name, logo_url').eq('school_id', profile.school_id).maybeSingle();
       if (school) {
         setSchoolHeader({
           schoolName: school.school_name,
@@ -215,7 +193,7 @@ const Index = () => {
   }, [userRole, user]);
 
   // Show loading state - também aguardar o userRole carregar para evitar flash da versão legacy
-  if (loading || user && userRole === null) {
+  if (loading || (user && userRole === null)) {
     return <div className="flex items-center justify-center min-h-screen">
         <div className="text-lg">Carregando...</div>
       </div>;
@@ -234,16 +212,27 @@ const Index = () => {
             <h1 className="text-xl font-semibold text-gradient">Sistema de Controle - Admin</h1>
           </div>
           <div className="justify-self-center">
-          <TooltipProvider delayDuration={150}>
+<TooltipProvider delayDuration={150}>
   <Tooltip>
     <TooltipTrigger asChild>
-      <a href="https://app.proesc.com" target="_blank" rel="noopener noreferrer" aria-label="Retornar ao Proesc" className="inline-flex items-center justify-center rounded-md px-2 py-1 hover:opacity-80 transition-opacity cursor-pointer hover-scale">
-        <img src="/lovable-uploads/31be6a89-85b7-486f-b156-ebe5b3557c02.png" alt="Proesc Prime" className="h-10 mx-auto" loading="lazy" />
+      <a
+        href="https://app.proesc.com"
+        target="_blank"
+        rel="noopener noreferrer"
+        aria-label="Retornar ao Proesc"
+        className="inline-flex items-center justify-center rounded-md px-2 py-1 hover:opacity-80 transition-opacity cursor-pointer hover-scale"
+      >
+        <img
+          src="/lovable-uploads/31be6a89-85b7-486f-b156-ebe5b3557c02.png"
+          alt="Proesc Prime"
+          className="h-10 mx-auto"
+          loading="lazy"
+        />
       </a>
     </TooltipTrigger>
     <TooltipContent side="bottom">Retornar ao Proesc</TooltipContent>
   </Tooltip>
-          </TooltipProvider>
+</TooltipProvider>
           </div>
           <div className="justify-self-end flex items-center gap-3">
             <div className="hidden md:flex items-center gap-3">
@@ -281,52 +270,147 @@ const Index = () => {
                 </Avatar>
                 <div>
                   <Label htmlFor="avatar-admin">Foto do perfil</Label>
-                  <Input id="avatar-admin" type="file" accept="image/*" onChange={e => e.target.files && handleAvatarChange(e.target.files[0])} disabled={loadingProfile} className="border-glow file:border-2 file:border-brand file:rounded-md file:px-3 file:py-1 file:text-sm file:font-medium file:bg-background file:text-foreground hover:file:bg-accent" />
+                  <Input
+                    id="avatar-admin"
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => e.target.files && handleAvatarChange(e.target.files[0])}
+                    disabled={loadingProfile}
+                    className="border-glow file:border-2 file:border-brand file:rounded-md file:px-3 file:py-1 file:text-sm file:font-medium file:bg-background file:text-foreground hover:file:bg-accent"
+                  />
                   <p className="text-xs text-muted-foreground mt-1">Use uma imagem quadrada (PNG ou JPG).</p>
                 </div>
               </div>
               <div className="space-y-3">
                 <div className="space-y-2">
                   <Label htmlFor="name-admin">Nome</Label>
-                  <Input id="name-admin" value={profileName} onChange={e => setProfileName(e.target.value)} className="border-glow" />
+                  <Input id="name-admin" value={profileName} onChange={(e) => setProfileName(e.target.value)} className="border-glow" />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="email-admin">E-mail</Label>
-                  <Input id="email-admin" type="email" value={profileEmail} onChange={e => setProfileEmail(e.target.value)} className="border-glow" />
+                  <Input id="email-admin" type="email" value={profileEmail} onChange={(e) => setProfileEmail(e.target.value)} className="border-glow" />
                 </div>
 
-                {userRole === 'admin' && <div className="grid md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="wa-admin">WhatsApp do Consultor</Label>
-                      <Input id="wa-admin" placeholder="5599999999999" value={adminWhatsApp} onChange={e => setAdminWhatsApp(e.target.value)} />
-                    </div>
+                {userRole === 'admin' && (
+                  <div className="grid md:grid-cols-2 gap-4">
+                     <div className="space-y-2">
+                       <Label htmlFor="wa-admin">WhatsApp do Consultor</Label>
+                       <div className="flex gap-2">
+                         <Input 
+                           id="wa-admin" 
+                           placeholder="(55) 99999-9999" 
+                           value={adminWhatsApp} 
+                           onChange={(e) => {
+                             const value = e.target.value.replace(/\D/g, '');
+                             let formatted = value;
+                             if (value.length >= 2) {
+                               formatted = `(${value.slice(0, 2)})`;
+                               if (value.length >= 3) {
+                                 formatted += ` ${value.slice(2, 7)}`;
+                                 if (value.length >= 7) {
+                                   formatted += `-${value.slice(7, 11)}`;
+                                 }
+                               }
+                             }
+                             setAdminWhatsApp(formatted);
+                           }}
+                           maxLength={15}
+                         />
+                         <Dialog>
+                           <DialogTrigger asChild>
+                             <Button variant="outline" size="sm" className="px-3">
+                               📞
+                             </Button>
+                           </DialogTrigger>
+                           <DialogContent className="sm:max-w-md">
+                             <DialogHeader>
+                               <DialogTitle>Formato do WhatsApp</DialogTitle>
+                             </DialogHeader>
+                             <div className="space-y-4">
+                               <div className="space-y-2">
+                                 <Label>Formato correto:</Label>
+                                 <div className="bg-muted p-3 rounded-md text-sm">
+                                   <p><strong>Exemplo:</strong> (55) 99999-9999</p>
+                                   <p className="text-muted-foreground mt-1">
+                                     • Inclua o código do país (55 para Brasil)
+                                   </p>
+                                   <p className="text-muted-foreground">
+                                     • Use o formato: (DD) NNNNN-NNNN
+                                   </p>
+                                   <p className="text-muted-foreground">
+                                     • DD = Código de área (DDD)
+                                   </p>
+                                   <p className="text-muted-foreground">
+                                     • NNNNN-NNNN = Número do celular
+                                   </p>
+                                 </div>
+                               </div>
+                               <div className="space-y-2">
+                                 <Label htmlFor="phone-input">Digite o número:</Label>
+                                 <Input 
+                                   id="phone-input"
+                                   placeholder="Digite apenas números"
+                                   onChange={(e) => {
+                                     const value = e.target.value.replace(/\D/g, '');
+                                     let formatted = value;
+                                     if (value.length >= 2) {
+                                       formatted = `(${value.slice(0, 2)})`;
+                                       if (value.length >= 3) {
+                                         formatted += ` ${value.slice(2, 7)}`;
+                                         if (value.length >= 7) {
+                                           formatted += `-${value.slice(7, 11)}`;
+                                         }
+                                       }
+                                     }
+                                     setAdminWhatsApp(formatted);
+                                   }}
+                                   maxLength={11}
+                                 />
+                               </div>
+                               <div className="text-sm text-muted-foreground">
+                                 <p><strong>Número atual:</strong> {adminWhatsApp || 'Nenhum número inserido'}</p>
+                               </div>
+                             </div>
+                           </DialogContent>
+                         </Dialog>
+                       </div>
+                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="cal-admin">Link de incorporação do Google Calendar</Label>
-                      <Input id="cal-admin" placeholder="<iframe ...> ou URL" value={adminCalendarUrl} onChange={e => setAdminCalendarUrl(e.target.value)} />
+                      <textarea 
+                        id="cal-admin" 
+                        placeholder="<iframe ...> ou URL" 
+                        value={adminCalendarUrl} 
+                        onChange={(e)=>setAdminCalendarUrl(e.target.value)}
+                        className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 resize-vertical"
+                        rows={3}
+                      />
                     </div>
-                  </div>}
+                  </div>
+                )}
 
                 <div className="grid md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="password-admin">Nova senha</Label>
-                    <Input id="password-admin" type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} />
+                    <Input id="password-admin" type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="confirmPassword-admin">Confirmar senha</Label>
-                    <Input id="confirmPassword-admin" type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} />
+                    <Input id="confirmPassword-admin" type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} />
                   </div>
                 </div>
               </div>
             </div>
             <div className="flex justify-end gap-2 pt-2">
               <Button variant="ghost" onClick={() => setProfileDialogOpen(false)}>Cancelar</Button>
-              
+              <Button onClick={saveProfile} disabled={savingProfile}>{savingProfile ? 'Salvando...' : 'Salvar'}</Button>
             </div>
           </DialogContent>
         </Dialog>
         <ImageCropperDialog open={cropOpen} onOpenChange={setCropOpen} imageSrc={cropSrc} onConfirm={uploadCroppedAvatar} />
         {/* Force password change dialog */}
-        {mustChangePassword && !forceDismissed && <Dialog open onOpenChange={() => {}}>
+        {mustChangePassword && !forceDismissed && (
+          <Dialog open onOpenChange={() => {}}>
             <DialogContent className="sm:max-w-md">
               <DialogHeader>
                 <DialogTitle>Defina uma nova senha</DialogTitle>
@@ -334,56 +418,36 @@ const Index = () => {
               <div className="space-y-3">
                 <div>
                   <Label htmlFor="newpass-admin">Nova senha</Label>
-                  <Input id="newpass-admin" type="password" value={forceNewPassword} onChange={e => setForceNewPassword(e.target.value)} />
+                  <Input id="newpass-admin" type="password" value={forceNewPassword} onChange={(e)=>setForceNewPassword(e.target.value)} />
                 </div>
                 <div>
                   <Label htmlFor="confpass-admin">Confirmar senha</Label>
-                  <Input id="confpass-admin" type="password" value={forceConfirmPassword} onChange={e => setForceConfirmPassword(e.target.value)} />
+                  <Input id="confpass-admin" type="password" value={forceConfirmPassword} onChange={(e)=>setForceConfirmPassword(e.target.value)} />
                 </div>
-                <Button disabled={forcingChange} onClick={async () => {
-              if (forceNewPassword.length < 8 || !/[A-Z]/.test(forceNewPassword) || !/[a-z]/.test(forceNewPassword) || !/\d/.test(forceNewPassword)) {
-                toast({
-                  title: 'Senha fraca',
-                  description: 'Use 8+ caracteres com maiúscula, minúscula e número.',
-                  variant: 'destructive'
-                });
-                return;
-              }
-              if (forceNewPassword !== forceConfirmPassword) {
-                toast({
-                  title: 'Senhas não conferem',
-                  variant: 'destructive'
-                });
-                return;
-              }
-              try {
-                setForcingChange(true);
-                const {
-                  error: authErr
-                } = await supabase.auth.updateUser({
-                  password: forceNewPassword
-                });
-                if (authErr) throw authErr;
-                await supabase.from('profiles').update({
-                  must_change_password: false
-                } as any).eq('user_id', user!.id);
-                toast({
-                  title: 'Senha alterada com sucesso'
-                });
-                setForceDismissed(true);
-              } catch (e: any) {
-                toast({
-                  title: 'Erro ao alterar senha',
-                  description: e.message,
-                  variant: 'destructive'
-                });
-              } finally {
-                setForcingChange(false);
-              }
-            }}>{forcingChange ? 'Salvando...' : 'Salvar'}</Button>
+                <Button disabled={forcingChange} onClick={async ()=>{
+                  if (forceNewPassword.length < 8 || !/[A-Z]/.test(forceNewPassword) || !/[a-z]/.test(forceNewPassword) || !/\d/.test(forceNewPassword)) {
+                    toast({ title: 'Senha fraca', description: 'Use 8+ caracteres com maiúscula, minúscula e número.', variant: 'destructive' });
+                    return;
+                  }
+                  if (forceNewPassword !== forceConfirmPassword) {
+                    toast({ title: 'Senhas não conferem', variant: 'destructive' });
+                    return;
+                  }
+                  try {
+                    setForcingChange(true);
+                    const { error: authErr } = await supabase.auth.updateUser({ password: forceNewPassword });
+                    if (authErr) throw authErr;
+                    await supabase.from('profiles').update({ must_change_password: false } as any).eq('user_id', user!.id);
+                    toast({ title: 'Senha alterada com sucesso' });
+                    setForceDismissed(true);
+                  } catch (e:any) {
+                    toast({ title: 'Erro ao alterar senha', description: e.message, variant: 'destructive' });
+                  } finally { setForcingChange(false); }
+                }}>{forcingChange ? 'Salvando...' : 'Salvar'}</Button>
               </div>
             </DialogContent>
-          </Dialog>}
+          </Dialog>
+        )}
         <AdminDashboard />
         <Footer />
       </div>;
@@ -394,30 +458,51 @@ const Index = () => {
     return <div className="min-h-screen auth-background">
         <div className="grid grid-cols-3 items-center p-6 border-b border-border/30 bg-card/90 backdrop-blur-md shadow-elegant">
           <div className="flex items-center gap-6 justify-self-start">
-            {schoolHeader?.logoUrl ? <img src={schoolHeader.logoUrl} alt={`Logo ${schoolHeader.schoolName}`} className="w-16 h-16 object-contain rounded hover-scale" loading="lazy" /> : <div className="w-16 h-16 rounded bg-gradient-primary text-white flex items-center justify-center font-bold hover-scale">
+            {schoolHeader?.logoUrl ? (
+              <img
+                src={schoolHeader.logoUrl}
+                alt={`Logo ${schoolHeader.schoolName}`}
+                className="w-16 h-16 object-contain rounded hover-scale"
+                loading="lazy"
+              />
+            ) : (
+              <div className="w-16 h-16 rounded bg-gradient-primary text-white flex items-center justify-center font-bold hover-scale">
                 {schoolHeader?.schoolName?.charAt(0).toUpperCase()}
-              </div>}
+              </div>
+            )}
             <div className="hidden md:block">
               <h1 className="text-xl font-bold text-gradient">{schoolHeader?.schoolName}</h1>
               <Badge variant="secondary" className="text-xs bg-primary/10 text-primary border-primary/20">Portal Prime</Badge>
             </div>
           </div>
           <div className="justify-self-center">
-          <TooltipProvider delayDuration={150}>
+<TooltipProvider delayDuration={150}>
   <Tooltip>
     <TooltipTrigger asChild>
-      <a href="https://app.proesc.com" target="_blank" rel="noopener noreferrer" aria-label="Retornar ao Proesc" className="inline-flex items-center justify-center rounded-md px-2 py-1 hover:opacity-80 transition-opacity cursor-pointer hover-scale">
-        <img src="/lovable-uploads/31be6a89-85b7-486f-b156-ebe5b3557c02.png" alt="Proesc Prime" className="h-10 mx-auto" loading="lazy" />
+      <a
+        href="https://app.proesc.com"
+        target="_blank"
+        rel="noopener noreferrer"
+        aria-label="Retornar ao Proesc"
+        className="inline-flex items-center justify-center rounded-md px-2 py-1 hover:opacity-80 transition-opacity cursor-pointer hover-scale"
+      >
+        <img 
+          src="/lovable-uploads/31be6a89-85b7-486f-b156-ebe5b3557c02.png" 
+          alt="Proesc Prime" 
+          className="h-10 mx-auto"
+          loading="lazy"
+        />
       </a>
     </TooltipTrigger>
     <TooltipContent side="bottom">Retornar ao Proesc</TooltipContent>
   </Tooltip>
-          </TooltipProvider>
+</TooltipProvider>
           </div>
           <div className="justify-self-end flex items-center gap-3">
             <div className="hidden md:flex items-center gap-3">
               <ThemeToggle />
-              <Button onClick={openProfile} variant="outline" className="rounded-full w-12 h-12 p-0 btn-elegant hover-glow">
+              <Button onClick={openProfile} variant="outline" 
+                      className="rounded-full w-12 h-12 p-0 btn-elegant hover-glow">
                 <Avatar className="w-10 h-10">
                   <AvatarImage src={avatarUrl} alt="Foto do perfil" />
                   <AvatarFallback className="bg-gradient-primary text-white">
@@ -450,27 +535,33 @@ const Index = () => {
                 </Avatar>
                 <div>
                   <Label htmlFor="avatar">Foto do perfil</Label>
-                  <Input id="avatar" type="file" accept="image/*" onChange={e => e.target.files && handleAvatarChange(e.target.files[0])} disabled={loadingProfile} />
+                  <Input
+                    id="avatar"
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => e.target.files && handleAvatarChange(e.target.files[0])}
+                    disabled={loadingProfile}
+                  />
                   <p className="text-xs text-muted-foreground mt-1">Use uma imagem quadrada (PNG ou JPG).</p>
                 </div>
               </div>
               <div className="space-y-3">
                 <div className="space-y-2">
                   <Label htmlFor="name">Nome</Label>
-                  <Input id="name" value={profileName} onChange={e => setProfileName(e.target.value)} />
+                  <Input id="name" value={profileName} onChange={(e) => setProfileName(e.target.value)} />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="email">E-mail</Label>
-                  <Input id="email" type="email" value={profileEmail} onChange={e => setProfileEmail(e.target.value)} />
+                  <Input id="email" type="email" value={profileEmail} onChange={(e) => setProfileEmail(e.target.value)} />
                 </div>
                 <div className="grid md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="password">Nova senha</Label>
-                    <Input id="password" type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} />
+                    <Input id="password" type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="confirmPassword">Confirmar senha</Label>
-                    <Input id="confirmPassword" type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} />
+                    <Input id="confirmPassword" type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} />
                   </div>
                 </div>
               </div>
@@ -483,7 +574,8 @@ const Index = () => {
         </Dialog>
         <ImageCropperDialog open={cropOpen} onOpenChange={setCropOpen} imageSrc={cropSrc} onConfirm={uploadCroppedAvatar} />
         {/* Force password change dialog */}
-        {mustChangePassword && !forceDismissed && <Dialog open onOpenChange={() => {}}>
+        {mustChangePassword && !forceDismissed && (
+          <Dialog open onOpenChange={() => {}}>
             <DialogContent className="sm:max-w-md">
               <DialogHeader>
                 <DialogTitle>Defina uma nova senha</DialogTitle>
@@ -491,60 +583,40 @@ const Index = () => {
               <div className="space-y-3">
                 <div>
                   <Label htmlFor="newpass-gestor">Nova senha</Label>
-                  <Input id="newpass-gestor" type="password" value={forceNewPassword} onChange={e => setForceNewPassword(e.target.value)} />
+                  <Input id="newpass-gestor" type="password" value={forceNewPassword} onChange={(e)=>setForceNewPassword(e.target.value)} />
                 </div>
                 <div>
                   <Label htmlFor="confpass-gestor">Confirmar senha</Label>
-                  <Input id="confpass-gestor" type="password" value={forceConfirmPassword} onChange={e => setForceConfirmPassword(e.target.value)} />
+                  <Input id="confpass-gestor" type="password" value={forceConfirmPassword} onChange={(e)=>setForceConfirmPassword(e.target.value)} />
                 </div>
-                <Button disabled={forcingChange} onClick={async () => {
-              if (forceNewPassword.length < 8 || !/[A-Z]/.test(forceNewPassword) || !/[a-z]/.test(forceNewPassword) || !/\d/.test(forceNewPassword)) {
-                toast({
-                  title: 'Senha fraca',
-                  description: 'Use 8+ caracteres com maiúscula, minúscula e número.',
-                  variant: 'destructive'
-                });
-                return;
-              }
-              if (forceNewPassword !== forceConfirmPassword) {
-                toast({
-                  title: 'Senhas não conferem',
-                  variant: 'destructive'
-                });
-                return;
-              }
-              try {
-                setForcingChange(true);
-                const {
-                  error: authErr
-                } = await supabase.auth.updateUser({
-                  password: forceNewPassword
-                });
-                if (authErr) throw authErr;
-                await supabase.from('profiles').update({
-                  must_change_password: false
-                } as any).eq('user_id', user!.id);
-                toast({
-                  title: 'Senha alterada com sucesso'
-                });
-                setForceDismissed(true);
-              } catch (e: any) {
-                toast({
-                  title: 'Erro ao alterar senha',
-                  description: e.message,
-                  variant: 'destructive'
-                });
-              } finally {
-                setForcingChange(false);
-              }
-            }}>{forcingChange ? 'Salvando...' : 'Salvar'}</Button>
+                <Button disabled={forcingChange} onClick={async ()=>{
+                  if (forceNewPassword.length < 8 || !/[A-Z]/.test(forceNewPassword) || !/[a-z]/.test(forceNewPassword) || !/\d/.test(forceNewPassword)) {
+                    toast({ title: 'Senha fraca', description: 'Use 8+ caracteres com maiúscula, minúscula e número.', variant: 'destructive' });
+                    return;
+                  }
+                  if (forceNewPassword !== forceConfirmPassword) {
+                    toast({ title: 'Senhas não conferem', variant: 'destructive' });
+                    return;
+                  }
+                  try {
+                    setForcingChange(true);
+                    const { error: authErr } = await supabase.auth.updateUser({ password: forceNewPassword });
+                    if (authErr) throw authErr;
+                    await supabase.from('profiles').update({ must_change_password: false } as any).eq('user_id', user!.id);
+                    toast({ title: 'Senha alterada com sucesso' });
+                    setForceDismissed(true);
+                  } catch (e:any) {
+                    toast({ title: 'Erro ao alterar senha', description: e.message, variant: 'destructive' });
+                  } finally { setForcingChange(false); }
+                }}>{forcingChange ? 'Salvando...' : 'Salvar'}</Button>
               </div>
             </DialogContent>
-          </Dialog>}
+          </Dialog>
+        )}
         <GestorDashboard />
         <Footer />
       </div>;
-  }
+    }
 
   // Render user dashboard for regular users
   if (userRole === 'user') {
@@ -557,7 +629,8 @@ const Index = () => {
           </Button>
         </div>
         {/* Force password change dialog */}
-        {mustChangePassword && !forceDismissed && <Dialog open onOpenChange={() => {}}>
+        {mustChangePassword && !forceDismissed && (
+          <Dialog open onOpenChange={() => {}}>
             <DialogContent className="sm:max-w-md">
               <DialogHeader>
                 <DialogTitle>Defina uma nova senha</DialogTitle>
@@ -565,56 +638,36 @@ const Index = () => {
               <div className="space-y-3">
                 <div>
                   <Label htmlFor="newpass-user">Nova senha</Label>
-                  <Input id="newpass-user" type="password" value={forceNewPassword} onChange={e => setForceNewPassword(e.target.value)} />
+                  <Input id="newpass-user" type="password" value={forceNewPassword} onChange={(e)=>setForceNewPassword(e.target.value)} />
                 </div>
                 <div>
                   <Label htmlFor="confpass-user">Confirmar senha</Label>
-                  <Input id="confpass-user" type="password" value={forceConfirmPassword} onChange={e => setForceConfirmPassword(e.target.value)} />
+                  <Input id="confpass-user" type="password" value={forceConfirmPassword} onChange={(e)=>setForceConfirmPassword(e.target.value)} />
                 </div>
-                <Button disabled={forcingChange} onClick={async () => {
-              if (forceNewPassword.length < 8 || !/[A-Z]/.test(forceNewPassword) || !/[a-z]/.test(forceNewPassword) || !/\d/.test(forceNewPassword)) {
-                toast({
-                  title: 'Senha fraca',
-                  description: 'Use 8+ caracteres com maiúscula, minúscula e número.',
-                  variant: 'destructive'
-                });
-                return;
-              }
-              if (forceNewPassword !== forceConfirmPassword) {
-                toast({
-                  title: 'Senhas não conferem',
-                  variant: 'destructive'
-                });
-                return;
-              }
-              try {
-                setForcingChange(true);
-                const {
-                  error: authErr
-                } = await supabase.auth.updateUser({
-                  password: forceNewPassword
-                });
-                if (authErr) throw authErr;
-                await supabase.from('profiles').update({
-                  must_change_password: false
-                } as any).eq('user_id', user!.id);
-                toast({
-                  title: 'Senha alterada com sucesso'
-                });
-                setForceDismissed(true);
-              } catch (e: any) {
-                toast({
-                  title: 'Erro ao alterar senha',
-                  description: e.message,
-                  variant: 'destructive'
-                });
-              } finally {
-                setForcingChange(false);
-              }
-            }}>{forcingChange ? 'Salvando...' : 'Salvar'}</Button>
+                <Button disabled={forcingChange} onClick={async ()=>{
+                  if (forceNewPassword.length < 8 || !/[A-Z]/.test(forceNewPassword) || !/[a-z]/.test(forceNewPassword) || !/\d/.test(forceNewPassword)) {
+                    toast({ title: 'Senha fraca', description: 'Use 8+ caracteres com maiúscula, minúscula e número.', variant: 'destructive' });
+                    return;
+                  }
+                  if (forceNewPassword !== forceConfirmPassword) {
+                    toast({ title: 'Senhas não conferem', variant: 'destructive' });
+                    return;
+                  }
+                  try {
+                    setForcingChange(true);
+                    const { error: authErr } = await supabase.auth.updateUser({ password: forceNewPassword });
+                    if (authErr) throw authErr;
+                    await supabase.from('profiles').update({ must_change_password: false } as any).eq('user_id', user!.id);
+                    toast({ title: 'Senha alterada com sucesso' });
+                    setForceDismissed(true);
+                  } catch (e:any) {
+                    toast({ title: 'Erro ao alterar senha', description: e.message, variant: 'destructive' });
+                  } finally { setForcingChange(false); }
+                }}>{forcingChange ? 'Salvando...' : 'Salvar'}</Button>
               </div>
             </DialogContent>
-          </Dialog>}
+          </Dialog>
+        )}
         <UserDashboard />
         <Footer />
       </div>;
