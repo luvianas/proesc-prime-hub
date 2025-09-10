@@ -227,14 +227,9 @@ const Index = () => {
     return <Navigate to="/auth" replace />;
   }
 
-  // Render admin dashboard for admin users
+  // Redirect admin users to the school selector
   if (userRole === 'admin') {
-    return (
-      <AdminLayout>
-        <AdminDashboard />
-        <Footer />
-      </AdminLayout>
-    );
+    return <Navigate to="/admin" replace />;
   }
 
   // Render gestor dashboard for gestor users

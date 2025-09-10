@@ -8,6 +8,11 @@ import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 import { AuthProvider } from "@/hooks/useAuth";
 import { ThemeProvider } from "next-themes";
+import AdminLayout from "@/components/layouts/AdminLayout";
+import SchoolSelector from "@/components/SchoolSelector";
+import SchoolViewer from "@/components/SchoolViewer";
+import AdminDashboard from "@/components/AdminDashboard";
+import { AdminSchoolProvider } from "@/hooks/useAdminSchoolContext";
 
 const queryClient = new QueryClient();
 
@@ -15,19 +20,23 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
       <AuthProvider>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-            <Routes>
-              <Route path="/" element={<Index />} />
-              <Route path="/auth" element={<Auth />} />
-              <Route path="/admin/*" element={<Index />} />
-              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </BrowserRouter>
-        </TooltipProvider>
+        <AdminSchoolProvider>
+          <TooltipProvider>
+            <Toaster />
+            <Sonner />
+            <BrowserRouter>
+              <Routes>
+                <Route path="/" element={<Index />} />
+                <Route path="/auth" element={<Auth />} />
+                <Route path="/admin" element={<AdminLayout><SchoolSelector /></AdminLayout>} />
+                <Route path="/admin/dashboard" element={<AdminLayout><AdminDashboard /></AdminLayout>} />
+                <Route path="/admin/school/:schoolId" element={<AdminLayout><SchoolViewer /></AdminLayout>} />
+                {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </BrowserRouter>
+          </TooltipProvider>
+        </AdminSchoolProvider>
       </AuthProvider>
     </ThemeProvider>
   </QueryClientProvider>
