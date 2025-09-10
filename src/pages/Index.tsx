@@ -299,7 +299,14 @@ const Index = () => {
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="cal-admin">Link de incorporação do Google Calendar</Label>
-                      <Input id="cal-admin" placeholder="<iframe ...> ou URL" value={adminCalendarUrl} onChange={(e)=>setAdminCalendarUrl(e.target.value)} />
+                      <textarea 
+                        id="cal-admin" 
+                        placeholder="<iframe ...> ou URL" 
+                        value={adminCalendarUrl} 
+                        onChange={(e)=>setAdminCalendarUrl(e.target.value)}
+                        className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 resize-vertical"
+                        rows={3}
+                      />
                     </div>
                   </div>
                 )}
