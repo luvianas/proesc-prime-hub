@@ -8,9 +8,10 @@ import { supabase } from "@/integrations/supabase/client";
 interface SecretariaDashboardProps {
   onBack: () => void;
   dashboardUrl?: string;
+  school_id?: string;
 }
 
-const SecretariaDashboard = ({ onBack, dashboardUrl }: SecretariaDashboardProps) => {
+const SecretariaDashboard = ({ onBack, dashboardUrl, school_id }: SecretariaDashboardProps) => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string>('');
   const [embedUrl, setEmbedUrl] = useState<string | null>(null);
@@ -21,26 +22,33 @@ const SecretariaDashboard = ({ onBack, dashboardUrl }: SecretariaDashboardProps)
         setIsLoading(true);
         setError('');
 
-        // Get current user's school and proesc_id
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) {
-          throw new Error('Usuário não autenticado');
-        }
+        // Use school_id prop (admin view) or fetch from user profile (gestor view)
+        let targetSchoolId = school_id;
+        
+        if (!targetSchoolId) {
+          // Get current user's school and proesc_id
+          const { data: { user } } = await supabase.auth.getUser();
+          if (!user) {
+            throw new Error('Usuário não autenticado');
+          }
 
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('school_id')
-          .eq('user_id', user.id)
-          .single();
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('school_id')
+            .eq('user_id', user.id)
+            .single();
 
-        if (!profile?.school_id) {
-          throw new Error('Escola não encontrada para o usuário');
+          if (!profile?.school_id) {
+            throw new Error('Escola não encontrada para o usuário');
+          }
+          
+          targetSchoolId = profile.school_id;
         }
 
         const { data: schoolConfig } = await supabase
           .from('school_customizations')
           .select('proesc_id')
-          .eq('school_id', profile.school_id)
+          .eq('school_id', targetSchoolId)
           .single();
 
         if (!schoolConfig?.proesc_id) {
@@ -69,7 +77,7 @@ const SecretariaDashboard = ({ onBack, dashboardUrl }: SecretariaDashboardProps)
     };
 
     generateEmbedUrl();
-  }, []);
+  }, [school_id]);
 
   const handleIframeLoad = () => {
     console.log('Dashboard de Secretaria carregada com sucesso');
@@ -99,6 +107,7 @@ const SecretariaDashboard = ({ onBack, dashboardUrl }: SecretariaDashboardProps)
           dashboardUrl={embedUrl || ''}
           dashboardType="secretaria"
           question="Analise os dados administrativos desta dashboard e forneça insights sobre processos da secretaria, documentação e eficiência operacional"
+          school_id={school_id}
         />
       </div>
 

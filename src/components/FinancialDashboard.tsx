@@ -8,68 +8,76 @@ import { supabase } from "@/integrations/supabase/client";
 interface FinancialDashboardProps {
   onBack: () => void;
   dashboardUrl?: string;
+  school_id?: string;
 }
 
-const FinancialDashboard = ({ onBack, dashboardUrl }: FinancialDashboardProps) => {
+const FinancialDashboard = ({ onBack, dashboardUrl, school_id }: FinancialDashboardProps) => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string>('');
   const [embedUrl, setEmbedUrl] = useState<string | null>(null);
 
-  useEffect(() => {
-    const generateEmbedUrl = async () => {
-      try {
-        setIsLoading(true);
-        setError('');
+    useEffect(() => {
+      const generateEmbedUrl = async () => {
+        try {
+          setIsLoading(true);
+          setError('');
 
-        // Get current user's school and proesc_id
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) {
-          throw new Error('Usuário não autenticado');
-        }
+          // Use school_id prop (admin view) or fetch from user profile (gestor view)
+          let targetSchoolId = school_id;
+          
+          if (!targetSchoolId) {
+            // Get current user's school and proesc_id
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) {
+              throw new Error('Usuário não autenticado');
+            }
 
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('school_id')
-          .eq('user_id', user.id)
-          .single();
+            const { data: profile } = await supabase
+              .from('profiles')
+              .select('school_id')
+              .eq('user_id', user.id)
+              .single();
 
-        if (!profile?.school_id) {
-          throw new Error('Escola não encontrada para o usuário');
-        }
-
-        const { data: schoolConfig } = await supabase
-          .from('school_customizations')
-          .select('proesc_id')
-          .eq('school_id', profile.school_id)
-          .single();
-
-        if (!schoolConfig?.proesc_id) {
-          throw new Error('ID da escola no Proesc não configurado');
-        }
-
-        // Generate Metabase embed token
-        const { data: embedData, error: embedError } = await supabase.functions.invoke('metabase-embed-token', {
-          body: {
-            dashboardType: 'financeiro',
-            proescId: schoolConfig.proesc_id
+            if (!profile?.school_id) {
+              throw new Error('Escola não encontrada para o usuário');
+            }
+            
+            targetSchoolId = profile.school_id;
           }
-        });
 
-        if (embedError) {
-          throw new Error(embedError.message || 'Erro ao gerar token de incorporação');
+          const { data: schoolConfig } = await supabase
+            .from('school_customizations')
+            .select('proesc_id')
+            .eq('school_id', targetSchoolId)
+            .single();
+
+          if (!schoolConfig?.proesc_id) {
+            throw new Error('ID da escola no Proesc não configurado');
+          }
+
+          // Generate Metabase embed token
+          const { data: embedData, error: embedError } = await supabase.functions.invoke('metabase-embed-token', {
+            body: {
+              dashboardType: 'financeiro',
+              proescId: schoolConfig.proesc_id
+            }
+          });
+
+          if (embedError) {
+            throw new Error(embedError.message || 'Erro ao gerar token de incorporação');
+          }
+
+          setEmbedUrl(embedData.iframeUrl);
+        } catch (err) {
+          console.error('Erro ao gerar URL de incorporação:', err);
+          setError(err instanceof Error ? err.message : 'Erro ao carregar dashboard');
+        } finally {
+          setIsLoading(false);
         }
+      };
 
-        setEmbedUrl(embedData.iframeUrl);
-      } catch (err) {
-        console.error('Erro ao gerar URL de incorporação:', err);
-        setError(err instanceof Error ? err.message : 'Erro ao carregar dashboard');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    generateEmbedUrl();
-  }, []);
+      generateEmbedUrl();
+    }, [school_id]);
 
   const handleIframeLoad = () => {
     console.log('Dashboard Financeira carregada com sucesso');
@@ -100,6 +108,7 @@ const FinancialDashboard = ({ onBack, dashboardUrl }: FinancialDashboardProps) =
           dashboardUrl={embedUrl || ''}
           dashboardType="financeiro"
           question="Analise os dados financeiros desta dashboard e forneça insights sobre receitas, despesas, inadimplência e recomendações para gestão financeira escolar"
+          school_id={school_id}
         />
       </div>
 

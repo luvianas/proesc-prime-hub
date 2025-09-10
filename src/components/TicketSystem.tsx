@@ -14,6 +14,7 @@ import TicketDetailsPage from "./TicketDetailsPage";
 
 interface TicketSystemProps {
   onBack: () => void;
+  school_id?: string;
 }
 
 interface Ticket {
@@ -30,7 +31,7 @@ interface Ticket {
   requester_email?: string;
 }
 
-const TicketSystem = ({ onBack }: TicketSystemProps) => {
+const TicketSystem = ({ onBack, school_id }: TicketSystemProps) => {
   const { user, userRole } = useAuth();
   const { toast } = useToast();
   const [showNewTicket, setShowNewTicket] = useState(false);
@@ -64,41 +65,78 @@ const TicketSystem = ({ onBack }: TicketSystemProps) => {
   const [showTicketDetails, setShowTicketDetails] = useState(false);
 
   useEffect(() => {
-    if (user) {
+    if (user || school_id) {
       loadUserProfile();
       loadTickets();
     }
-  }, [user]);
+  }, [user, school_id]);
 
   const loadUserProfile = async () => {
     try {
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('name, email, role, school_id')
-        .eq('user_id', user?.id)
-        .single();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user && !school_id) return;
 
-      if (profile) {
-        setUserProfile(profile);
+      // Use school_id prop (admin view) or fetch from user profile (gestor view)  
+      if (school_id) {
+        console.log("🔍 Admin view - using school_id:", school_id);
         
-        // Load school name if user has school_id
-        if (profile.school_id) {
-          const { data: schoolCustomization } = await supabase
-            .from('school_customizations')
-            .select('school_name')
-            .eq('school_id', profile.school_id)
-            .single();
+        // Fetch school customizations directly
+        const { data: schoolData, error: schoolError } = await supabase
+          .from('school_customizations')
+          .select('*')
+          .eq('school_id', school_id)
+          .single();
+
+        if (schoolError) {
+          console.error("❌ Error fetching school:", schoolError);
+          return;
+        }
+
+        console.log("🏫 School data:", schoolData);
+        
+        setSchoolInfo({
+          schoolName: schoolData?.school_name,
+          schoolId: school_id,
+          userWithoutSchool: false
+        });
+        
+        // Create a mock profile for admin view
+        setUserProfile({
+          name: 'Admin View',
+          email: user?.email || 'admin@example.com',
+          role: 'gestor',
+          school_id: school_id
+        });
+      } else {
+        console.log("🔍 Gestor view - fetching user profile...");
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('name, email, role, school_id')
+          .eq('user_id', user?.id)
+          .single();
+
+        if (profile) {
+          setUserProfile(profile);
           
-          setSchoolInfo({
-            schoolName: schoolCustomization?.school_name,
-            schoolId: profile.school_id,
-            userWithoutSchool: false
-          });
-        } else {
-          setSchoolInfo({
-            userWithoutSchool: profile.role !== 'admin',
-            schoolId: undefined
-          });
+          // Load school name if user has school_id
+          if (profile.school_id) {
+            const { data: schoolCustomization } = await supabase
+              .from('school_customizations')
+              .select('school_name')
+              .eq('school_id', profile.school_id)
+              .single();
+            
+            setSchoolInfo({
+              schoolName: schoolCustomization?.school_name,
+              schoolId: profile.school_id,
+              userWithoutSchool: false
+            });
+          } else {
+            setSchoolInfo({
+              userWithoutSchool: profile.role !== 'admin',
+              schoolId: undefined
+            });
+          }
         }
       }
     } catch (error) {
@@ -113,10 +151,26 @@ const TicketSystem = ({ onBack }: TicketSystemProps) => {
       
       const { data: session } = await supabase.auth.getSession();
       
+      let requestBody = {};
+      
+      // If admin view with school_id, pass organization_id
+      if (school_id) {
+        const { data: schoolData } = await supabase
+          .from('school_customizations')
+          .select('organization_id')
+          .eq('school_id', school_id)
+          .single();
+          
+        if (schoolData?.organization_id) {
+          requestBody = { organization_id: schoolData.organization_id };
+        }
+      }
+      
       const { data, error } = await supabase.functions.invoke('zendesk-tickets', {
         headers: {
           Authorization: `Bearer ${session?.session?.access_token}`
-        }
+        },
+        body: requestBody
       });
 
       if (error) {

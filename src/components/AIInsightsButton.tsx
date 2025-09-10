@@ -11,9 +11,10 @@ interface AIInsightsButtonProps {
   cardId?: number;
   dashboardUrl?: string;
   dashboardType?: 'financeiro' | 'agenda' | 'secretaria' | 'pedagogico';
+  school_id?: string;
 }
 
-const AIInsightsButton = ({ label = "IA: Explicar", question = "Explique os principais insights deste dashboard", cardId, dashboardUrl, dashboardType }: AIInsightsButtonProps) => {
+const AIInsightsButton = ({ label = "IA: Explicar", question = "Explique os principais insights deste dashboard", cardId, dashboardUrl, dashboardType, school_id }: AIInsightsButtonProps) => {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [answer, setAnswer] = useState<string>("");
@@ -24,8 +25,48 @@ const AIInsightsButton = ({ label = "IA: Explicar", question = "Explique os prin
     setError("");
     setAnswer("");
     try {
+      // Use school_id prop (admin view) or fetch from user profile (gestor view)
+      let targetSchoolId = school_id;
+      
+      if (!targetSchoolId) {
+        // Get current user's school
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+          throw new Error('Usuário não autenticado');
+        }
+
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('school_id')
+          .eq('user_id', user.id)
+          .single();
+
+        if (!profile?.school_id) {
+          throw new Error('Escola não encontrada para o usuário');
+        }
+        
+        targetSchoolId = profile.school_id;
+      }
+
+      // Get school customizations to get proesc_id
+      const { data: schoolData } = await supabase
+        .from('school_customizations')
+        .select('proesc_id')
+        .eq('school_id', targetSchoolId)
+        .single();
+
+      if (!schoolData?.proesc_id) {
+        throw new Error('ID Proesc não encontrado para a escola');
+      }
+
       const { data, error } = await supabase.functions.invoke('prime-metabase-insights', {
-        body: { question, cardId, dashboardUrl, dashboardType },
+        body: { 
+          question, 
+          cardId, 
+          dashboardUrl, 
+          dashboardType,
+          proescId: schoolData.proesc_id 
+        },
       });
       if (error) throw error;
       setAnswer((data as any)?.answer || "Sem resposta da IA.");

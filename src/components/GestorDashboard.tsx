@@ -176,13 +176,13 @@ const GestorDashboard = ({ adminViewSchoolId }: GestorDashboardProps) => {
   if (activeSection !== 'home') {
     const back = () => setActiveSection('home');
     return <div className="container mx-auto p-4">
-        {activeSection === 'tickets' && <TicketSystem onBack={back} />}
+        {activeSection === 'tickets' && <TicketSystem onBack={back} school_id={adminViewSchoolId || schoolData?.id} />}
         
         {activeSection === 'consultor-agenda' && <ConsultorAgenda onBack={back} schoolData={schoolData} />}
-        {activeSection === 'dash-financeiro' && <FinancialDashboard onBack={back} dashboardUrl={schoolData.dashboard_links?.financeiro} />}
-        {activeSection === 'dash-agenda' && <AgendaDashboard onBack={back} dashboardUrl={schoolData.dashboard_links?.agenda} />}
-        {activeSection === 'dash-secretaria' && <SecretariaDashboard onBack={back} dashboardUrl={schoolData.dashboard_links?.secretaria} />}
-        {activeSection === 'dash-pedagogico' && <PedagogicoDashboard onBack={back} dashboardUrl={schoolData.dashboard_links?.pedagogico} />}
+        {activeSection === 'dash-financeiro' && <FinancialDashboard onBack={back} dashboardUrl={schoolData.dashboard_links?.financeiro} school_id={adminViewSchoolId || schoolData?.id} />}
+        {activeSection === 'dash-agenda' && <AgendaDashboard onBack={back} dashboardUrl={schoolData.dashboard_links?.agenda} school_id={adminViewSchoolId || schoolData?.id} />}
+        {activeSection === 'dash-secretaria' && <SecretariaDashboard onBack={back} dashboardUrl={schoolData.dashboard_links?.secretaria} school_id={adminViewSchoolId || schoolData?.id} />}
+        {activeSection === 'dash-pedagogico' && <PedagogicoDashboard onBack={back} dashboardUrl={schoolData.dashboard_links?.pedagogico} school_id={adminViewSchoolId || schoolData?.id} />}
         {showAssistant && <AIAssistant onClose={() => setShowAssistant(false)} />}
       </div>;
   }

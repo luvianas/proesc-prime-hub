@@ -508,7 +508,32 @@ serve(async (req) => {
 
     // Get school customizations to find organization_id
     let schoolCustomizations = null;
-    if (profile?.school_id) {
+    let organizationId = null;
+    
+    // If organization_id is provided in request body (admin view), use it directly
+    if (requestBody?.organization_id) {
+      console.log('🔍 Admin view: Using organization_id from request:', requestBody.organization_id);
+      organizationId = normalizeOrganizationId(requestBody.organization_id);
+      
+      // Still get school data for context
+      if (profile?.school_id) {
+        const { data: schoolData } = await supabase
+          .from('school_customizations')
+          .select('school_name')
+          .eq('organization_id', requestBody.organization_id)
+          .single();
+        schoolCustomizations = { 
+          organization_id: organizationId,
+          school_name: schoolData?.school_name || 'Escola (Admin View)'
+        };
+      } else {
+        schoolCustomizations = { 
+          organization_id: organizationId,
+          school_name: 'Admin View'
+        };
+      }
+    } else if (profile?.school_id) {
+      // Regular gestor view - get from user's school
       const { data: schoolData } = await supabase
         .from('school_customizations')
         .select('organization_id, school_name')
@@ -525,6 +550,7 @@ serve(async (req) => {
           type_original: typeof schoolCustomizations.organization_id
         });
         schoolCustomizations.organization_id = normalizedOrgId;
+        organizationId = normalizedOrgId;
       }
     }
 
@@ -535,8 +561,8 @@ serve(async (req) => {
       organization_id: schoolCustomizations?.organization_id
     });
 
-    // Handle users without school association (except admins)
-    if (!profile.school_id && profile.role !== 'admin') {
+    // Handle users without school association (except admins or when organization_id is provided)
+    if (!profile.school_id && profile.role !== 'admin' && !requestBody?.organization_id) {
       return new Response(JSON.stringify({ 
         error: 'user_without_school',
         message: 'Usuário não está associado a uma escola',
@@ -547,8 +573,8 @@ serve(async (req) => {
       });
     }
 
-    // Check if organization_id is configured for the school
-    if (profile.school_id && (!schoolCustomizations?.organization_id || schoolCustomizations.organization_id === null)) {
+    // Check if organization_id is configured for the school (skip this for admin view with provided org_id)
+    if (!requestBody?.organization_id && profile.school_id && (!schoolCustomizations?.organization_id || schoolCustomizations.organization_id === null)) {
       return new Response(JSON.stringify({ 
         error: 'organization_id_not_configured',
         message: 'Organization ID do Zendesk não configurado para esta escola',
@@ -563,7 +589,7 @@ serve(async (req) => {
       });
     }
 
-    const organizationId = schoolCustomizations?.organization_id;
+    organizationId = organizationId || schoolCustomizations?.organization_id;
     
     console.log('🎯 Zendesk-tickets: Using organization_id:', organizationId);
     
