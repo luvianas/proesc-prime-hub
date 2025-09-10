@@ -72,6 +72,8 @@ Deno.serve(async (req) => {
     console.log("METABASE_SESSION:", METABASE_SESSION ? "configured" : "not configured");
     console.log("cardId provided:", cardId || "none");
     console.log("dashboardUrl:", dashboardUrl || "none");
+    console.log("dashboardType:", dashboardType || "none");
+    console.log("params provided:", params ? JSON.stringify(params) : "none");
     console.log("=============================");
 
     // Try to fetch Metabase data when cardId provided and Metabase is configured
@@ -82,11 +84,19 @@ Deno.serve(async (req) => {
         const headers: Record<string, string> = {
           "content-type": "application/json",
         };
-        if (METABASE_TOKEN) headers["X-Metabase-Api-Key"] = METABASE_TOKEN;
+        
+        // Use Bearer token authentication (preferred) with fallback to API key header
+        if (METABASE_TOKEN) {
+          headers["Authorization"] = `Bearer ${METABASE_TOKEN}`;
+          // Keep API key header as fallback for compatibility
+          headers["X-Metabase-Api-Key"] = METABASE_TOKEN;
+        }
         if (METABASE_SESSION) headers["X-Metabase-Session"] = METABASE_SESSION;
 
         console.log("Metabase request URL:", url);
-        console.log("Metabase request headers:", Object.keys(headers));
+        console.log("Authentication method:", METABASE_TOKEN ? "Bearer Token + API Key fallback" : "Session only");
+        console.log("Request headers:", Object.keys(headers));
+        console.log("Request parameters:", JSON.stringify(params || {}));
 
         const mbRes = await fetch(url, {
           method: "POST",
@@ -95,11 +105,27 @@ Deno.serve(async (req) => {
         });
         
         console.log("Metabase response status:", mbRes.status);
+        console.log("Metabase response headers:", Object.keys(mbRes.headers));
         
         if (!mbRes.ok) {
           const errorText = await mbRes.text();
           console.warn("Metabase query failed with status:", mbRes.status);
           console.warn("Metabase error details:", errorText);
+          
+          // More specific error logging based on status code
+          switch (mbRes.status) {
+            case 401:
+              console.error("❌ Metabase Authentication Failed (401): Token may be invalid or expired");
+              break;
+            case 403:
+              console.error("❌ Metabase Access Forbidden (403): Token may lack permissions for this card or authentication format is incorrect");
+              break;
+            case 404:
+              console.error("❌ Metabase Card Not Found (404): Card ID", cardId, "may not exist");
+              break;
+            default:
+              console.error("❌ Metabase Error:", mbRes.status, mbRes.statusText);
+          }
         } else {
           const data: MetabaseResult = await mbRes.json();
           const d = data.data || (data as any);
@@ -167,7 +193,9 @@ Deno.serve(async (req) => {
     const fullPrompt = [
       systemPrompt,
       `\n🔍 **Pergunta**: ${question}`,
-      contextParts.length ? `\n📋 **Dados Disponíveis**:\n${contextParts.join("\n")}` : `\n⚠️ Sem dados do Metabase disponíveis para esta análise.`,
+      contextParts.length 
+        ? `\n📋 **Dados Disponíveis**:\n${contextParts.join("\n")}`
+        : `\n⚠️ **IMPORTANTE**: Dados do Metabase não estão disponíveis no momento. Esta análise será baseada em conhecimento geral sobre gestão educacional. Para insights baseados em dados reais específicos da sua escola, verifique a conectividade com o sistema Metabase.`,
       locale ? `\n🌍 Idioma: ${locale}` : '',
     ].filter(Boolean).join("\n");
 
