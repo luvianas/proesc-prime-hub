@@ -24,7 +24,7 @@ import QuickActions from "@/components/QuickActions";
 import DashboardGrid from "@/components/DashboardGrid";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
@@ -293,10 +293,88 @@ const Index = () => {
 
                 {userRole === 'admin' && (
                   <div className="grid md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="wa-admin">WhatsApp do Consultor</Label>
-                      <Input id="wa-admin" placeholder="5599999999999" value={adminWhatsApp} onChange={(e)=>setAdminWhatsApp(e.target.value)} />
-                    </div>
+                     <div className="space-y-2">
+                       <Label htmlFor="wa-admin">WhatsApp do Consultor</Label>
+                       <div className="flex gap-2">
+                         <Input 
+                           id="wa-admin" 
+                           placeholder="(55) 99999-9999" 
+                           value={adminWhatsApp} 
+                           onChange={(e) => {
+                             const value = e.target.value.replace(/\D/g, '');
+                             let formatted = value;
+                             if (value.length >= 2) {
+                               formatted = `(${value.slice(0, 2)})`;
+                               if (value.length >= 3) {
+                                 formatted += ` ${value.slice(2, 7)}`;
+                                 if (value.length >= 7) {
+                                   formatted += `-${value.slice(7, 11)}`;
+                                 }
+                               }
+                             }
+                             setAdminWhatsApp(formatted);
+                           }}
+                           maxLength={15}
+                         />
+                         <Dialog>
+                           <DialogTrigger asChild>
+                             <Button variant="outline" size="sm" className="px-3">
+                               📞
+                             </Button>
+                           </DialogTrigger>
+                           <DialogContent className="sm:max-w-md">
+                             <DialogHeader>
+                               <DialogTitle>Formato do WhatsApp</DialogTitle>
+                             </DialogHeader>
+                             <div className="space-y-4">
+                               <div className="space-y-2">
+                                 <Label>Formato correto:</Label>
+                                 <div className="bg-muted p-3 rounded-md text-sm">
+                                   <p><strong>Exemplo:</strong> (55) 99999-9999</p>
+                                   <p className="text-muted-foreground mt-1">
+                                     • Inclua o código do país (55 para Brasil)
+                                   </p>
+                                   <p className="text-muted-foreground">
+                                     • Use o formato: (DD) NNNNN-NNNN
+                                   </p>
+                                   <p className="text-muted-foreground">
+                                     • DD = Código de área (DDD)
+                                   </p>
+                                   <p className="text-muted-foreground">
+                                     • NNNNN-NNNN = Número do celular
+                                   </p>
+                                 </div>
+                               </div>
+                               <div className="space-y-2">
+                                 <Label htmlFor="phone-input">Digite o número:</Label>
+                                 <Input 
+                                   id="phone-input"
+                                   placeholder="Digite apenas números"
+                                   onChange={(e) => {
+                                     const value = e.target.value.replace(/\D/g, '');
+                                     let formatted = value;
+                                     if (value.length >= 2) {
+                                       formatted = `(${value.slice(0, 2)})`;
+                                       if (value.length >= 3) {
+                                         formatted += ` ${value.slice(2, 7)}`;
+                                         if (value.length >= 7) {
+                                           formatted += `-${value.slice(7, 11)}`;
+                                         }
+                                       }
+                                     }
+                                     setAdminWhatsApp(formatted);
+                                   }}
+                                   maxLength={11}
+                                 />
+                               </div>
+                               <div className="text-sm text-muted-foreground">
+                                 <p><strong>Número atual:</strong> {adminWhatsApp || 'Nenhum número inserido'}</p>
+                               </div>
+                             </div>
+                           </DialogContent>
+                         </Dialog>
+                       </div>
+                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="cal-admin">Link de incorporação do Google Calendar</Label>
                       <textarea 
