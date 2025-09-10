@@ -6,6 +6,8 @@ import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
 import MobileActionsMenu from '@/components/MobileActionsMenu';
@@ -241,111 +243,115 @@ const AdminHeader = () => {
       </div>
 
       <Dialog open={profileDialogOpen} onOpenChange={setProfileDialogOpen}>
-        <DialogContent className="sm:max-w-lg card-elegant">
+        <DialogContent className="sm:max-w-lg max-h-[90vh] card-elegant">
           <DialogHeader>
             <DialogTitle className="text-gradient">Meu Perfil - Admin</DialogTitle>
           </DialogHeader>
-          {loadingProfile ? (
-            <div className="flex justify-center p-6">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              <div className="flex items-center gap-4">
-                <Avatar className="h-16 w-16 hover-scale">
-                  <AvatarImage src={adminProfile.avatar_url} alt="Foto do perfil" />
-                  <AvatarFallback className="bg-gradient-primary text-white">
-                    {(adminProfile.name || user?.email || '').charAt(0).toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="space-y-2">
-                  <Label htmlFor="avatar-upload">Foto do Perfil</Label>
-                  <Input
-                    id="avatar-upload"
-                    type="file"
-                    accept="image/*"
-                    onChange={handleFileSelect}
-                    className="cursor-pointer"
-                    disabled={loadingProfile}
-                  />
-                </div>
+          <ScrollArea className="max-h-[70vh] pr-4">
+            {loadingProfile ? (
+              <div className="flex justify-center p-6">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
               </div>
-              
-              <div className="space-y-3">
-                <div className="space-y-2">
-                  <Label htmlFor="profile-name">Nome de Exibição</Label>
-                  <Input
-                    id="profile-name"
-                    value={adminProfile.name}
-                    onChange={(e) => setAdminProfile(prev => ({ ...prev, name: e.target.value }))}
-                    placeholder="Digite seu nome"
-                  />
+            ) : (
+              <div className="space-y-4">
+                <div className="flex items-center gap-4">
+                  <Avatar className="h-16 w-16 hover-scale">
+                    <AvatarImage src={adminProfile.avatar_url} alt="Foto do perfil" />
+                    <AvatarFallback className="bg-gradient-primary text-white">
+                      {(adminProfile.name || user?.email || '').charAt(0).toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="space-y-2">
+                    <Label htmlFor="avatar-upload">Foto do Perfil</Label>
+                    <Input
+                      id="avatar-upload"
+                      type="file"
+                      accept="image/*"
+                      onChange={handleFileSelect}
+                      className="cursor-pointer"
+                      disabled={loadingProfile}
+                    />
+                  </div>
                 </div>
                 
-                <div className="space-y-2">
-                  <Label htmlFor="profile-email">E-mail</Label>
-                  <Input 
-                    id="profile-email"
-                    type="email"
-                    value={adminProfile.email}
-                    onChange={(e) => setAdminProfile(prev => ({ ...prev, email: e.target.value }))}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="whatsapp">WhatsApp</Label>
-                  <Input 
-                    id="whatsapp"
-                    value={adminProfile.consultant_whatsapp}
-                    onChange={(e) => setAdminProfile(prev => ({ ...prev, consultant_whatsapp: e.target.value }))}
-                    placeholder="(11) 99999-9999"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="calendar">Link de Incorporação do Google Calendar</Label>
-                  <Input 
-                    id="calendar"
-                    value={adminProfile.consultant_calendar_url}
-                    onChange={(e) => setAdminProfile(prev => ({ ...prev, consultant_calendar_url: e.target.value }))}
-                    placeholder="https://calendar.google.com/calendar/embed?..."
-                  />
-                </div>
-
-                <div className="grid md:grid-cols-2 gap-4">
+                <div className="space-y-3">
                   <div className="space-y-2">
-                    <Label htmlFor="new-password">Nova Senha</Label>
-                    <Input 
-                      id="new-password"
-                      type="password"
-                      value={adminNewPassword}
-                      onChange={(e) => setAdminNewPassword(e.target.value)}
-                      placeholder="Deixe em branco para não alterar"
+                    <Label htmlFor="profile-name">Nome de Exibição</Label>
+                    <Input
+                      id="profile-name"
+                      value={adminProfile.name}
+                      onChange={(e) => setAdminProfile(prev => ({ ...prev, name: e.target.value }))}
+                      placeholder="Digite seu nome"
                     />
                   </div>
+                  
                   <div className="space-y-2">
-                    <Label htmlFor="confirm-password">Confirmar Senha</Label>
+                    <Label htmlFor="profile-email">E-mail</Label>
                     <Input 
-                      id="confirm-password"
-                      type="password"
-                      value={adminConfirmPassword}
-                      onChange={(e) => setAdminConfirmPassword(e.target.value)}
-                      placeholder="Confirme a nova senha"
+                      id="profile-email"
+                      type="email"
+                      value={adminProfile.email}
+                      onChange={(e) => setAdminProfile(prev => ({ ...prev, email: e.target.value }))}
                     />
                   </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="whatsapp">WhatsApp</Label>
+                    <Input 
+                      id="whatsapp"
+                      value={adminProfile.consultant_whatsapp}
+                      onChange={(e) => setAdminProfile(prev => ({ ...prev, consultant_whatsapp: e.target.value }))}
+                      placeholder="(11) 99999-9999"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="calendar">Link de Incorporação do Google Calendar</Label>
+                    <Textarea 
+                      id="calendar"
+                      value={adminProfile.consultant_calendar_url}
+                      onChange={(e) => setAdminProfile(prev => ({ ...prev, consultant_calendar_url: e.target.value }))}
+                      placeholder="https://calendar.google.com/calendar/embed?..."
+                      className="min-h-[100px] resize-y"
+                      rows={4}
+                    />
+                  </div>
+
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="new-password">Nova Senha</Label>
+                      <Input 
+                        id="new-password"
+                        type="password"
+                        value={adminNewPassword}
+                        onChange={(e) => setAdminNewPassword(e.target.value)}
+                        placeholder="Deixe em branco para não alterar"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="confirm-password">Confirmar Senha</Label>
+                      <Input 
+                        id="confirm-password"
+                        type="password"
+                        value={adminConfirmPassword}
+                        onChange={(e) => setAdminConfirmPassword(e.target.value)}
+                        placeholder="Confirme a nova senha"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex justify-end gap-2 pt-4">
+                  <Button variant="outline" onClick={() => setProfileDialogOpen(false)}>
+                    Cancelar
+                  </Button>
+                  <Button onClick={saveAdminProfile} disabled={savingProfile} className="btn-elegant">
+                    {savingProfile ? 'Salvando...' : 'Salvar'}
+                  </Button>
                 </div>
               </div>
-
-              <div className="flex justify-end gap-2 pt-4">
-                <Button variant="outline" onClick={() => setProfileDialogOpen(false)}>
-                  Cancelar
-                </Button>
-                <Button onClick={saveAdminProfile} disabled={savingProfile} className="btn-elegant">
-                  {savingProfile ? 'Salvando...' : 'Salvar'}
-                </Button>
-              </div>
-            </div>
-          )}
+            )}
+          </ScrollArea>
         </DialogContent>
       </Dialog>
 
