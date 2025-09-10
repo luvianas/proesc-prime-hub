@@ -16,6 +16,8 @@ import AgendaDashboard from '@/components/AgendaDashboard';
 import NovidadesCarousel from '@/components/NovidadesCarousel';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
 import { logEvent } from '@/lib/analytics';
+import { useSchool } from '@/contexts/SchoolContext';
+import { ArrowLeft } from 'lucide-react';
 interface SchoolCustomization {
   id: string;
   school_name: string;
@@ -36,21 +38,22 @@ interface UserProfile {
   name: string;
   email: string;
 }
-const GestorDashboard = () => {
+interface GestorDashboardProps {
+  isAdminMode?: boolean;
+}
+
+const GestorDashboard = ({ isAdminMode = false }: GestorDashboardProps) => {
   const [schoolData, setSchoolData] = useState<SchoolCustomization | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeSection, setActiveSection] = useState<'home' | 'tickets' | 'consultor-agenda' | 'dash-financeiro' | 'dash-agenda' | 'dash-secretaria' | 'dash-pedagogico'>('home');
   const [showAssistant, setShowAssistant] = useState(false);
-  const {
-    user
-  } = useAuth();
-  const {
-    toast
-  } = useToast();
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const { selectedSchool, clearSelection, isAdminMode: adminMode } = useSchool();
   useEffect(() => {
     fetchSchoolData();
-  }, [user]);
+  }, [user, selectedSchool, isAdminMode]);
   useEffect(() => {
     document.title = 'Prime Hub - Gestor';
     const desc = 'Portal Prime para gestores: tickets, agenda do consultor e dashboards.';
@@ -84,13 +87,37 @@ const GestorDashboard = () => {
 
   const fetchSchoolData = async () => {
     if (!user) return;
+    
     try {
-      // First get user profile with school_id
-      const {
-        data: profile,
-        error: profileError
-      } = await supabase.from('profiles').select('school_id, name, email').eq('user_id', user.id).single();
+      // If admin mode and school is selected, use selected school data
+      if (isAdminMode && selectedSchool) {
+        const { data: school, error: schoolError } = await supabase
+          .from('school_customizations')
+          .select('*')
+          .eq('id', selectedSchool.id)
+          .single();
+        
+        if (schoolError) throw schoolError;
+        
+        setSchoolData(school);
+        setUserProfile({
+          school_id: selectedSchool.id,
+          name: user.email || 'Admin',
+          email: user.email || ''
+        });
+        setLoading(false);
+        return;
+      }
+      
+      // Normal flow for gestor users
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('school_id, name, email')
+        .eq('user_id', user.id)
+        .single();
+        
       if (profileError) throw profileError;
+      
       if (!profile?.school_id) {
         toast({
           title: "Aviso",
@@ -100,13 +127,17 @@ const GestorDashboard = () => {
         setLoading(false);
         return;
       }
+      
       setUserProfile(profile);
       console.log('👤 GestorDashboard: Profile carregado:', profile);
       console.log('🎯 School ID para banners:', profile.school_id);
-      const {
-        data: school,
-        error: schoolError
-      } = await supabase.from('school_customizations').select('*').eq('school_id', profile.school_id).maybeSingle();
+      
+      const { data: school, error: schoolError } = await supabase
+        .from('school_customizations')
+        .select('*')
+        .eq('school_id', profile.school_id)
+        .maybeSingle();
+        
       if (schoolError) throw schoolError;
       setSchoolData(school);
     } catch (error: any) {
@@ -165,13 +196,34 @@ const GestorDashboard = () => {
   }
   return <div className="min-h-screen bg-hero">
       <div className="container mx-auto p-6 space-y-8">
+        {/* Admin Mode Header */}
+        {isAdminMode && (
+          <div className="flex items-center justify-between bg-card/90 backdrop-blur-md rounded-lg p-4 border border-border/30">
+            <div className="flex items-center gap-3">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={clearSelection}
+                className="hover-lift"
+              >
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Voltar à Seleção
+              </Button>
+              <div className="text-sm">
+                <span className="text-muted-foreground">Modo Admin - Visualizando:</span>
+                <strong className="text-gradient ml-1">{schoolData?.school_name}</strong>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Welcome Message */}
         <div className="text-left py-8 animate-fade-in">
           <h1 className="text-5xl font-bold mb-4 text-gradient">
-            Bem-vindo ao seu Portal Prime
+            {isAdminMode ? `Portal ${schoolData?.school_name}` : 'Bem-vindo ao seu Portal Prime'}  
           </h1>
           <p className="text-xl text-muted-foreground">
-            Gerencie sua escola com excelência
+            {isAdminMode ? 'Visualizando como administrador' : 'Gerencie sua escola com excelência'}
           </p>
         </div>
 

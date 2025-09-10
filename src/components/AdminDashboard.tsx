@@ -60,7 +60,11 @@ interface SchoolCustomization {
   created_by: string;
 }
 
-const AdminDashboard = () => {
+interface AdminDashboardProps {
+  onBack?: () => void;
+}
+
+const AdminDashboard = ({ onBack }: AdminDashboardProps) => {
   const [users, setUsers] = useState<User[]>([]);
   const [environments, setEnvironments] = useState<Environment[]>([]);
   const [schools, setSchools] = useState<SchoolCustomization[]>([]);
