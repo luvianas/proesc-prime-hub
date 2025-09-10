@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { LogOut } from 'lucide-react';
+import { LogOut, ArrowLeft } from 'lucide-react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -15,6 +16,8 @@ import { toast } from 'sonner';
 
 const AdminHeader = () => {
   const { user, signOut } = useAuth();
+  const location = useLocation();
+  const navigate = useNavigate();
   const [profileDialogOpen, setProfileDialogOpen] = useState(false);
   const [profileName, setProfileName] = useState('');
   const [avatarUrl, setAvatarUrl] = useState('');
@@ -94,6 +97,12 @@ const AdminHeader = () => {
     }
   };
 
+  const handleBackToSelection = () => {
+    navigate('/admin');
+  };
+
+  const showBackButton = location.pathname.includes('/admin/school/') || location.pathname === '/admin/dashboard';
+
   return (
     <>
       <div className="grid grid-cols-3 items-center p-4 border-b border-border/30 bg-card/90 backdrop-blur-md shadow-elegant">
@@ -114,6 +123,16 @@ const AdminHeader = () => {
         </div>
         <div className="justify-self-end flex items-center gap-3">
           <div className="hidden md:flex items-center gap-3">
+            {showBackButton && (
+              <Button 
+                variant="outline" 
+                onClick={handleBackToSelection}
+                className="hover-lift"
+              >
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Voltar à seleção
+              </Button>
+            )}
             <ThemeToggle />
             <Button onClick={openProfile} variant="outline" className="rounded-full w-12 h-12 p-0 btn-elegant hover-glow">
               <Avatar className="w-10 h-10">
@@ -129,7 +148,7 @@ const AdminHeader = () => {
             </Button>
           </div>
           <div className="md:hidden">
-            <MobileActionsMenu onOpenProfile={openProfile} />
+            <MobileActionsMenu onOpenProfile={openProfile} showBackButton={showBackButton} onBack={handleBackToSelection} />
           </div>
         </div>
       </div>

@@ -1,15 +1,17 @@
 import * as React from "react";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent } from "@/components/ui/dropdown-menu";
-import { Menu, User, LogOut, Sun, Moon, Monitor } from "lucide-react";
+import { Menu, User, LogOut, Sun, Moon, Monitor, ArrowLeft } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useAuth } from "@/hooks/useAuth";
 
 interface MobileActionsMenuProps {
   onOpenProfile: () => void;
+  showBackButton?: boolean;
+  onBack?: () => void;
 }
 
-const MobileActionsMenu: React.FC<MobileActionsMenuProps> = ({ onOpenProfile }) => {
+const MobileActionsMenu: React.FC<MobileActionsMenuProps> = ({ onOpenProfile, showBackButton, onBack }) => {
   const { setTheme } = useTheme();
   const { signOut } = useAuth();
 
@@ -26,6 +28,12 @@ const MobileActionsMenu: React.FC<MobileActionsMenuProps> = ({ onOpenProfile }) 
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="z-[60] min-w-[12rem]">
+        {showBackButton && onBack && (
+          <DropdownMenuItem onClick={onBack}>
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Voltar à seleção
+          </DropdownMenuItem>
+        )}
         <DropdownMenuItem onClick={onOpenProfile}>
           <User className="mr-2 h-4 w-4" />
           Meu Perfil
