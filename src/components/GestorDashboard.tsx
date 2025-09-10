@@ -42,16 +42,25 @@ interface UserProfile {
 interface GestorDashboardProps {
   isAdminMode?: boolean;
 }
-
-const GestorDashboard = ({ isAdminMode = false }: GestorDashboardProps) => {
+const GestorDashboard = ({
+  isAdminMode = false
+}: GestorDashboardProps) => {
   const [schoolData, setSchoolData] = useState<SchoolCustomization | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeSection, setActiveSection] = useState<'home' | 'tickets' | 'consultor-agenda' | 'dash-financeiro' | 'dash-agenda' | 'dash-secretaria' | 'dash-pedagogico'>('home');
   const [showAssistant, setShowAssistant] = useState(false);
-  const { user } = useAuth();
-  const { toast } = useToast();
-  const { selectedSchool, clearSelection, isAdminMode: adminMode } = useSchool();
+  const {
+    user
+  } = useAuth();
+  const {
+    toast
+  } = useToast();
+  const {
+    selectedSchool,
+    clearSelection,
+    isAdminMode: adminMode
+  } = useSchool();
   useEffect(() => {
     fetchSchoolData();
   }, [user, selectedSchool, isAdminMode]);
@@ -77,29 +86,32 @@ const GestorDashboard = ({ isAdminMode = false }: GestorDashboardProps) => {
   // Track page views for the home section
   useEffect(() => {
     if (activeSection === 'home') {
-      logEvent({ event_type: 'page_view', event_name: 'gestor_dashboard_home' });
+      logEvent({
+        event_type: 'page_view',
+        event_name: 'gestor_dashboard_home'
+      });
     }
   }, [activeSection]);
-
   const navigateTo = (section: typeof activeSection) => {
     setActiveSection(section);
-    logEvent({ event_type: 'click', event_name: 'open_section', properties: { section } });
+    logEvent({
+      event_type: 'click',
+      event_name: 'open_section',
+      properties: {
+        section
+      }
+    });
   };
-
   const fetchSchoolData = async () => {
     if (!user) return;
-    
     try {
       // If admin mode and school is selected, use selected school data
       if (isAdminMode && selectedSchool) {
-        const { data: school, error: schoolError } = await supabase
-          .from('school_customizations')
-          .select('*')
-          .eq('id', selectedSchool.id)
-          .single();
-        
+        const {
+          data: school,
+          error: schoolError
+        } = await supabase.from('school_customizations').select('*').eq('id', selectedSchool.id).single();
         if (schoolError) throw schoolError;
-        
         setSchoolData(school);
         setUserProfile({
           school_id: selectedSchool.id,
@@ -109,16 +121,13 @@ const GestorDashboard = ({ isAdminMode = false }: GestorDashboardProps) => {
         setLoading(false);
         return;
       }
-      
+
       // Normal flow for gestor users
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('school_id, name, email')
-        .eq('user_id', user.id)
-        .single();
-        
+      const {
+        data: profile,
+        error: profileError
+      } = await supabase.from('profiles').select('school_id, name, email').eq('user_id', user.id).single();
       if (profileError) throw profileError;
-      
       if (!profile?.school_id) {
         toast({
           title: "Aviso",
@@ -128,17 +137,13 @@ const GestorDashboard = ({ isAdminMode = false }: GestorDashboardProps) => {
         setLoading(false);
         return;
       }
-      
       setUserProfile(profile);
       console.log('👤 GestorDashboard: Profile carregado:', profile);
       console.log('🎯 School ID para banners:', profile.school_id);
-      
-      const { data: school, error: schoolError } = await supabase
-        .from('school_customizations')
-        .select('*')
-        .eq('school_id', profile.school_id)
-        .maybeSingle();
-        
+      const {
+        data: school,
+        error: schoolError
+      } = await supabase.from('school_customizations').select('*').eq('school_id', profile.school_id).maybeSingle();
       if (schoolError) throw schoolError;
       setSchoolData(school);
     } catch (error: any) {
@@ -195,25 +200,14 @@ const GestorDashboard = ({ isAdminMode = false }: GestorDashboardProps) => {
         {showAssistant && <AIAssistant onClose={() => setShowAssistant(false)} />}
       </div>;
   }
-  return (
-    <>
+  return <>
       {/* Admin Mode - Full Header */}
-      {isAdminMode && (
-        <div className="min-h-screen auth-background">
+      {isAdminMode && <div className="min-h-screen auth-background">
           <div className="grid grid-cols-3 items-center p-6 border-b border-border/30 bg-card/90 backdrop-blur-md shadow-elegant">
             <div className="flex items-center gap-6 justify-self-start">
-              {schoolData?.logo_url ? (
-                <img
-                  src={schoolData.logo_url}
-                  alt={`Logo ${schoolData.school_name}`}
-                  className="w-16 h-16 object-contain rounded hover-scale"
-                  loading="lazy"
-                />
-              ) : (
-                <div className="w-16 h-16 rounded bg-gradient-primary text-white flex items-center justify-center font-bold hover-scale">
+              {schoolData?.logo_url ? <img src={schoolData.logo_url} alt={`Logo ${schoolData.school_name}`} className="w-16 h-16 object-contain rounded hover-scale" loading="lazy" /> : <div className="w-16 h-16 rounded bg-gradient-primary text-white flex items-center justify-center font-bold hover-scale">
                   {schoolData?.school_name?.charAt(0).toUpperCase()}
-                </div>
-              )}
+                </div>}
               <div className="hidden md:block">
                 <h1 className="text-xl font-bold text-gradient">{schoolData?.school_name}</h1>
                 <div className="flex items-center gap-2">
@@ -231,19 +225,8 @@ const GestorDashboard = ({ isAdminMode = false }: GestorDashboardProps) => {
               <TooltipProvider delayDuration={150}>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <a
-                      href="https://app.proesc.com"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      aria-label="Retornar ao Proesc"
-                      className="inline-flex items-center justify-center rounded-md px-2 py-1 hover:opacity-80 transition-opacity cursor-pointer hover-scale"
-                    >
-                      <img
-                        src="/lovable-uploads/31be6a89-85b7-486f-b156-ebe5b3557c02.png"
-                        alt="Proesc Prime"
-                        className="h-10 mx-auto"
-                        loading="lazy"
-                      />
+                    <a href="https://app.proesc.com" target="_blank" rel="noopener noreferrer" aria-label="Retornar ao Proesc" className="inline-flex items-center justify-center rounded-md px-2 py-1 hover:opacity-80 transition-opacity cursor-pointer hover-scale">
+                      <img src="/lovable-uploads/31be6a89-85b7-486f-b156-ebe5b3557c02.png" alt="Proesc Prime" className="h-10 mx-auto" loading="lazy" />
                     </a>
                   </TooltipTrigger>
                   <TooltipContent side="bottom">Retornar ao Proesc</TooltipContent>
@@ -252,12 +235,7 @@ const GestorDashboard = ({ isAdminMode = false }: GestorDashboardProps) => {
             </div>
             
             <div className="justify-self-end flex items-center gap-3">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={clearSelection}
-                className="hover-lift"
-              >
+              <Button variant="outline" size="sm" onClick={clearSelection} className="hover-lift">
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 Voltar à Seleção
               </Button>
@@ -269,23 +247,17 @@ const GestorDashboard = ({ isAdminMode = false }: GestorDashboardProps) => {
             {/* Content */}
             {renderContent()}
           </div>
-        </div>
-      )}
+        </div>}
       
       {/* Normal Gestor Mode */}
-      {!isAdminMode && (
-        <div className="min-h-screen bg-hero">
+      {!isAdminMode && <div className="min-h-screen bg-hero">
           <div className="container mx-auto p-6 space-y-8">
             {renderContent()}
           </div>
-        </div>
-      )}
-    </>
-  );
-
+        </div>}
+    </>;
   function renderContent() {
-    return (
-      <>
+    return <>
         {/* Welcome Message */}
         <div className="text-left py-8 animate-fade-in">
           <h1 className="text-5xl font-bold mb-4 text-gradient">
@@ -300,14 +272,11 @@ const GestorDashboard = ({ isAdminMode = false }: GestorDashboardProps) => {
         <NovidadesCarousel schoolId={userProfile.school_id} />
 
         {/* Alternar tema */}
-        <div className="flex justify-end">
-          <ThemeToggle />
-        </div>
+        
 
         {/* Destaques */}
         <section className="grid md:grid-cols-2 gap-8">
-          <Card className="card-elegant card-interactive rounded-xl animate-scale-in" 
-                onClick={() => navigateTo('tickets')}>
+          <Card className="card-elegant card-interactive rounded-xl animate-scale-in" onClick={() => navigateTo('tickets')}>
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center gap-3 text-xl">
                 <ClipboardList className="h-6 w-6 text-primary" /> 
@@ -317,8 +286,7 @@ const GestorDashboard = ({ isAdminMode = false }: GestorDashboardProps) => {
             </CardHeader>
           </Card>
 
-          <Card className="card-elegant card-interactive rounded-xl animate-scale-in" 
-                onClick={() => navigateTo('consultor-agenda')}>
+          <Card className="card-elegant card-interactive rounded-xl animate-scale-in" onClick={() => navigateTo('consultor-agenda')}>
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center gap-3 text-xl">
                 <CalendarDays className="h-6 w-6 text-primary" /> 
@@ -334,8 +302,7 @@ const GestorDashboard = ({ isAdminMode = false }: GestorDashboardProps) => {
           <h2 className="text-2xl font-semibold text-foreground">Dashboards</h2>
           <div className="grid md:grid-cols-2 gap-8">
 
-            <Card className="card-elegant card-interactive rounded-xl animate-scale-in" 
-                  onClick={() => navigateTo('dash-financeiro')}>
+            <Card className="card-elegant card-interactive rounded-xl animate-scale-in" onClick={() => navigateTo('dash-financeiro')}>
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center gap-3 text-xl">
                   <Wallet className="h-6 w-6 text-primary" /> 
@@ -345,8 +312,7 @@ const GestorDashboard = ({ isAdminMode = false }: GestorDashboardProps) => {
               </CardHeader>
             </Card>
 
-            <Card className="card-elegant card-interactive rounded-xl animate-scale-in" 
-                  onClick={() => navigateTo('dash-agenda')}>
+            <Card className="card-elegant card-interactive rounded-xl animate-scale-in" onClick={() => navigateTo('dash-agenda')}>
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center gap-3 text-xl">
                   <CalendarDays className="h-6 w-6 text-primary" /> 
@@ -356,8 +322,7 @@ const GestorDashboard = ({ isAdminMode = false }: GestorDashboardProps) => {
               </CardHeader>
             </Card>
 
-            <Card className="card-elegant card-interactive rounded-xl animate-scale-in" 
-                  onClick={() => navigateTo('dash-pedagogico')}>
+            <Card className="card-elegant card-interactive rounded-xl animate-scale-in" onClick={() => navigateTo('dash-pedagogico')}>
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center gap-3 text-xl">
                   <GraduationCap className="h-6 w-6 text-primary" /> 
@@ -367,8 +332,7 @@ const GestorDashboard = ({ isAdminMode = false }: GestorDashboardProps) => {
               </CardHeader>
             </Card>
 
-            <Card className="card-elegant card-interactive rounded-xl animate-scale-in" 
-                  onClick={() => navigateTo('dash-secretaria')}>
+            <Card className="card-elegant card-interactive rounded-xl animate-scale-in" onClick={() => navigateTo('dash-secretaria')}>
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center gap-3 text-xl">
                   <ClipboardCheck className="h-6 w-6 text-primary" /> 
@@ -383,8 +347,7 @@ const GestorDashboard = ({ isAdminMode = false }: GestorDashboardProps) => {
 
 
         {showAssistant && <AIAssistant onClose={() => setShowAssistant(false)} />}
-      </>
-    );
+      </>;
   }
 };
 export default GestorDashboard;
