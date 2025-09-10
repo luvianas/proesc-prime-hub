@@ -6,45 +6,45 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import GestorDashboard from '@/components/GestorDashboard';
 import { useAdminSchoolContext } from '@/hooks/useAdminSchoolContext';
-
 const SchoolViewer = () => {
-  const { schoolId } = useParams<{ schoolId: string }>();
+  const {
+    schoolId
+  } = useParams<{
+    schoolId: string;
+  }>();
   const navigate = useNavigate();
-  const { toast } = useToast();
-  const { setSelectedSchool, setIsViewingAsAdmin } = useAdminSchoolContext();
-  
+  const {
+    toast
+  } = useToast();
+  const {
+    setSelectedSchool,
+    setIsViewingAsAdmin
+  } = useAdminSchoolContext();
   const [schoolData, setSchoolData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-
   useEffect(() => {
     if (schoolId) {
       fetchSchoolData();
     }
   }, [schoolId]);
-
   useEffect(() => {
     // Set admin context when component mounts
     setIsViewingAsAdmin(true);
-    
+
     // Cleanup when component unmounts
     return () => {
       setIsViewingAsAdmin(false);
       setSelectedSchool(null);
     };
   }, [setIsViewingAsAdmin, setSelectedSchool]);
-
   const fetchSchoolData = async () => {
     if (!schoolId) return;
-    
     try {
-      const { data, error } = await supabase
-        .from('school_customizations')
-        .select('*')
-        .eq('id', schoolId)
-        .single();
-
+      const {
+        data,
+        error
+      } = await supabase.from('school_customizations').select('*').eq('id', schoolId).single();
       if (error) throw error;
-      
       setSchoolData(data);
       setSelectedSchool({
         id: data.id,
@@ -56,7 +56,7 @@ const SchoolViewer = () => {
         proesc_id: data.proesc_id,
         dashboard_links: data.dashboard_links as any
       });
-      
+
       // Update page title
       document.title = `Prime Hub - ${data.school_name} (Admin View)`;
     } catch (error) {
@@ -71,25 +71,19 @@ const SchoolViewer = () => {
       setLoading(false);
     }
   };
-
   const handleBack = () => {
     navigate('/admin');
   };
-
   if (loading) {
-    return (
-      <div className="container mx-auto p-6">
+    return <div className="container mx-auto p-6">
         <div className="text-center py-12">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
           <p className="mt-4 text-muted-foreground">Carregando dados da escola...</p>
         </div>
-      </div>
-    );
+      </div>;
   }
-
   if (!schoolData) {
-    return (
-      <div className="container mx-auto p-6">
+    return <div className="container mx-auto p-6">
         <div className="text-center py-12">
           <h3 className="text-lg font-medium mb-2">Escola não encontrada</h3>
           <p className="text-muted-foreground mb-4">
@@ -100,24 +94,16 @@ const SchoolViewer = () => {
             Voltar à Seleção
           </Button>
         </div>
-      </div>
-    );
+      </div>;
   }
-
-  return (
-    <div className="relative">
+  return <div className="relative">
       {/* Back to selection button */}
       <div className="absolute top-4 left-4 z-10">
-        <Button onClick={handleBack} variant="outline" size="sm">
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Voltar à Seleção
-        </Button>
+        
       </div>
       
       {/* Use the original GestorDashboard with admin school ID */}
       <GestorDashboard adminViewSchoolId={schoolId} />
-    </div>
-  );
+    </div>;
 };
-
 export default SchoolViewer;
