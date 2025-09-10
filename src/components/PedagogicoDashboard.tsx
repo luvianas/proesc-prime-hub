@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Loader2, AlertTriangle } from "lucide-react";
 import AIInsightsButton from "@/components/AIInsightsButton";
+import { supabase } from "@/integrations/supabase/client";
 
 interface PedagogicoDashboardProps {
   onBack: () => void;
@@ -12,24 +13,70 @@ interface PedagogicoDashboardProps {
 const PedagogicoDashboard = ({ onBack, dashboardUrl }: PedagogicoDashboardProps) => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string>('');
+  const [embedUrl, setEmbedUrl] = useState<string | null>(null);
 
-  const defaultUrl = "https://graficos.proesc.com/public/dashboard/40e6a09c-89c2-4838-9351-43dc118dcaaa?curso=&entidade_id=4442&etapa=&exerc%25C3%25ADcio=2025&tab=139-notas&turma=&unidade=RED+HOUSE+INTERNATIONAL+SCHOOL+CAMPO+GRANDE";
-  const extractSrc = (input?: string) => {
-    if (!input) return undefined;
-    const match = input.match(/src=["']([^"']+)["']/i);
-    if (match) return match[1];
-    return input.trim();
-  };
-  const finalUrl = extractSrc(dashboardUrl) || defaultUrl;
+  useEffect(() => {
+    const generateEmbedUrl = async () => {
+      try {
+        setIsLoading(true);
+        setError('');
+
+        // Get current user's school and proesc_id
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+          throw new Error('Usuário não autenticado');
+        }
+
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('school_id')
+          .eq('user_id', user.id)
+          .single();
+
+        if (!profile?.school_id) {
+          throw new Error('Escola não encontrada para o usuário');
+        }
+
+        const { data: schoolConfig } = await supabase
+          .from('school_customizations')
+          .select('proesc_id')
+          .eq('school_id', profile.school_id)
+          .single();
+
+        if (!schoolConfig?.proesc_id) {
+          throw new Error('ID da escola no Proesc não configurado');
+        }
+
+        // Generate Metabase embed token
+        const { data: embedData, error: embedError } = await supabase.functions.invoke('metabase-embed-token', {
+          body: {
+            dashboardType: 'pedagogico',
+            proescId: schoolConfig.proesc_id
+          }
+        });
+
+        if (embedError) {
+          throw new Error(embedError.message || 'Erro ao gerar token de incorporação');
+        }
+
+        setEmbedUrl(embedData.iframeUrl);
+      } catch (err) {
+        console.error('Erro ao gerar URL de incorporação:', err);
+        setError(err instanceof Error ? err.message : 'Erro ao carregar dashboard');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    generateEmbedUrl();
+  }, []);
 
   const handleIframeLoad = () => {
-    setIsLoading(false);
     console.log('Dashboard Pedagógica carregada com sucesso');
   };
 
   const handleIframeError = () => {
     setError('Erro ao carregar o dashboard Pedagógica. Verifique a conexão.');
-    setIsLoading(false);
   };
 
   return (
@@ -48,7 +95,7 @@ const PedagogicoDashboard = ({ onBack, dashboardUrl }: PedagogicoDashboardProps)
         </div>
         <AIInsightsButton 
           label="Explicar com IA" 
-          dashboardUrl={finalUrl}
+          dashboardUrl={embedUrl || ''}
           dashboardType="pedagogico"
           question="Analise os dados pedagógicos desta dashboard e forneça insights sobre desempenho acadêmico, notas, aproveitamento e recomendações educacionais"
         />
@@ -91,18 +138,20 @@ const PedagogicoDashboard = ({ onBack, dashboardUrl }: PedagogicoDashboardProps)
                   </div>
                 </div>
               )}
-              <iframe
-                src={finalUrl}
-                title="Dashboard Pedagógica"
-                width="100%"
-                height="800"
-                frameBorder="0"
-                allowTransparency
-                onLoad={handleIframeLoad}
-                onError={handleIframeError}
-                className="w-full border-0"
-                style={{ minHeight: '800px' }}
-              />
+              {embedUrl && (
+                <iframe
+                  src={embedUrl}
+                  title="Dashboard Pedagógica"
+                  width="100%"
+                  height="800"
+                  frameBorder="0"
+                  allowTransparency
+                  onLoad={handleIframeLoad}
+                  onError={handleIframeError}
+                  className="w-full border-0"
+                  style={{ minHeight: '800px' }}
+                />
+              )}
             </div>
           )}
         </CardContent>

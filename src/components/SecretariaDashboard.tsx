@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Loader2, AlertTriangle } from "lucide-react";
 import AIInsightsButton from "@/components/AIInsightsButton";
+import { supabase } from "@/integrations/supabase/client";
 
 interface SecretariaDashboardProps {
   onBack: () => void;
@@ -12,24 +13,70 @@ interface SecretariaDashboardProps {
 const SecretariaDashboard = ({ onBack, dashboardUrl }: SecretariaDashboardProps) => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string>('');
+  const [embedUrl, setEmbedUrl] = useState<string | null>(null);
 
-  const defaultUrl = "https://graficos.proesc.com/public/dashboard/ffae0cf9-0c53-40ba-b72c-013846fe8b7f?entidade_id=4442&exerc%25C3%25ADcio=2025&grupos=&tab=141-geral&unidade=";
-  const extractSrc = (input?: string) => {
-    if (!input) return undefined;
-    const match = input.match(/src=["']([^"']+)["']/i);
-    if (match) return match[1];
-    return input.trim();
-  };
-  const finalUrl = extractSrc(dashboardUrl) || defaultUrl;
+  useEffect(() => {
+    const generateEmbedUrl = async () => {
+      try {
+        setIsLoading(true);
+        setError('');
+
+        // Get current user's school and proesc_id
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+          throw new Error('Usuário não autenticado');
+        }
+
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('school_id')
+          .eq('user_id', user.id)
+          .single();
+
+        if (!profile?.school_id) {
+          throw new Error('Escola não encontrada para o usuário');
+        }
+
+        const { data: schoolConfig } = await supabase
+          .from('school_customizations')
+          .select('proesc_id')
+          .eq('school_id', profile.school_id)
+          .single();
+
+        if (!schoolConfig?.proesc_id) {
+          throw new Error('ID da escola no Proesc não configurado');
+        }
+
+        // Generate Metabase embed token
+        const { data: embedData, error: embedError } = await supabase.functions.invoke('metabase-embed-token', {
+          body: {
+            dashboardType: 'secretaria',
+            proescId: schoolConfig.proesc_id
+          }
+        });
+
+        if (embedError) {
+          throw new Error(embedError.message || 'Erro ao gerar token de incorporação');
+        }
+
+        setEmbedUrl(embedData.iframeUrl);
+      } catch (err) {
+        console.error('Erro ao gerar URL de incorporação:', err);
+        setError(err instanceof Error ? err.message : 'Erro ao carregar dashboard');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    generateEmbedUrl();
+  }, []);
 
   const handleIframeLoad = () => {
-    setIsLoading(false);
     console.log('Dashboard de Secretaria carregada com sucesso');
   };
 
   const handleIframeError = () => {
     setError('Erro ao carregar o dashboard de Secretaria. Verifique a conexão.');
-    setIsLoading(false);
   };
 
   return (
@@ -48,7 +95,7 @@ const SecretariaDashboard = ({ onBack, dashboardUrl }: SecretariaDashboardProps)
         </div>
         <AIInsightsButton 
           label="Explicar com IA" 
-          dashboardUrl={finalUrl}
+          dashboardUrl={embedUrl || ''}
           dashboardType="secretaria"
           question="Analise os dados administrativos desta dashboard e forneça insights sobre processos da secretaria, documentação e eficiência operacional"
         />
@@ -91,18 +138,20 @@ const SecretariaDashboard = ({ onBack, dashboardUrl }: SecretariaDashboardProps)
                   </div>
                 </div>
               )}
-              <iframe
-                src={finalUrl}
-                title="Dashboard de Secretaria"
-                width="100%"
-                height="800"
-                frameBorder="0"
-                allowTransparency
-                onLoad={handleIframeLoad}
-                onError={handleIframeError}
-                className="w-full border-0"
-                style={{ minHeight: '800px' }}
-              />
+              {embedUrl && (
+                <iframe
+                  src={embedUrl}
+                  title="Dashboard de Secretaria"
+                  width="100%"
+                  height="800"
+                  frameBorder="0"
+                  allowTransparency
+                  onLoad={handleIframeLoad}
+                  onError={handleIframeError}
+                  className="w-full border-0"
+                  style={{ minHeight: '800px' }}
+                />
+              )}
             </div>
           )}
         </CardContent>
