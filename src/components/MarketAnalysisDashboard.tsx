@@ -9,6 +9,8 @@ import { useToast } from '@/hooks/use-toast';
 declare global {
   interface Window {
     google: any;
+    initMap?: () => void;
+    gm_authFailure?: () => void;
   }
 }
 
@@ -144,14 +146,20 @@ const MarketAnalysisDashboard: React.FC<MarketAnalysisProps> = ({ onBack, school
       if (!window.google) {
         const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
         if (!apiKey) {
-          throw new Error('Chave da API do Google Maps não configurada');
+          // Exibe mensagem amigável quando não há API key configurada
+          throw new Error('Para visualizar o mapa, é necessário configurar a chave da API do Google Maps no Console do Google Cloud para o domínio da Lovable.');
         }
         
         const script = document.createElement('script');
-        // Removemos libraries=places pois não estamos usando no frontend
-        script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}`;
+        // Adiciona callback para lidar com erros de API key
+        script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&callback=initMap&loading=async`;
         script.async = true;
         script.defer = true;
+        
+        // Define função callback global para o Google Maps
+        window.initMap = () => {
+          console.log('✅ Google Maps API carregada via callback');
+        };
         
         console.log('📥 Carregando Google Maps API...');
         
@@ -164,6 +172,13 @@ const MarketAnalysisDashboard: React.FC<MarketAnalysisProps> = ({ onBack, school
             console.error('❌ Erro ao carregar Google Maps:', error);
             reject(new Error('Falha ao carregar a API do Google Maps'));
           };
+          
+          // Adiciona tratamento para erro de API key inválida
+          window.gm_authFailure = () => {
+            console.error('❌ Erro de autenticação do Google Maps - API key inválida');
+            reject(new Error('Chave da API do Google Maps inválida ou sem permissão'));
+          };
+          
           document.head.appendChild(script);
         });
       }
@@ -225,14 +240,14 @@ const MarketAnalysisDashboard: React.FC<MarketAnalysisProps> = ({ onBack, school
       
       // Determina a mensagem de erro baseada no tipo
       let errorMessage = 'Erro ao carregar o mapa';
-      if (err.message?.includes('API key')) {
-        errorMessage = 'Chave da API do Google Maps inválida ou não configurada';
+      if (err.message?.includes('API key') || err.message?.includes('inválida') || err.message?.includes('permissão')) {
+        errorMessage = 'A chave da API do Google Maps precisa ser configurada para este domínio. Entre em contato com o suporte.';
       } else if (err.message?.includes('Falha ao carregar')) {
         errorMessage = 'Não foi possível conectar com os serviços do Google Maps';
       }
       
       toast({
-        title: 'Erro no Mapa',
+        title: 'Problema com o Mapa',
         description: errorMessage,
         variant: 'destructive'
       });
@@ -241,10 +256,13 @@ const MarketAnalysisDashboard: React.FC<MarketAnalysisProps> = ({ onBack, school
       if (mapRef.current) {
         mapRef.current.innerHTML = `
           <div class="flex items-center justify-center h-full bg-gray-100 rounded-lg">
-            <div class="text-center p-4">
-              <div class="text-gray-500 mb-2">⚠️</div>
-              <p class="text-sm text-gray-600">Mapa temporariamente indisponível</p>
-              <p class="text-xs text-gray-500 mt-1">${errorMessage}</p>
+            <div class="text-center p-6">
+              <div class="text-4xl mb-3">🗺️</div>
+              <h3 class="font-semibold text-gray-700 mb-2">Mapa temporariamente indisponível</h3>
+              <p class="text-sm text-gray-600 mb-3">${errorMessage}</p>
+              <p class="text-xs text-gray-500">
+                Os dados de análise estão disponíveis abaixo
+              </p>
             </div>
           </div>
         `;
