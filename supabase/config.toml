@@ -24,5 +24,5 @@ verify_jwt = true
 [functions.metabase-embed-token]
 verify_jwt = true
 
-[functions.market-analysis]
+[functions.Google-Maps-10km]
 verify_jwt = true

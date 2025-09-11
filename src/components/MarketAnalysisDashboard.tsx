@@ -109,7 +109,7 @@ const MarketAnalysisDashboard: React.FC<MarketAnalysisProps> = ({ onBack, school
 
   const fetchMarketAnalysis = async (address: string) => {
     try {
-      const { data, error } = await supabase.functions.invoke('market-analysis', {
+      const { data, error } = await supabase.functions.invoke('Google-Maps-10km', {
         body: { address, radius: 10000 } // 10km radius
       });
 
