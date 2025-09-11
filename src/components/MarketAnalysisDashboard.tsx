@@ -137,18 +137,32 @@ const MarketAnalysisDashboard: React.FC<MarketAnalysisProps> = ({ onBack, school
     if (!marketData || !mapRef.current) return;
 
     try {
+      console.log('🗺️ Inicializando Google Maps...');
+      console.log('🔑 API Key disponível:', !!import.meta.env.VITE_GOOGLE_MAPS_API_KEY);
+      
       // Load Google Maps dynamically
       if (!window.google) {
+        const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+        if (!apiKey) {
+          throw new Error('Chave da API do Google Maps não configurada');
+        }
+        
         const script = document.createElement('script');
-        script.src = `https://maps.googleapis.com/maps/api/js?key=${import.meta.env.VITE_GOOGLE_MAPS_API_KEY || 'AIzaSyBOti4mM-6x9WTnTWjNTkZJnzL8wd-wCXw'}&libraries=places`;
+        // Removemos libraries=places pois não estamos usando no frontend
+        script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}`;
         script.async = true;
         script.defer = true;
         
+        console.log('📥 Carregando Google Maps API...');
+        
         await new Promise((resolve, reject) => {
-          script.onload = resolve;
+          script.onload = () => {
+            console.log('✅ Google Maps API carregada com sucesso');
+            resolve(true);
+          };
           script.onerror = (error) => {
-            console.error('Error loading Google Maps:', error);
-            reject(error);
+            console.error('❌ Erro ao carregar Google Maps:', error);
+            reject(new Error('Falha ao carregar a API do Google Maps'));
           };
           document.head.appendChild(script);
         });
@@ -206,13 +220,35 @@ const MarketAnalysisDashboard: React.FC<MarketAnalysisProps> = ({ onBack, school
         });
       });
 
-    } catch (err) {
-      console.error('Error initializing map:', err);
+    } catch (err: any) {
+      console.error('❌ Erro ao inicializar o mapa:', err);
+      
+      // Determina a mensagem de erro baseada no tipo
+      let errorMessage = 'Erro ao carregar o mapa';
+      if (err.message?.includes('API key')) {
+        errorMessage = 'Chave da API do Google Maps inválida ou não configurada';
+      } else if (err.message?.includes('Falha ao carregar')) {
+        errorMessage = 'Não foi possível conectar com os serviços do Google Maps';
+      }
+      
       toast({
-        title: 'Erro',
-        description: 'Erro ao carregar o mapa',
+        title: 'Erro no Mapa',
+        description: errorMessage,
         variant: 'destructive'
       });
+      
+      // Adiciona uma mensagem de fallback no container do mapa
+      if (mapRef.current) {
+        mapRef.current.innerHTML = `
+          <div class="flex items-center justify-center h-full bg-gray-100 rounded-lg">
+            <div class="text-center p-4">
+              <div class="text-gray-500 mb-2">⚠️</div>
+              <p class="text-sm text-gray-600">Mapa temporariamente indisponível</p>
+              <p class="text-xs text-gray-500 mt-1">${errorMessage}</p>
+            </div>
+          </div>
+        `;
+      }
     }
   };
 
