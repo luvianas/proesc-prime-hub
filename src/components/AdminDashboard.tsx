@@ -385,7 +385,7 @@ const AdminDashboard = () => {
   const fetchData = async () => {
     try {
       const [usersResponse, environmentsResponse, schoolsResponse, adminUsersResponse] = await Promise.all([
-        supabase.from('profiles').select('*').order('created_at', { ascending: false }),
+        supabase.from('profiles').select('user_id, id, name, email, role, is_active, created_at, updated_at, school_id').order('created_at', { ascending: false }),
         supabase.from('environments').select('*').order('created_at', { ascending: false }),
         supabase.from('school_customizations').select('*').order('created_at', { ascending: false }),
         supabase.from('profiles').select('user_id, name, email').eq('role', 'admin').order('name')
