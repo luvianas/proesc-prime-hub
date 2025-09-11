@@ -92,13 +92,13 @@ const MarketAnalysisDashboard: React.FC<MarketAnalysisProps> = ({ onBack, school
         return;
       }
 
-      // Check if we have cached market analysis
-      if (school.market_analysis && Object.keys(school.market_analysis as object).length > 0) {
-        const cachedData = school.market_analysis as unknown as MarketData;
-        setMarketData(cachedData);
-        setLoading(false);
-        return;
-      }
+      // Temporarily disabled cache to validate functionality
+      // if (school.market_analysis && Object.keys(school.market_analysis as object).length > 0) {
+      //   const cachedData = school.market_analysis as unknown as MarketData;
+      //   setMarketData(cachedData);
+      //   setLoading(false);
+      //   return;
+      // }
 
       // Fetch new market analysis
       await fetchMarketAnalysis(school.address);
@@ -119,11 +119,11 @@ const MarketAnalysisDashboard: React.FC<MarketAnalysisProps> = ({ onBack, school
 
       setMarketData(data);
       
-      // Cache the analysis in the database
-      await supabase
-        .from('school_customizations')
-        .update({ market_analysis: data })
-        .eq('id', schoolId);
+      // Temporarily disabled cache to validate functionality
+      // await supabase
+      //   .from('school_customizations')
+      //   .update({ market_analysis: data })
+      //   .eq('id', schoolId);
 
       setLoading(false);
     } catch (err: any) {
@@ -140,7 +140,7 @@ const MarketAnalysisDashboard: React.FC<MarketAnalysisProps> = ({ onBack, school
       // Load Google Maps dynamically
       if (!window.google) {
         const script = document.createElement('script');
-        script.src = `https://maps.googleapis.com/maps/api/js?key=AIzaSyBOti4mM-6x9WTnTWjNTkZJnzL8wd-wCXw&libraries=places`;
+        script.src = `https://maps.googleapis.com/maps/api/js?key=${import.meta.env.VITE_GOOGLE_MAPS_API_KEY || 'AIzaSyBOti4mM-6x9WTnTWjNTkZJnzL8wd-wCXw'}&libraries=places`;
         script.async = true;
         script.defer = true;
         

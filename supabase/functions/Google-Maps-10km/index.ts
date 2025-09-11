@@ -86,13 +86,13 @@ serve(async (req) => {
     const location = geocodeData.results[0].geometry.location;
     console.log(`Geocoded address: ${address} to coordinates: ${location.lat}, ${location.lng}`);
 
-    // Search for schools within the specified radius
-    // Use multiple searches to get more results
+    // Search for private schools within the specified radius
+    // Use multiple searches to get more results and filter out public schools
     let allCompetitors: PlaceResult[] = [];
     let nextPageToken = null;
     
-    // First search
-    let placesUrl = `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${location.lat},${location.lng}&radius=${radius}&type=school&key=${apiKey}`;
+    // First search - using keyword "escola particular" to focus on private schools
+    let placesUrl = `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${location.lat},${location.lng}&radius=${radius}&keyword=escola%20particular&type=school&key=${apiKey}`;
     let placesResponse = await fetch(placesUrl);
     let placesData = await placesResponse.json();
     
@@ -104,7 +104,20 @@ serve(async (req) => {
       );
     }
     
-    allCompetitors = [...placesData.results];
+    // Filter out public schools based on name patterns
+    const filteredResults = placesData.results.filter((place: PlaceResult) => {
+      const name = place.name.toLowerCase();
+      // Filter out public schools keywords
+      const publicSchoolKeywords = [
+        'emef', 'emei', 'emeif', 'cemei', 'municipal', 'estadual', 'federal',
+        'pública', 'publica', 'governo', 'prefeitura', 'sec.', 'secretaria',
+        'colégio estadual', 'escola estadual', 'escola municipal', 'creche municipal'
+      ];
+      
+      return !publicSchoolKeywords.some(keyword => name.includes(keyword));
+    });
+    
+    allCompetitors = [...filteredResults];
     nextPageToken = placesData.next_page_token;
     
     // Get additional pages if available (up to 60 results total)
@@ -117,7 +130,19 @@ serve(async (req) => {
       placesData = await placesResponse.json();
       
       if (placesData.status === 'OK' && placesData.results) {
-        allCompetitors = [...allCompetitors, ...placesData.results];
+        // Filter out public schools from additional pages too
+        const filteredResults = placesData.results.filter((place: PlaceResult) => {
+          const name = place.name.toLowerCase();
+          const publicSchoolKeywords = [
+            'emef', 'emei', 'emeif', 'cemei', 'municipal', 'estadual', 'federal',
+            'pública', 'publica', 'governo', 'prefeitura', 'sec.', 'secretaria',
+            'colégio estadual', 'escola estadual', 'escola municipal', 'creche municipal'
+          ];
+          
+          return !publicSchoolKeywords.some(keyword => name.includes(keyword));
+        });
+        
+        allCompetitors = [...allCompetitors, ...filteredResults];
         nextPageToken = placesData.next_page_token;
       } else {
         break;
