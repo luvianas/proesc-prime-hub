@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { School, CalendarDays, ClipboardList, Wallet, ClipboardCheck, GraduationCap } from 'lucide-react';
+import { School, CalendarDays, ClipboardList, Wallet, ClipboardCheck, GraduationCap, TrendingUp } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
@@ -12,6 +12,7 @@ import FinancialDashboard from '@/components/FinancialDashboard';
 import SecretariaDashboard from '@/components/SecretariaDashboard';
 import PedagogicoDashboard from '@/components/PedagogicoDashboard';
 import AgendaDashboard from '@/components/AgendaDashboard';
+import MarketAnalysisDashboard from '@/components/MarketAnalysisDashboard';
 import NovidadesCarousel from '@/components/NovidadesCarousel';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
 import { logEvent } from '@/lib/analytics';
@@ -43,7 +44,7 @@ const GestorDashboard = ({ adminViewSchoolId }: GestorDashboardProps) => {
   const [schoolData, setSchoolData] = useState<SchoolCustomization | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
-  const [activeSection, setActiveSection] = useState<'home' | 'tickets' | 'consultor-agenda' | 'dash-financeiro' | 'dash-agenda' | 'dash-secretaria' | 'dash-pedagogico'>('home');
+  const [activeSection, setActiveSection] = useState<'home' | 'tickets' | 'consultor-agenda' | 'dash-financeiro' | 'dash-agenda' | 'dash-secretaria' | 'dash-pedagogico' | 'market-analysis'>('home');
   const [showAssistant, setShowAssistant] = useState(false);
   const {
     user
@@ -182,6 +183,7 @@ const GestorDashboard = ({ adminViewSchoolId }: GestorDashboardProps) => {
         {activeSection === 'dash-agenda' && <AgendaDashboard onBack={back} dashboardUrl={schoolData.dashboard_links?.agenda} school_id={adminViewSchoolId || schoolData?.id} />}
         {activeSection === 'dash-secretaria' && <SecretariaDashboard onBack={back} dashboardUrl={schoolData.dashboard_links?.secretaria} school_id={adminViewSchoolId || schoolData?.id} />}
         {activeSection === 'dash-pedagogico' && <PedagogicoDashboard onBack={back} dashboardUrl={schoolData.dashboard_links?.pedagogico} school_id={adminViewSchoolId || schoolData?.id} />}
+        {activeSection === 'market-analysis' && <MarketAnalysisDashboard onBack={back} schoolId={adminViewSchoolId || schoolData?.id} />}
         {showAssistant && <AIAssistant onClose={() => setShowAssistant(false)} />}
       </div>;
   }
@@ -278,6 +280,17 @@ const GestorDashboard = ({ adminViewSchoolId }: GestorDashboardProps) => {
                   Dashboard Pedagógico
                 </CardTitle>
                 <CardDescription className="text-base">Avaliações e desempenho acadêmico</CardDescription>
+              </CardHeader>
+            </Card>
+
+            <Card className="card-elegant card-interactive rounded-xl animate-scale-in" 
+                  onClick={() => navigateTo('market-analysis')}>
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-3 text-xl">
+                  <TrendingUp className="h-6 w-6 text-primary" /> 
+                  Estudo de Mercado
+                </CardTitle>
+                <CardDescription className="text-base">Análise competitiva da região (Prime)</CardDescription>
               </CardHeader>
             </Card>
 

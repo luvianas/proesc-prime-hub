@@ -153,6 +153,7 @@ export type Database = {
       }
       school_customizations: {
         Row: {
+          address: string | null
           consultant_calendar_url: string | null
           consultant_id: string | null
           consultant_name: string | null
@@ -162,7 +163,10 @@ export type Database = {
           created_by: string | null
           dashboard_links: Json | null
           id: string
+          latitude: number | null
           logo_url: string | null
+          longitude: number | null
+          market_analysis: Json | null
           metabase_integration_url: string | null
           organization_id: number | null
           proesc_id: string | null
@@ -172,6 +176,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          address?: string | null
           consultant_calendar_url?: string | null
           consultant_id?: string | null
           consultant_name?: string | null
@@ -181,7 +186,10 @@ export type Database = {
           created_by?: string | null
           dashboard_links?: Json | null
           id?: string
+          latitude?: number | null
           logo_url?: string | null
+          longitude?: number | null
+          market_analysis?: Json | null
           metabase_integration_url?: string | null
           organization_id?: number | null
           proesc_id?: string | null
@@ -191,6 +199,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          address?: string | null
           consultant_calendar_url?: string | null
           consultant_id?: string | null
           consultant_name?: string | null
@@ -200,7 +209,10 @@ export type Database = {
           created_by?: string | null
           dashboard_links?: Json | null
           id?: string
+          latitude?: number | null
           logo_url?: string | null
+          longitude?: number | null
+          market_analysis?: Json | null
           metabase_integration_url?: string | null
           organization_id?: number | null
           proesc_id?: string | null

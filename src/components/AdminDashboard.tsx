@@ -54,6 +54,10 @@ interface SchoolCustomization {
   proesc_id?: string;
   organization_id?: number;
   metabase_integration_url?: string;
+  address?: string;
+  latitude?: number;
+  longitude?: number;
+  market_analysis?: any;
   dashboard_links?: any;
   created_at: string;
   updated_at: string;
@@ -90,6 +94,7 @@ const AdminDashboard = () => {
     proesc_id: '',
     organization_id: '',
     metabase_integration_url: '',
+    address: '',
     dashboard_links: {
       financeiro: '',
       agenda: '',
@@ -389,6 +394,7 @@ const AdminDashboard = () => {
         proesc_id: newSchool.proesc_id,
         organization_id: newSchool.organization_id ? parseInt(newSchool.organization_id) : null,
         metabase_integration_url: newSchool.metabase_integration_url,
+        address: newSchool.address,
         dashboard_links: newSchool.dashboard_links,
         created_by: (await supabase.auth.getUser()).data.user?.id
       }]).select().single();
@@ -405,6 +411,7 @@ const AdminDashboard = () => {
         proesc_id: '',
         organization_id: '',
         metabase_integration_url: '',
+        address: '',
         dashboard_links: {
           financeiro: '',
           agenda: '',
@@ -647,6 +654,7 @@ const AdminDashboard = () => {
         proesc_id: editingSchool.proesc_id,
         organization_id: editingSchool.organization_id,
         metabase_integration_url: editingSchool.metabase_integration_url,
+        address: editingSchool.address,
         dashboard_links: editingSchool.dashboard_links
       }).eq('id', editingSchool.id);
       if (error) throw error;
@@ -1139,6 +1147,22 @@ const AdminDashboard = () => {
                       {uploadingLogoNew && <p className="text-sm text-muted-foreground">Enviando...</p>}
                       {newSchool.logo_url && <img src={newSchool.logo_url} alt="Logo da escola" className="h-12 rounded" />}
                     </div>
+                    
+                    {/* Endereço da Escola */}
+                    <div className="space-y-2">
+                      <Label htmlFor="schoolAddress">Endereço da Escola</Label>
+                      <Input 
+                        id="schoolAddress" 
+                        value={newSchool.address} 
+                        onChange={e => setNewSchool({
+                          ...newSchool,
+                          address: e.target.value
+                        })} 
+                        placeholder="Rua, Número, Bairro, Cidade - Estado, CEP" 
+                      />
+                      <p className="text-xs text-muted-foreground">Endereço completo para análise de mercado</p>
+                    </div>
+                    
                     <div className="space-y-2">
                       <Label htmlFor="consultant_id">Consultor Responsável</Label>
                       <Select
@@ -1604,6 +1628,22 @@ const AdminDashboard = () => {
                 {uploadingLogoEdit && <p className="text-sm text-muted-foreground">Enviando...</p>}
                 {editingSchool.logo_url && <img src={editingSchool.logo_url} alt="Logo da escola" className="h-12 rounded" />}
               </div>
+              
+              {/* Endereço da Escola */}
+              <div className="space-y-2">
+                <Label htmlFor="editSchoolAddress">Endereço da Escola</Label>
+                <Input 
+                  id="editSchoolAddress" 
+                  value={editingSchool.address || ''} 
+                  onChange={e => setEditingSchool({
+                    ...editingSchool,
+                    address: e.target.value
+                  })} 
+                  placeholder="Rua, Número, Bairro, Cidade - Estado, CEP" 
+                />
+                <p className="text-xs text-muted-foreground">Endereço completo para análise de mercado</p>
+              </div>
+              
               <div className="space-y-2">
                 <Label htmlFor="editConsultantId">Consultor Responsável</Label>
                 <Select
