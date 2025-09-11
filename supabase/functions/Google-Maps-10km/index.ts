@@ -62,11 +62,14 @@ serve(async (req) => {
 
     const apiKey = Deno.env.get('Maps Platform API Key');
     if (!apiKey) {
+      console.error('Google Maps API key not found in environment variables');
       return new Response(
         JSON.stringify({ error: 'Google Maps API key not configured' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+    
+    console.log('Using Google Maps API key:', apiKey.substring(0, 10) + '...');
 
     // First, geocode the address to get coordinates
     const geocodeUrl = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=${apiKey}`;
@@ -84,10 +87,15 @@ serve(async (req) => {
     console.log(`Geocoded address: ${address} to coordinates: ${location.lat}, ${location.lng}`);
 
     // Search for schools within the specified radius
-    const placesUrl = `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${location.lat},${location.lng}&radius=${radius}&type=school&key=${apiKey}`;
-    const placesResponse = await fetch(placesUrl);
-    const placesData = await placesResponse.json();
-
+    // Use multiple searches to get more results
+    let allCompetitors: PlaceResult[] = [];
+    let nextPageToken = null;
+    
+    // First search
+    let placesUrl = `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${location.lat},${location.lng}&radius=${radius}&type=school&key=${apiKey}`;
+    let placesResponse = await fetch(placesUrl);
+    let placesData = await placesResponse.json();
+    
     if (placesData.status !== 'OK') {
       console.error('Places API error:', placesData.status, placesData.error_message);
       return new Response(
@@ -95,8 +103,28 @@ serve(async (req) => {
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+    
+    allCompetitors = [...placesData.results];
+    nextPageToken = placesData.next_page_token;
+    
+    // Get additional pages if available (up to 60 results total)
+    while (nextPageToken && allCompetitors.length < 60) {
+      // Wait 2 seconds before next request (Google requirement)
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      placesUrl = `https://maps.googleapis.com/maps/api/place/nearbysearch/json?pagetoken=${nextPageToken}&key=${apiKey}`;
+      placesResponse = await fetch(placesUrl);
+      placesData = await placesResponse.json();
+      
+      if (placesData.status === 'OK' && placesData.results) {
+        allCompetitors = [...allCompetitors, ...placesData.results];
+        nextPageToken = placesData.next_page_token;
+      } else {
+        break;
+      }
+    }
 
-    const competitors = placesData.results as PlaceResult[];
+    const competitors = allCompetitors as PlaceResult[];
     console.log(`Found ${competitors.length} schools within ${radius/1000}km`);
 
     // Analyze the data
@@ -113,6 +141,9 @@ serve(async (req) => {
       expensive: competitors.filter(p => p.price_level === 3).length,
       luxury: competitors.filter(p => p.price_level === 4).length,
     };
+    
+    console.log('Price distribution:', priceDistribution);
+    console.log('Competitors with price levels:', competitors.filter(p => p.price_level !== undefined).length);
 
     // Generate insights
     const insights: string[] = [];

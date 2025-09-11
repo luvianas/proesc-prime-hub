@@ -56,6 +56,8 @@ const MarketAnalysisDashboard: React.FC<MarketAnalysisProps> = ({ onBack, school
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [schoolData, setSchoolData] = useState<any>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [competitorsPerPage] = useState(10);
   
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);
@@ -138,13 +140,16 @@ const MarketAnalysisDashboard: React.FC<MarketAnalysisProps> = ({ onBack, school
       // Load Google Maps dynamically
       if (!window.google) {
         const script = document.createElement('script');
-        script.src = `https://maps.googleapis.com/maps/api/js?key=AIzaSyBOti4mM-6x9WTnTWjNTkZJnzL8wd-wCXw&libraries=marker`;
+        script.src = `https://maps.googleapis.com/maps/api/js?key=AIzaSyBOti4mM-6x9WTnTWjNTkZJnzL8wd-wCXw&libraries=places`;
         script.async = true;
         script.defer = true;
         
         await new Promise((resolve, reject) => {
           script.onload = resolve;
-          script.onerror = reject;
+          script.onerror = (error) => {
+            console.error('Error loading Google Maps:', error);
+            reject(error);
+          };
           document.head.appendChild(script);
         });
       }
@@ -152,7 +157,12 @@ const MarketAnalysisDashboard: React.FC<MarketAnalysisProps> = ({ onBack, school
       const map = new window.google.maps.Map(mapRef.current, {
         center: marketData.center_coordinates,
         zoom: 13,
-        mapId: 'market-analysis-map'
+        styles: [
+          {
+            featureType: "poi.school",
+            stylers: [{ visibility: "on" }]
+          }
+        ]
       });
 
       mapInstanceRef.current = map;
@@ -276,6 +286,12 @@ const MarketAnalysisDashboard: React.FC<MarketAnalysisProps> = ({ onBack, school
     );
   }
 
+  // Pagination logic
+  const indexOfLastCompetitor = currentPage * competitorsPerPage;
+  const indexOfFirstCompetitor = indexOfLastCompetitor - competitorsPerPage;
+  const currentCompetitors = marketData?.competitors.slice(indexOfFirstCompetitor, indexOfLastCompetitor) || [];
+  const totalPages = Math.ceil((marketData?.competitors.length || 0) / competitorsPerPage);
+
   return (
     <div className="container mx-auto p-6 space-y-6">
       {/* Header */}
@@ -286,7 +302,7 @@ const MarketAnalysisDashboard: React.FC<MarketAnalysisProps> = ({ onBack, school
         </Button>
         <div>
           <h1 className="text-2xl font-bold">Estudo de Mercado</h1>
-          <p className="text-muted-foreground">Análise competitiva da região (raio de 10km)</p>
+          <p className="text-muted-foreground">Análise competitiva da região (raio de 10km) - {marketData?.competitors.length || 0} escolas encontradas</p>
         </div>
       </div>
 
@@ -389,11 +405,13 @@ const MarketAnalysisDashboard: React.FC<MarketAnalysisProps> = ({ onBack, school
       <Card>
         <CardHeader>
           <CardTitle>Lista de Concorrentes</CardTitle>
-          <CardDescription>Escolas encontradas na região</CardDescription>
+          <CardDescription>
+            Escolas encontradas na região - Página {currentPage} de {totalPages} ({marketData.competitors.length} total)
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
-            {marketData.competitors.slice(0, 10).map((competitor, index) => (
+            {currentCompetitors.map((competitor, index) => (
               <div key={competitor.place_id} className="flex items-center justify-between p-3 border rounded-lg">
                 <div className="flex-1">
                   <h4 className="font-semibold">{competitor.name}</h4>
@@ -406,20 +424,44 @@ const MarketAnalysisDashboard: React.FC<MarketAnalysisProps> = ({ onBack, school
                   )}
                 </div>
                 <div className="text-right space-y-1">
-                  {competitor.price_level !== undefined && (
+                  {competitor.price_level !== undefined ? (
                     <Badge className={getPriceLevelColor(competitor.price_level)}>
                       {getPriceLevelText(competitor.price_level)}
+                    </Badge>
+                  ) : (
+                    <Badge className="bg-gray-100 text-gray-800">
+                      Sem informação de preço
                     </Badge>
                   )}
                 </div>
               </div>
             ))}
-            {marketData.competitors.length > 10 && (
-              <p className="text-sm text-muted-foreground text-center pt-2">
-                ... e mais {marketData.competitors.length - 10} escolas
-              </p>
-            )}
           </div>
+          
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex justify-center items-center gap-2 mt-6">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                disabled={currentPage === 1}
+              >
+                Anterior
+              </Button>
+              <span className="px-3 py-1 text-sm">
+                {currentPage} de {totalPages}
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                disabled={currentPage === totalPages}
+              >
+                Próxima
+              </Button>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
