@@ -109,7 +109,8 @@ const AdminHeader = () => {
     if (!user) return;
 
     try {
-      const fileName = `avatar-${user.id}-${Date.now()}.jpg`;
+      // Usar a estrutura de pastas correta para o bucket avatars
+      const fileName = `${user.id}/avatar-${Date.now()}.jpg`;
       const file = new File([croppedImageBlob], fileName, { type: 'image/jpeg' });
       
       await uploadImage(file, fileName);
@@ -124,7 +125,7 @@ const AdminHeader = () => {
       toast.success('Avatar atualizado com sucesso!');
     } catch (error) {
       console.error('Erro ao fazer upload da imagem:', error);
-      toast.error('Erro ao atualizar avatar');
+      toast.error(`Erro ao atualizar avatar: ${error instanceof Error ? error.message : 'Erro desconhecido'}`);
     }
   };
 

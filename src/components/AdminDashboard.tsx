@@ -188,6 +188,31 @@ const AdminDashboard = () => {
     }
   };
 
+  // Função específica para upload de avatars no bucket correto
+  const uploadAvatar = async (file: File, userId: string) => {
+    try {
+      const ext = file.name.split('.').pop() || 'jpg';
+      const fileName = `${userId}/avatar-${Date.now()}.${ext}`;
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(fileName, file, {
+          upsert: true,
+          contentType: file.type,
+          cacheControl: '3600',
+        });
+      if (uploadError) throw uploadError;
+      const { data } = supabase.storage.from('avatars').getPublicUrl(fileName);
+      return data.publicUrl;
+    } catch (e: any) {
+      toast({
+        title: 'Erro no upload do avatar',
+        description: e.message || 'Falha no upload da imagem de avatar',
+        variant: 'destructive',
+      });
+      return null;
+    }
+  };
+
   const uploadCroppedAvatar = async (blob: Blob) => {
     if (!user || !blob) return;
     setLoadingProfile(true);
@@ -898,7 +923,9 @@ const AdminDashboard = () => {
                               
                               setUploadingUserAvatar(true);
                               try {
-                                const url = await uploadImage(file, 'avatars');
+                                // Para novos usuários, vamos usar um ID temporário baseado no timestamp
+                                const tempUserId = `temp-${Date.now()}`;
+                                const url = await uploadAvatar(file, tempUserId);
                                 setNewUser({
                                   ...newUser,
                                   avatar_url: url
@@ -1529,7 +1556,7 @@ const AdminDashboard = () => {
                         
                         setUploadingEditUserAvatar(true);
                         try {
-                          const url = await uploadImage(file, 'avatars');
+                          const url = await uploadAvatar(file, editingUser.user_id);
                           setEditingUser({
                             ...editingUser,
                             avatar_url: url
