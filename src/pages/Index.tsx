@@ -33,7 +33,8 @@ import { useToast } from "@/hooks/use-toast";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import ImageCropperDialog from "@/components/ImageCropperDialog";
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip";
-import MobileActionsMenu from "@/components/MobileActionsMenu";
+import MobileSidebarNavigation from "@/components/MobileSidebarNavigation";
+import { useBreakpoint } from '@/hooks/useBreakpoint';
 import Footer from "@/components/Footer";
 const Index = () => {
   const [showAI, setShowAI] = useState(false);
@@ -46,6 +47,7 @@ const Index = () => {
     signOut,
     mustChangePassword
   } = useAuth();
+  const { isMobile, isTablet, isDesktop } = useBreakpoint();
   const [schoolHeader, setSchoolHeader] = useState<{
     schoolName: string;
     logoUrl?: string;
@@ -274,7 +276,14 @@ const Index = () => {
               </Button>
             </div>
             <div className="md:hidden">
-              <MobileActionsMenu onOpenProfile={openProfile} />
+              <MobileSidebarNavigation 
+                onOpenProfile={openProfile}
+                userProfile={{ 
+                  name: profileName, 
+                  email: profileEmail, 
+                  avatar_url: avatarUrl 
+                }}
+              />
             </div>
           </div>
         </div>

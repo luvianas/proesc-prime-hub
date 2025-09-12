@@ -16,6 +16,7 @@ import MarketAnalysisDashboard from '@/components/MarketAnalysisDashboard';
 import NovidadesCarousel from '@/components/NovidadesCarousel';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
 import { logEvent } from '@/lib/analytics';
+import { useBreakpoint } from '@/hooks/useBreakpoint';
 interface SchoolCustomization {
   id: string;
   school_name: string;
@@ -47,12 +48,9 @@ const GestorDashboard = ({ adminViewSchoolId }: GestorDashboardProps) => {
   const [loading, setLoading] = useState(true);
   const [activeSection, setActiveSection] = useState<'home' | 'tickets' | 'consultor-agenda' | 'dash-financeiro' | 'dash-agenda' | 'dash-secretaria' | 'dash-pedagogico' | 'market-analysis'>('home');
   const [showAssistant, setShowAssistant] = useState(false);
-  const {
-    user
-  } = useAuth();
-  const {
-    toast
-  } = useToast();
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const { isMobile, isTablet } = useBreakpoint();
   
   const isAdminView = !!adminViewSchoolId;
   useEffect(() => {
@@ -188,8 +186,8 @@ const GestorDashboard = ({ adminViewSchoolId }: GestorDashboardProps) => {
         {showAssistant && <AIAssistant onClose={() => setShowAssistant(false)} />}
       </div>;
   }
-  return <div className="min-h-screen bg-hero">
-      <div className="container mx-auto p-6 space-y-8">
+  return <div className="min-h-screen bg-hero overflow-safe">
+      <div className="container mx-auto spacing-mobile space-y-4 sm:space-y-6 lg:space-y-8">
         {/* Admin viewing indicator */}
         {isAdminView && (
           <div className="bg-primary/10 border border-primary/20 rounded-lg px-4 py-3 mb-6">
@@ -202,11 +200,11 @@ const GestorDashboard = ({ adminViewSchoolId }: GestorDashboardProps) => {
         )}
 
         {/* Welcome Message */}
-        <div className="text-left py-8 animate-fade-in">
-          <h1 className="text-5xl font-bold mb-4 text-gradient">
+        <div className="text-left spacing-mobile-y animate-fade-in">
+          <h1 className="text-responsive-xl sm:text-4xl lg:text-5xl font-bold mb-2 sm:mb-4 text-gradient">
             {isAdminView ? schoolData?.school_name : 'Bem-vindo ao seu Portal Prime'}
           </h1>
-          <p className="text-xl text-muted-foreground">
+          <p className="text-responsive-base sm:text-lg lg:text-xl text-muted-foreground">
             {isAdminView ? 'Portal da escola - Visualização de administrador' : 'Gerencie sua escola com excelência'}
           </p>
         </div>
@@ -222,45 +220,45 @@ const GestorDashboard = ({ adminViewSchoolId }: GestorDashboardProps) => {
         )}
 
         {/* Destaques */}
-        <section className="grid md:grid-cols-2 gap-8">
-          <Card className="card-elegant card-interactive rounded-xl animate-scale-in" 
+        <section className="mobile-grid-2 gap-4 sm:gap-6 lg:gap-8">
+          <Card className="card-elegant card-interactive rounded-xl animate-scale-in mobile-touch-target" 
                 onClick={() => navigateTo('tickets')}>
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-3 text-xl">
-                <ClipboardList className="h-6 w-6 text-primary" /> 
-                Acompanhar Tickets
+            <CardHeader className="pb-3 spacing-mobile">
+              <CardTitle className="flex items-center gap-2 sm:gap-3 text-responsive-base sm:text-lg lg:text-xl">
+                <ClipboardList className="h-5 w-5 sm:h-6 sm:w-6 text-primary flex-shrink-0" /> 
+                <span className="truncate">Acompanhar Tickets</span>
               </CardTitle>
-              <CardDescription className="text-base">Crie e acompanhe solicitações de suporte</CardDescription>
+              <CardDescription className="text-responsive-xs sm:text-sm lg:text-base">Crie e acompanhe solicitações de suporte</CardDescription>
             </CardHeader>
           </Card>
 
-          <Card className="card-elegant card-interactive rounded-xl animate-scale-in" 
+          <Card className="card-elegant card-interactive rounded-xl animate-scale-in mobile-touch-target" 
                 onClick={() => navigateTo('consultor-agenda')}>
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-3 text-xl">
-                <CalendarDays className="h-6 w-6 text-primary" /> 
-                Agenda do Consultor
+            <CardHeader className="pb-3 spacing-mobile">
+              <CardTitle className="flex items-center gap-2 sm:gap-3 text-responsive-base sm:text-lg lg:text-xl">
+                <CalendarDays className="h-5 w-5 sm:h-6 sm:w-6 text-primary flex-shrink-0" /> 
+                <span className="truncate">Agenda do Consultor</span>
               </CardTitle>
-              <CardDescription className="text-base">Agende reuniões e converse no WhatsApp</CardDescription>
+              <CardDescription className="text-responsive-xs sm:text-sm lg:text-base">Agende reuniões e converse no WhatsApp</CardDescription>
             </CardHeader>
           </Card>
         </section>
 
-        {/* Análise de Mercado - Seção centralizada */}
+        {/* Análise de Mercado - Responsiva */}
         {schoolData.market_analysis_enabled && (
           <section className="flex justify-center">
             <div className="w-full max-w-md">
-              <Card className="card-elegant card-interactive rounded-xl animate-scale-in relative" 
+              <Card className="card-elegant card-interactive rounded-xl animate-scale-in relative mobile-touch-target" 
                     onClick={() => navigateTo('market-analysis')}>
-                <CardHeader className="pb-3">
-                  <CardTitle className="flex items-center gap-3 text-xl justify-center">
-                    <TrendingUp className="h-6 w-6 text-primary" /> 
-                    Estudo de Mercado
-                    <span className="ml-2 px-2 py-1 text-xs font-semibold bg-primary/10 text-primary rounded-full border border-primary/20">
+                <CardHeader className="pb-3 spacing-mobile">
+                  <CardTitle className="flex items-center gap-2 sm:gap-3 text-responsive-base sm:text-lg lg:text-xl justify-center flex-wrap">
+                    <TrendingUp className="h-5 w-5 sm:h-6 sm:w-6 text-primary flex-shrink-0" /> 
+                    <span className="truncate">Estudo de Mercado</span>
+                    <span className="px-2 py-1 text-xs font-semibold bg-primary/10 text-primary rounded-full border border-primary/20">
                       BETA
                     </span>
                   </CardTitle>
-                  <CardDescription className="text-base text-center">Análise competitiva da região (Prime)</CardDescription>
+                  <CardDescription className="text-responsive-xs sm:text-sm lg:text-base text-center">Análise competitiva da região (Prime)</CardDescription>
                 </CardHeader>
               </Card>
             </div>
@@ -268,51 +266,51 @@ const GestorDashboard = ({ adminViewSchoolId }: GestorDashboardProps) => {
         )}
 
         {/* Dashboards */}
-        <section className="space-y-6">
-          <h2 className="text-2xl font-semibold text-foreground">Dashboards</h2>
-          <div className="grid md:grid-cols-2 gap-8">
+        <section className="space-y-4 sm:space-y-6">
+          <h2 className="text-responsive-lg sm:text-xl lg:text-2xl font-semibold text-foreground">Dashboards</h2>
+          <div className="mobile-grid-2 gap-4 sm:gap-6 lg:gap-8">
 
-            <Card className="card-elegant card-interactive rounded-xl animate-scale-in" 
+            <Card className="card-elegant card-interactive rounded-xl animate-scale-in mobile-touch-target" 
                   onClick={() => navigateTo('dash-financeiro')}>
-              <CardHeader className="pb-3">
-                <CardTitle className="flex items-center gap-3 text-xl">
-                  <Wallet className="h-6 w-6 text-primary" /> 
-                  Dashboard Financeiro
+              <CardHeader className="pb-3 spacing-mobile">
+                <CardTitle className="flex items-center gap-2 sm:gap-3 text-responsive-base sm:text-lg lg:text-xl">
+                  <Wallet className="h-5 w-5 sm:h-6 sm:w-6 text-primary flex-shrink-0" /> 
+                  <span className="truncate">Dashboard Financeiro</span>
                 </CardTitle>
-                <CardDescription className="text-base">Receitas, inadimplência e projeções</CardDescription>
+                <CardDescription className="text-responsive-xs sm:text-sm lg:text-base">Receitas, inadimplência e projeções</CardDescription>
               </CardHeader>
             </Card>
 
-            <Card className="card-elegant card-interactive rounded-xl animate-scale-in" 
+            <Card className="card-elegant card-interactive rounded-xl animate-scale-in mobile-touch-target" 
                   onClick={() => navigateTo('dash-agenda')}>
-              <CardHeader className="pb-3">
-                <CardTitle className="flex items-center gap-3 text-xl">
-                  <CalendarDays className="h-6 w-6 text-primary" /> 
-                  Proesc Agenda
+              <CardHeader className="pb-3 spacing-mobile">
+                <CardTitle className="flex items-center gap-2 sm:gap-3 text-responsive-base sm:text-lg lg:text-xl">
+                  <CalendarDays className="h-5 w-5 sm:h-6 sm:w-6 text-primary flex-shrink-0" /> 
+                  <span className="truncate">Proesc Agenda</span>
                 </CardTitle>
-                <CardDescription className="text-base">Compromissos e lembretes acadêmicos</CardDescription>
+                <CardDescription className="text-responsive-xs sm:text-sm lg:text-base">Compromissos e lembretes acadêmicos</CardDescription>
               </CardHeader>
             </Card>
 
-            <Card className="card-elegant card-interactive rounded-xl animate-scale-in" 
+            <Card className="card-elegant card-interactive rounded-xl animate-scale-in mobile-touch-target" 
                   onClick={() => navigateTo('dash-pedagogico')}>
-              <CardHeader className="pb-3">
-                <CardTitle className="flex items-center gap-3 text-xl">
-                  <GraduationCap className="h-6 w-6 text-primary" /> 
-                  Dashboard Pedagógico
+              <CardHeader className="pb-3 spacing-mobile">
+                <CardTitle className="flex items-center gap-2 sm:gap-3 text-responsive-base sm:text-lg lg:text-xl">
+                  <GraduationCap className="h-5 w-5 sm:h-6 sm:w-6 text-primary flex-shrink-0" /> 
+                  <span className="truncate">Dashboard Pedagógico</span>
                 </CardTitle>
-                <CardDescription className="text-base">Avaliações e desempenho acadêmico</CardDescription>
+                <CardDescription className="text-responsive-xs sm:text-sm lg:text-base">Avaliações e desempenho acadêmico</CardDescription>
               </CardHeader>
             </Card>
 
-            <Card className="card-elegant card-interactive rounded-xl animate-scale-in" 
+            <Card className="card-elegant card-interactive rounded-xl animate-scale-in mobile-touch-target" 
                   onClick={() => navigateTo('dash-secretaria')}>
-              <CardHeader className="pb-3">
-                <CardTitle className="flex items-center gap-3 text-xl">
-                  <ClipboardCheck className="h-6 w-6 text-primary" /> 
-                  Dashboard Secretaria
+              <CardHeader className="pb-3 spacing-mobile">
+                <CardTitle className="flex items-center gap-2 sm:gap-3 text-responsive-base sm:text-lg lg:text-xl">
+                  <ClipboardCheck className="h-5 w-5 sm:h-6 sm:w-6 text-primary flex-shrink-0" /> 
+                  <span className="truncate">Dashboard Secretaria</span>
                 </CardTitle>
-                <CardDescription className="text-base">Gestão documental e processos</CardDescription>
+                <CardDescription className="text-responsive-xs sm:text-sm lg:text-base">Gestão documental e processos</CardDescription>
               </CardHeader>
             </Card>
 

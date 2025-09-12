@@ -19,6 +19,7 @@ import UsageDashboard from '@/components/UsageDashboard';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
 import ImageCropperDialog from '@/components/ImageCropperDialog';
+import { useBreakpoint } from '@/hooks/useBreakpoint';
 interface User {
   id: string;
   user_id: string;
@@ -119,6 +120,7 @@ const AdminDashboard = () => {
 
   const { toast } = useToast();
   const { user, userRole } = useAuth();
+  const { isMobile, isTablet } = useBreakpoint();
   const [minimized, setMinimized] = useState(false);
   const [resetDialogOpen, setResetDialogOpen] = useState(false);
   const [resetting, setResetting] = useState(false);
