@@ -221,7 +221,7 @@
   
   /* Mobile safe area for devices with notches */
   .mobile-safe-area {
-    @apply px-safe-4 pb-safe-4;
+    @apply px-4 pb-4;
     padding-top: max(1rem, env(safe-area-inset-top));
     padding-left: max(1rem, env(safe-area-inset-left));
     padding-right: max(1rem, env(safe-area-inset-right));
