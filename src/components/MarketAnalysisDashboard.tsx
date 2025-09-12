@@ -475,8 +475,10 @@ const MarketAnalysisDashboard: React.FC<MarketAnalysisProps> = ({ onBack, school
             <div className="flex items-center gap-2">
               <DollarSign className="h-5 w-5 text-green-500" />
               <div>
-                <p className="text-2xl font-bold">{marketData.analysis.price_distribution.moderate}</p>
-                <p className="text-sm text-muted-foreground">Preço Moderado</p>
+                <p className="text-2xl font-bold">
+                  {marketData.competitors.filter(c => c.price_level !== undefined).length}
+                </p>
+                <p className="text-sm text-muted-foreground">Com Info. Preço</p>
               </div>
             </div>
           </CardContent>
@@ -487,8 +489,10 @@ const MarketAnalysisDashboard: React.FC<MarketAnalysisProps> = ({ onBack, school
             <div className="flex items-center gap-2">
               <TrendingUp className="h-5 w-5 text-purple-500" />
               <div>
-                <p className="text-2xl font-bold">{marketData.analysis.price_distribution.expensive + marketData.analysis.price_distribution.luxury}</p>
-                <p className="text-sm text-muted-foreground">Premium</p>
+                <p className="text-2xl font-bold">
+                  {marketData.competitors.filter(c => c.rating && c.rating >= 4.5).length}
+                </p>
+                <p className="text-sm text-muted-foreground">Alta Avaliação</p>
               </div>
             </div>
           </CardContent>
@@ -526,15 +530,31 @@ const MarketAnalysisDashboard: React.FC<MarketAnalysisProps> = ({ onBack, school
               </div>
             ))}
             
-            <div className="space-y-2">
-              <h4 className="font-semibold">Distribuição de Preços:</h4>
-              <div className="grid grid-cols-2 gap-2 text-sm">
-                <div>Baixo custo: {marketData.analysis.price_distribution.budget}</div>
-                <div>Moderado: {marketData.analysis.price_distribution.moderate}</div>
-                <div>Alto custo: {marketData.analysis.price_distribution.expensive}</div>
-                <div>Premium: {marketData.analysis.price_distribution.luxury}</div>
+            <div className="space-y-3">
+              <div>
+                <h4 className="font-semibold mb-2">Resumo de Avaliações:</h4>
+                <div className="grid grid-cols-2 gap-2 text-sm">
+                  <div>⭐ 5.0: {marketData.competitors.filter(c => c.rating === 5.0).length}</div>
+                  <div>⭐ 4.5+: {marketData.competitors.filter(c => c.rating && c.rating >= 4.5 && c.rating < 5.0).length}</div>
+                  <div>⭐ 4.0+: {marketData.competitors.filter(c => c.rating && c.rating >= 4.0 && c.rating < 4.5).length}</div>
+                  <div>⭐ &lt;4.0: {marketData.competitors.filter(c => c.rating && c.rating < 4.0).length}</div>
+                </div>
               </div>
-            </div>
+              
+              {marketData.competitors.filter(c => c.price_level !== undefined).length > 0 && (
+                <div>
+                  <h4 className="font-semibold mb-2">Informações de Preço:</h4>
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    <div>Baixo custo: {marketData.analysis.price_distribution.budget}</div>
+                    <div>Moderado: {marketData.analysis.price_distribution.moderate}</div>
+                    <div>Alto custo: {marketData.analysis.price_distribution.expensive}</div>
+                    <div>Premium: {marketData.analysis.price_distribution.luxury}</div>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    {marketData.competitors.filter(c => c.price_level === undefined).length} escolas sem informação de preço
+                  </p>
+                </div>
+              )}</div>
           </CardContent>
         </Card>
       </div>
