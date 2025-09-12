@@ -113,11 +113,27 @@ const MarketAnalysisDashboard: React.FC<MarketAnalysisProps> = ({ onBack, school
 
   const fetchMarketAnalysis = async (address: string) => {
     try {
+      console.log('🚀 Iniciando busca de análise de mercado para:', address);
+      
       const { data, error } = await supabase.functions.invoke('Google-Maps-10km', {
         body: { address, radius: 10000 } // 10km radius
       });
 
-      if (error) throw error;
+      console.log('📡 Resposta da função:', { data, error });
+
+      if (error) {
+        console.error('❌ Erro na função Edge:', error);
+        throw new Error(error.message || 'Erro na função de análise de mercado');
+      }
+
+      if (!data) {
+        throw new Error('Nenhum dado retornado pela análise');
+      }
+
+      console.log('✅ Análise concluída com sucesso:', {
+        competitors_found: data.competitors?.length || 0,
+        analysis: data.analysis
+      });
 
       setMarketData(data);
       
@@ -128,10 +144,37 @@ const MarketAnalysisDashboard: React.FC<MarketAnalysisProps> = ({ onBack, school
       //   .eq('id', schoolId);
 
       setLoading(false);
+      
+      toast({
+        title: 'Análise Concluída',
+        description: `Encontradas ${data.competitors?.length || 0} escolas na região`,
+      });
+      
     } catch (err: any) {
-      console.error('Error fetching market analysis:', err);
-      setError(err.message || 'Erro ao buscar análise de mercado');
+      console.error('❌ Erro na análise de mercado:', err);
+      
+      let errorMessage = 'Erro ao buscar análise de mercado';
+      let errorDetails = '';
+      
+      if (err.message?.includes('API key')) {
+        errorMessage = 'Problema com configuração da API';
+        errorDetails = 'A chave da API do Google Maps precisa ser configurada';
+      } else if (err.message?.includes('geocode')) {
+        errorMessage = 'Endereço não encontrado';
+        errorDetails = 'Verifique se o endereço da escola está correto';
+      } else if (err.message?.includes('Places API')) {
+        errorMessage = 'Erro na busca de escolas';
+        errorDetails = 'Problema temporário com o serviço de mapas';
+      }
+      
+      setError(`${errorMessage}${errorDetails ? ': ' + errorDetails : ''}`);
       setLoading(false);
+      
+      toast({
+        title: 'Erro na Análise',
+        description: errorMessage,
+        variant: 'destructive'
+      });
     }
   };
 
@@ -329,10 +372,29 @@ const MarketAnalysisDashboard: React.FC<MarketAnalysisProps> = ({ onBack, school
                 <TrendingUp className="h-12 w-12 mx-auto mb-4" />
               </div>
               <h2 className="text-xl font-semibold">Erro ao carregar análise</h2>
-              <p className="text-muted-foreground">{error}</p>
-              <Button onClick={() => window.location.reload()}>
-                Tentar novamente
-              </Button>
+              <p className="text-muted-foreground mb-4">{error}</p>
+              
+              <div className="space-y-2">
+                <Button onClick={() => {
+                  setError(null);
+                  setLoading(true);
+                  fetchSchoolData();
+                }} className="mr-2">
+                  Tentar novamente
+                </Button>
+                <Button variant="outline" onClick={() => window.location.reload()}>
+                  Recarregar página
+                </Button>
+              </div>
+              
+              <div className="text-sm text-muted-foreground mt-4">
+                <p>Se o problema persistir:</p>
+                <ul className="list-disc list-inside mt-2 space-y-1">
+                  <li>Verifique se o endereço da escola está configurado</li>
+                  <li>Confirme a configuração da API do Google Maps</li>
+                  <li>Entre em contato com o suporte técnico</li>
+                </ul>
+              </div>
             </div>
           </CardContent>
         </Card>

@@ -45,15 +45,21 @@ interface MarketAnalysisResponse {
 }
 
 serve(async (req) => {
+  const startTime = Date.now();
+  console.log('🚀 Starting market analysis request at:', new Date().toISOString());
+  
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
+    console.log('✅ Handling CORS preflight request');
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
     const { address, radius = 10000 }: MarketAnalysisRequest = await req.json();
+    console.log('📍 Request parameters:', { address, radius });
     
     if (!address) {
+      console.error('❌ No address provided in request');
       return new Response(
         JSON.stringify({ error: 'Address is required' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -61,45 +67,97 @@ serve(async (req) => {
     }
 
     const apiKey = Deno.env.get('Maps Platform API Key');
+    console.log('🔑 API Key status:', {
+      exists: !!apiKey,
+      length: apiKey?.length || 0,
+      preview: apiKey ? apiKey.substring(0, 10) + '...' : 'N/A'
+    });
+    
     if (!apiKey) {
-      console.error('Google Maps API key not found in environment variables');
+      console.error('❌ Google Maps API key not found in environment variables');
       return new Response(
-        JSON.stringify({ error: 'Google Maps API key not configured' }),
+        JSON.stringify({ 
+          error: 'Google Maps API key not configured',
+          details: 'The Maps Platform API Key secret needs to be configured in Supabase Edge Functions settings'
+        }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
     
-    console.log('Using Google Maps API key:', apiKey.substring(0, 10) + '...');
+    // Validate API key format (basic validation)
+    if (apiKey.length < 30 || !apiKey.startsWith('AIza')) {
+      console.error('❌ Invalid API key format detected');
+      return new Response(
+        JSON.stringify({ 
+          error: 'Invalid Google Maps API key format',
+          details: 'The API key should start with "AIza" and be at least 30 characters long'
+        }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
     // First, geocode the address to get coordinates
+    console.log('🌍 Starting geocoding for address:', address);
     const geocodeUrl = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=${apiKey}`;
+    
     const geocodeResponse = await fetch(geocodeUrl);
+    console.log('📡 Geocoding response status:', geocodeResponse.status);
+    
     const geocodeData = await geocodeResponse.json();
+    console.log('🔍 Geocoding result:', { 
+      status: geocodeData.status, 
+      results_count: geocodeData.results?.length || 0,
+      error_message: geocodeData.error_message || 'None'
+    });
 
     if (geocodeData.status !== 'OK' || !geocodeData.results.length) {
+      const errorDetails = geocodeData.error_message || 'Address not found or invalid';
+      console.error('❌ Geocoding failed:', errorDetails);
       return new Response(
-        JSON.stringify({ error: 'Could not geocode the provided address' }),
+        JSON.stringify({ 
+          error: 'Could not geocode the provided address',
+          details: errorDetails,
+          status: geocodeData.status
+        }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
     const location = geocodeData.results[0].geometry.location;
-    console.log(`Geocoded address: ${address} to coordinates: ${location.lat}, ${location.lng}`);
+    console.log('✅ Geocoded successfully:', {
+      address,
+      coordinates: { lat: location.lat, lng: location.lng },
+      formatted_address: geocodeData.results[0].formatted_address
+    });
 
     // Search for private schools within the specified radius
-    // Use multiple searches to get more results and filter out public schools
+    console.log('🏫 Starting Places API search for schools...');
     let allCompetitors: PlaceResult[] = [];
     let nextPageToken = null;
     
     // First search - using keyword "escola particular" to focus on private schools
     let placesUrl = `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${location.lat},${location.lng}&radius=${radius}&keyword=escola%20particular&type=school&key=${apiKey}`;
+    console.log('📡 Making Places API request with radius:', radius / 1000, 'km');
+    
     let placesResponse = await fetch(placesUrl);
+    console.log('📡 Places API response status:', placesResponse.status);
+    
     let placesData = await placesResponse.json();
+    console.log('🔍 Places API result:', { 
+      status: placesData.status, 
+      results_count: placesData.results?.length || 0,
+      next_page_token: !!placesData.next_page_token,
+      error_message: placesData.error_message || 'None'
+    });
     
     if (placesData.status !== 'OK') {
-      console.error('Places API error:', placesData.status, placesData.error_message);
+      const errorDetails = placesData.error_message || 'Unknown Places API error';
+      console.error('❌ Places API error:', placesData.status, errorDetails);
       return new Response(
-        JSON.stringify({ error: `Places API error: ${placesData.status}` }),
+        JSON.stringify({ 
+          error: `Places API error: ${placesData.status}`,
+          details: errorDetails
+        }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -119,15 +177,28 @@ serve(async (req) => {
     
     allCompetitors = [...filteredResults];
     nextPageToken = placesData.next_page_token;
+    console.log('🔄 First page results:', {
+      total_found: placesData.results?.length || 0,
+      filtered_count: filteredResults.length,
+      has_next_page: !!nextPageToken
+    });
     
     // Get additional pages if available (up to 60 results total)
+    let pageCount = 1;
     while (nextPageToken && allCompetitors.length < 60) {
+      console.log(`📄 Fetching page ${pageCount + 1}...`);
+      
       // Wait 2 seconds before next request (Google requirement)
       await new Promise(resolve => setTimeout(resolve, 2000));
       
       placesUrl = `https://maps.googleapis.com/maps/api/place/nearbysearch/json?pagetoken=${nextPageToken}&key=${apiKey}`;
       placesResponse = await fetch(placesUrl);
       placesData = await placesResponse.json();
+      
+      console.log(`📡 Page ${pageCount + 1} response:`, {
+        status: placesData.status,
+        results_count: placesData.results?.length || 0
+      });
       
       if (placesData.status === 'OK' && placesData.results) {
         // Filter out public schools from additional pages too
@@ -144,13 +215,25 @@ serve(async (req) => {
         
         allCompetitors = [...allCompetitors, ...filteredResults];
         nextPageToken = placesData.next_page_token;
+        pageCount++;
+        
+        console.log(`✅ Page ${pageCount} processed:`, {
+          page_results: filteredResults.length,
+          total_competitors: allCompetitors.length,
+          has_next_page: !!nextPageToken
+        });
       } else {
+        console.log('❌ Stopping pagination due to API error or no results');
         break;
       }
     }
 
     const competitors = allCompetitors as PlaceResult[];
-    console.log(`Found ${competitors.length} schools within ${radius/1000}km`);
+    console.log('🏫 Final school search results:', {
+      total_found: competitors.length,
+      radius_km: radius / 1000,
+      pages_processed: pageCount
+    });
 
     // Analyze the data
     const totalCompetitors = competitors.length;
@@ -207,7 +290,13 @@ serve(async (req) => {
       }
     };
 
-    console.log('Market analysis completed successfully');
+    const executionTime = Date.now() - startTime;
+    console.log('✅ Market analysis completed successfully:', {
+      execution_time_ms: executionTime,
+      total_competitors: totalCompetitors,
+      average_rating: Math.round(averageRating * 100) / 100,
+      timestamp: new Date().toISOString()
+    });
     
     return new Response(
       JSON.stringify(analysis),
@@ -218,9 +307,20 @@ serve(async (req) => {
     );
 
   } catch (error) {
-    console.error('Error in market analysis:', error);
+    const executionTime = Date.now() - startTime;
+    console.error('❌ Error in market analysis:', {
+      error: error.message || 'Unknown error',
+      execution_time_ms: executionTime,
+      stack: error.stack,
+      timestamp: new Date().toISOString()
+    });
+    
     return new Response(
-      JSON.stringify({ error: 'Internal server error' }),
+      JSON.stringify({ 
+        error: 'Internal server error',
+        details: error.message || 'An unexpected error occurred',
+        execution_time_ms: executionTime
+      }),
       { 
         status: 500, 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
