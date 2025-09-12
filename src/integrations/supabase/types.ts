@@ -167,6 +167,7 @@ export type Database = {
           logo_url: string | null
           longitude: number | null
           market_analysis: Json | null
+          market_analysis_enabled: boolean
           metabase_integration_url: string | null
           organization_id: number | null
           proesc_id: string | null
@@ -190,6 +191,7 @@ export type Database = {
           logo_url?: string | null
           longitude?: number | null
           market_analysis?: Json | null
+          market_analysis_enabled?: boolean
           metabase_integration_url?: string | null
           organization_id?: number | null
           proesc_id?: string | null
@@ -213,6 +215,7 @@ export type Database = {
           logo_url?: string | null
           longitude?: number | null
           market_analysis?: Json | null
+          market_analysis_enabled?: boolean
           metabase_integration_url?: string | null
           organization_id?: number | null
           proesc_id?: string | null

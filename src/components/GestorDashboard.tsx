@@ -26,6 +26,7 @@ interface SchoolCustomization {
   proesc_id?: string;
   organization_id?: number;
   metabase_integration_url?: string;
+  market_analysis_enabled?: boolean;
   dashboard_links?: any;
   created_at: string;
   updated_at: string;
@@ -246,23 +247,25 @@ const GestorDashboard = ({ adminViewSchoolId }: GestorDashboardProps) => {
         </section>
 
         {/* Análise de Mercado - Seção centralizada */}
-        <section className="flex justify-center">
-          <div className="w-full max-w-md">
-            <Card className="card-elegant card-interactive rounded-xl animate-scale-in relative" 
-                  onClick={() => navigateTo('market-analysis')}>
-              <CardHeader className="pb-3">
-                <CardTitle className="flex items-center gap-3 text-xl justify-center">
-                  <TrendingUp className="h-6 w-6 text-primary" /> 
-                  Estudo de Mercado
-                  <span className="ml-2 px-2 py-1 text-xs font-semibold bg-primary/10 text-primary rounded-full border border-primary/20">
-                    BETA
-                  </span>
-                </CardTitle>
-                <CardDescription className="text-base text-center">Análise competitiva da região (Prime)</CardDescription>
-              </CardHeader>
-            </Card>
-          </div>
-        </section>
+        {schoolData.market_analysis_enabled && (
+          <section className="flex justify-center">
+            <div className="w-full max-w-md">
+              <Card className="card-elegant card-interactive rounded-xl animate-scale-in relative" 
+                    onClick={() => navigateTo('market-analysis')}>
+                <CardHeader className="pb-3">
+                  <CardTitle className="flex items-center gap-3 text-xl justify-center">
+                    <TrendingUp className="h-6 w-6 text-primary" /> 
+                    Estudo de Mercado
+                    <span className="ml-2 px-2 py-1 text-xs font-semibold bg-primary/10 text-primary rounded-full border border-primary/20">
+                      BETA
+                    </span>
+                  </CardTitle>
+                  <CardDescription className="text-base text-center">Análise competitiva da região (Prime)</CardDescription>
+                </CardHeader>
+              </Card>
+            </div>
+          </section>
+        )}
 
         {/* Dashboards */}
         <section className="space-y-6">

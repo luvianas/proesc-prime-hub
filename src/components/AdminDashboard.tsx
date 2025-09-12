@@ -58,6 +58,7 @@ interface SchoolCustomization {
   latitude?: number;
   longitude?: number;
   market_analysis?: any;
+  market_analysis_enabled?: boolean;
   dashboard_links?: any;
   created_at: string;
   updated_at: string;
@@ -680,6 +681,7 @@ const AdminDashboard = () => {
         organization_id: editingSchool.organization_id,
         metabase_integration_url: editingSchool.metabase_integration_url,
         address: editingSchool.address,
+        market_analysis_enabled: editingSchool.market_analysis_enabled || false,
         dashboard_links: editingSchool.dashboard_links
       }).eq('id', editingSchool.id);
       if (error) throw error;
@@ -1728,6 +1730,33 @@ const AdminDashboard = () => {
                   placeholder="Ex: 12345, 98765"
                   type="number"
                 />
+              </div>
+              
+              {/* Controle do Estudo de Mercado */}
+              <div className="space-y-3 p-4 border rounded-lg bg-muted/50">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-1">
+                    <Label htmlFor="marketAnalysisEnabled" className="text-sm font-medium">
+                      Habilitar Estudo de Mercado
+                    </Label>
+                    <p className="text-xs text-muted-foreground">
+                      Permite acesso à análise de mercado usando Google Maps API
+                    </p>
+                  </div>
+                  <Switch
+                    id="marketAnalysisEnabled"
+                    checked={editingSchool.market_analysis_enabled || false}
+                    onCheckedChange={(checked) => setEditingSchool({
+                      ...editingSchool,
+                      market_analysis_enabled: checked
+                    })}
+                  />
+                </div>
+                {editingSchool.market_analysis_enabled && (
+                  <div className="text-xs text-amber-600 bg-amber-50 p-2 rounded border border-amber-200">
+                    ⚠️ Atenção: Esta funcionalidade consome créditos da API do Google Maps
+                  </div>
+                )}
               </div>
               
               <div className="space-y-4">
