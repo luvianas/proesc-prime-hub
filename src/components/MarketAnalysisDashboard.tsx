@@ -72,7 +72,29 @@ const MarketAnalysisDashboard: React.FC<MarketAnalysisProps> = ({ onBack, school
 
   useEffect(() => {
     if (marketData && mapRef.current && !mapInstanceRef.current) {
-      initializeMap();
+      // Verifica se a API key está disponível antes de tentar inicializar o mapa
+      const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+      if (apiKey) {
+        initializeMap();
+      } else {
+        // Mostra mensagem informativa quando não há API key
+        if (mapRef.current) {
+          mapRef.current.innerHTML = `
+            <div class="flex items-center justify-center h-full bg-muted rounded-lg">
+              <div class="text-center p-6">
+                <div class="text-4xl mb-3">🗺️</div>
+                <h3 class="font-semibold text-foreground mb-2">Visualização do mapa não disponível</h3>
+                <p class="text-sm text-muted-foreground mb-3">
+                  Para visualizar o mapa com as escolas concorrentes, é necessário configurar a API key do Google Maps para o frontend.
+                </p>
+                <p class="text-xs text-muted-foreground">
+                  Os dados de análise estão disponíveis abaixo
+                </p>
+              </div>
+            </div>
+          `;
+        }
+      }
     }
   }, [marketData]);
 
