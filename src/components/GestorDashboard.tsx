@@ -207,15 +207,6 @@ const GestorDashboard = ({ adminViewSchoolId }: GestorDashboardProps) => {
   }
   return (
     <div className="min-h-screen bg-hero overflow-x-hidden">
-      {/* Mobile Header */}
-      <MobileHeader
-        title={schoolData?.school_name || 'Portal Prime'}
-        subtitle={isAdminView ? 'Visualização de administrador' : 'Gerencie sua escola com excelência'}
-        logoUrl={schoolData?.logo_url}
-        onMenuClick={() => setMobileMenuOpen(true)}
-        isAdminView={isAdminView}
-      />
-
       {/* Mobile Navigation */}
       <MobileNavigation
         activeSection={activeSection}

@@ -68,6 +68,7 @@ const Index = () => {
   const [forceConfirmPassword, setForceConfirmPassword] = useState("");
   const [forcingChange, setForcingChange] = useState(false);
   const [forceDismissed, setForceDismissed] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // Avatar cropper state
   const [cropOpen, setCropOpen] = useState(false);
@@ -249,71 +250,89 @@ const Index = () => {
           onProfileClick={openProfile}
         />
 
-        {/* Desktop Header */}
-        {!isMobile && (
-          <div className="grid grid-cols-3 items-center p-6 border-b border-border/30 bg-card/90 backdrop-blur-md shadow-elegant">
-            <div className="flex items-center gap-6 justify-self-start">
-              {schoolHeader?.logoUrl ? (
-                <img 
-                  src={schoolHeader.logoUrl} 
-                  alt={`Logo ${schoolHeader.schoolName}`} 
-                  className="w-16 h-16 object-contain rounded hover-scale" 
-                  loading="lazy" 
-                />
-              ) : (
-                <div className="w-16 h-16 rounded bg-gradient-primary text-white flex items-center justify-center font-bold hover-scale">
-                  {schoolHeader?.schoolName?.charAt(0).toUpperCase()}
-                </div>
-              )}
+        {/* Unified Header - Desktop & Mobile */}
+        <div className={`border-b border-border/30 bg-card/90 backdrop-blur-md shadow-elegant ${
+          isMobile 
+            ? 'mobile-header p-4 safe-area-padding flex items-center justify-between sticky top-0 z-50' 
+            : 'grid grid-cols-3 items-center p-6'
+        }`}>
+          {/* Left Side - School Logo & Name */}
+          <div className={`flex items-center gap-6 ${isMobile ? '' : 'justify-self-start'}`}>
+            {schoolHeader?.logoUrl ? (
+              <img 
+                src={schoolHeader.logoUrl} 
+                alt={`Logo ${schoolHeader.schoolName}`} 
+                className={`object-contain rounded hover-scale ${isMobile ? 'w-10 h-10' : 'w-16 h-16'}`}
+                loading="lazy" 
+              />
+            ) : (
+              <div className={`rounded bg-gradient-primary text-white flex items-center justify-center font-bold hover-scale ${
+                isMobile ? 'w-10 h-10' : 'w-16 h-16'
+              }`}>
+                {schoolHeader?.schoolName?.charAt(0).toUpperCase()}
+              </div>
+            )}
+            {!isMobile && (
               <div>
                 <h1 className="text-xl font-bold text-gradient">{schoolHeader?.schoolName}</h1>
                 <Badge variant="secondary" className="text-xs bg-primary/10 text-primary border-primary/20">
                   Portal Prime
                 </Badge>
               </div>
-            </div>
+            )}
+          </div>
+          
+          {/* Center - Proesc Prime Logo */}
+          <div className={isMobile ? '' : 'justify-self-center'}>
+            <TooltipProvider delayDuration={150}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <a 
+                    href="https://app.proesc.com" 
+                    target="_blank" 
+                    rel="noopener noreferrer" 
+                    aria-label="Retornar ao Proesc" 
+                    className="inline-flex items-center justify-center rounded-md px-2 py-1 hover:opacity-80 transition-opacity cursor-pointer hover-scale"
+                  >
+                    <img 
+                      src="/lovable-uploads/31be6a89-85b7-486f-b156-ebe5b3557c02.png" 
+                      alt="Proesc Prime" 
+                      className={`mx-auto ${isMobile ? 'h-8' : 'h-10'}`}
+                      loading="lazy" 
+                    />
+                  </a>
+                </TooltipTrigger>
+                <TooltipContent side="bottom">Retornar ao Proesc</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
+          
+          {/* Right Side - Controls */}
+          <div className={`flex items-center gap-3 ${isMobile ? '' : 'justify-self-end'}`}>
+            {!isMobile && <ThemeToggle />}
             
-            <div className="justify-self-center">
-              <TooltipProvider delayDuration={150}>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <a 
-                      href="https://app.proesc.com" 
-                      target="_blank" 
-                      rel="noopener noreferrer" 
-                      aria-label="Retornar ao Proesc" 
-                      className="inline-flex items-center justify-center rounded-md px-2 py-1 hover:opacity-80 transition-opacity cursor-pointer hover-scale"
-                    >
-                      <img 
-                        src="/lovable-uploads/31be6a89-85b7-486f-b156-ebe5b3557c02.png" 
-                        alt="Proesc Prime" 
-                        className="h-10 mx-auto" 
-                        loading="lazy" 
-                      />
-                    </a>
-                  </TooltipTrigger>
-                  <TooltipContent side="bottom">Retornar ao Proesc</TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            </div>
+            {/* Avatar that opens profile on desktop, navigation on mobile */}
+            <Button 
+              onClick={isMobile && userRole === 'gestor' ? () => setMobileMenuOpen(true) : openProfile} 
+              variant="outline" 
+              className={`rounded-full p-0 btn-elegant hover-glow ${isMobile ? 'w-10 h-10' : 'w-12 h-12'}`}
+            >
+              <Avatar className={isMobile ? 'w-8 h-8' : 'w-10 h-10'}>
+                <AvatarImage src={avatarUrl} alt="Foto do perfil" />
+                <AvatarFallback className="bg-gradient-primary text-white">
+                  {schoolHeader?.schoolName?.charAt(0).toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+            </Button>
             
-            <div className="justify-self-end flex items-center gap-3">
-              <ThemeToggle />
-              <Button onClick={openProfile} variant="outline" className="rounded-full w-12 h-12 p-0 btn-elegant hover-glow">
-                <Avatar className="w-10 h-10">
-                  <AvatarImage src={avatarUrl} alt="Foto do perfil" />
-                  <AvatarFallback className="bg-gradient-primary text-white">
-                    {schoolHeader?.schoolName?.charAt(0).toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
-              </Button>
+            {!isMobile && (
               <Button onClick={signOut} className="btn-elegant shadow-elegant">
                 <LogOut className="w-4 h-4 mr-2" />
                 Sair
               </Button>
-            </div>
+            )}
           </div>
-        )}
+        </div>
         <Dialog open={profileDialogOpen} onOpenChange={setProfileDialogOpen}>
           <DialogContent className="sm:max-w-lg mx-4">
             <DialogHeader>
