@@ -41,17 +41,24 @@ interface UserProfile {
 interface GestorDashboardProps {
   adminViewSchoolId?: string;
 }
-
-const GestorDashboard = ({ adminViewSchoolId }: GestorDashboardProps) => {
+const GestorDashboard = ({
+  adminViewSchoolId
+}: GestorDashboardProps) => {
   const [schoolData, setSchoolData] = useState<SchoolCustomization | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeSection, setActiveSection] = useState<'home' | 'tickets' | 'consultor-agenda' | 'dash-financeiro' | 'dash-agenda' | 'dash-secretaria' | 'dash-pedagogico' | 'market-analysis'>('home');
   const [showAssistant, setShowAssistant] = useState(false);
-  const { user } = useAuth();
-  const { toast } = useToast();
-  const { isMobile, isTablet } = useBreakpoint();
-  
+  const {
+    user
+  } = useAuth();
+  const {
+    toast
+  } = useToast();
+  const {
+    isMobile,
+    isTablet
+  } = useBreakpoint();
   const isAdminView = !!adminViewSchoolId;
   useEffect(() => {
     fetchSchoolData();
@@ -78,21 +85,26 @@ const GestorDashboard = ({ adminViewSchoolId }: GestorDashboardProps) => {
   // Track page views for the home section
   useEffect(() => {
     if (activeSection === 'home') {
-      logEvent({ event_type: 'page_view', event_name: 'gestor_dashboard_home' });
+      logEvent({
+        event_type: 'page_view',
+        event_name: 'gestor_dashboard_home'
+      });
     }
   }, [activeSection]);
-
   const navigateTo = (section: typeof activeSection) => {
     setActiveSection(section);
-    logEvent({ event_type: 'click', event_name: 'open_section', properties: { section } });
+    logEvent({
+      event_type: 'click',
+      event_name: 'open_section',
+      properties: {
+        section
+      }
+    });
   };
-
   const fetchSchoolData = async () => {
     if (!user && !adminViewSchoolId) return;
-    
     try {
       let schoolId: string;
-      
       if (adminViewSchoolId) {
         // Admin view - use provided school ID
         schoolId = adminViewSchoolId;
@@ -121,10 +133,8 @@ const GestorDashboard = ({ adminViewSchoolId }: GestorDashboardProps) => {
         setUserProfile(profile);
         schoolId = profile.school_id;
       }
-      
       console.log('👤 GestorDashboard: Profile carregado, School ID:', schoolId);
       console.log('🎯 School ID para banners:', schoolId);
-      
       const {
         data: school,
         error: schoolError
@@ -189,15 +199,13 @@ const GestorDashboard = ({ adminViewSchoolId }: GestorDashboardProps) => {
   return <div className="min-h-screen bg-hero overflow-safe">
       <div className="container mx-auto spacing-mobile space-y-4 sm:space-y-6 lg:space-y-8">
         {/* Admin viewing indicator */}
-        {isAdminView && (
-          <div className="bg-primary/10 border border-primary/20 rounded-lg px-4 py-3 mb-6">
+        {isAdminView && <div className="bg-primary/10 border border-primary/20 rounded-lg px-4 py-3 mb-6">
             <div className="flex items-center gap-2 text-sm">
               <Badge variant="secondary">Admin View</Badge>
               <span className="text-primary font-medium">Visualizando como Admin:</span>
               <span className="font-semibold">{schoolData?.school_name}</span>
             </div>
-          </div>
-        )}
+          </div>}
 
         {/* Welcome Message */}
         <div className="text-left spacing-mobile-y animate-fade-in">
@@ -213,16 +221,11 @@ const GestorDashboard = ({ adminViewSchoolId }: GestorDashboardProps) => {
         <NovidadesCarousel schoolId={userProfile.school_id} />
 
         {/* Alternar tema - only show for regular gestor view */}
-        {!isAdminView && (
-          <div className="flex justify-end">
-            <ThemeToggle />
-          </div>
-        )}
+        {!isAdminView}
 
         {/* Destaques */}
         <section className="mobile-grid-2 gap-4 sm:gap-6 lg:gap-8">
-          <Card className="card-elegant card-interactive rounded-xl animate-scale-in mobile-touch-target" 
-                onClick={() => navigateTo('tickets')}>
+          <Card className="card-elegant card-interactive rounded-xl animate-scale-in mobile-touch-target" onClick={() => navigateTo('tickets')}>
             <CardHeader className="pb-3 spacing-mobile">
               <CardTitle className="flex items-center gap-2 sm:gap-3 text-responsive-base sm:text-lg lg:text-xl">
                 <ClipboardList className="h-5 w-5 sm:h-6 sm:w-6 text-primary flex-shrink-0" /> 
@@ -232,8 +235,7 @@ const GestorDashboard = ({ adminViewSchoolId }: GestorDashboardProps) => {
             </CardHeader>
           </Card>
 
-          <Card className="card-elegant card-interactive rounded-xl animate-scale-in mobile-touch-target" 
-                onClick={() => navigateTo('consultor-agenda')}>
+          <Card className="card-elegant card-interactive rounded-xl animate-scale-in mobile-touch-target" onClick={() => navigateTo('consultor-agenda')}>
             <CardHeader className="pb-3 spacing-mobile">
               <CardTitle className="flex items-center gap-2 sm:gap-3 text-responsive-base sm:text-lg lg:text-xl">
                 <CalendarDays className="h-5 w-5 sm:h-6 sm:w-6 text-primary flex-shrink-0" /> 
@@ -245,11 +247,9 @@ const GestorDashboard = ({ adminViewSchoolId }: GestorDashboardProps) => {
         </section>
 
         {/* Análise de Mercado - Responsiva */}
-        {schoolData.market_analysis_enabled && (
-          <section className="flex justify-center">
+        {schoolData.market_analysis_enabled && <section className="flex justify-center">
             <div className="w-full max-w-md">
-              <Card className="card-elegant card-interactive rounded-xl animate-scale-in relative mobile-touch-target" 
-                    onClick={() => navigateTo('market-analysis')}>
+              <Card className="card-elegant card-interactive rounded-xl animate-scale-in relative mobile-touch-target" onClick={() => navigateTo('market-analysis')}>
                 <CardHeader className="pb-3 spacing-mobile">
                   <CardTitle className="flex items-center gap-2 sm:gap-3 text-responsive-base sm:text-lg lg:text-xl justify-center flex-wrap">
                     <TrendingUp className="h-5 w-5 sm:h-6 sm:w-6 text-primary flex-shrink-0" /> 
@@ -262,16 +262,14 @@ const GestorDashboard = ({ adminViewSchoolId }: GestorDashboardProps) => {
                 </CardHeader>
               </Card>
             </div>
-          </section>
-        )}
+          </section>}
 
         {/* Dashboards */}
         <section className="space-y-4 sm:space-y-6">
           <h2 className="text-responsive-lg sm:text-xl lg:text-2xl font-semibold text-foreground">Dashboards</h2>
           <div className="mobile-grid-2 gap-4 sm:gap-6 lg:gap-8">
 
-            <Card className="card-elegant card-interactive rounded-xl animate-scale-in mobile-touch-target" 
-                  onClick={() => navigateTo('dash-financeiro')}>
+            <Card className="card-elegant card-interactive rounded-xl animate-scale-in mobile-touch-target" onClick={() => navigateTo('dash-financeiro')}>
               <CardHeader className="pb-3 spacing-mobile">
                 <CardTitle className="flex items-center gap-2 sm:gap-3 text-responsive-base sm:text-lg lg:text-xl">
                   <Wallet className="h-5 w-5 sm:h-6 sm:w-6 text-primary flex-shrink-0" /> 
@@ -281,8 +279,7 @@ const GestorDashboard = ({ adminViewSchoolId }: GestorDashboardProps) => {
               </CardHeader>
             </Card>
 
-            <Card className="card-elegant card-interactive rounded-xl animate-scale-in mobile-touch-target" 
-                  onClick={() => navigateTo('dash-agenda')}>
+            <Card className="card-elegant card-interactive rounded-xl animate-scale-in mobile-touch-target" onClick={() => navigateTo('dash-agenda')}>
               <CardHeader className="pb-3 spacing-mobile">
                 <CardTitle className="flex items-center gap-2 sm:gap-3 text-responsive-base sm:text-lg lg:text-xl">
                   <CalendarDays className="h-5 w-5 sm:h-6 sm:w-6 text-primary flex-shrink-0" /> 
@@ -292,8 +289,7 @@ const GestorDashboard = ({ adminViewSchoolId }: GestorDashboardProps) => {
               </CardHeader>
             </Card>
 
-            <Card className="card-elegant card-interactive rounded-xl animate-scale-in mobile-touch-target" 
-                  onClick={() => navigateTo('dash-pedagogico')}>
+            <Card className="card-elegant card-interactive rounded-xl animate-scale-in mobile-touch-target" onClick={() => navigateTo('dash-pedagogico')}>
               <CardHeader className="pb-3 spacing-mobile">
                 <CardTitle className="flex items-center gap-2 sm:gap-3 text-responsive-base sm:text-lg lg:text-xl">
                   <GraduationCap className="h-5 w-5 sm:h-6 sm:w-6 text-primary flex-shrink-0" /> 
@@ -303,8 +299,7 @@ const GestorDashboard = ({ adminViewSchoolId }: GestorDashboardProps) => {
               </CardHeader>
             </Card>
 
-            <Card className="card-elegant card-interactive rounded-xl animate-scale-in mobile-touch-target" 
-                  onClick={() => navigateTo('dash-secretaria')}>
+            <Card className="card-elegant card-interactive rounded-xl animate-scale-in mobile-touch-target" onClick={() => navigateTo('dash-secretaria')}>
               <CardHeader className="pb-3 spacing-mobile">
                 <CardTitle className="flex items-center gap-2 sm:gap-3 text-responsive-base sm:text-lg lg:text-xl">
                   <ClipboardCheck className="h-5 w-5 sm:h-6 sm:w-6 text-primary flex-shrink-0" /> 
