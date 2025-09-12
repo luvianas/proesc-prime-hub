@@ -16,6 +16,9 @@ import MarketAnalysisDashboard from '@/components/MarketAnalysisDashboard';
 import NovidadesCarousel from '@/components/NovidadesCarousel';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
 import { logEvent } from '@/lib/analytics';
+import { useBreakpoint, useIsMobile } from '@/hooks/useBreakpoint';
+import MobileHeader from '@/components/MobileHeader';
+import MobileNavigation from '@/components/MobileNavigation';
 interface SchoolCustomization {
   id: string;
   school_name: string;
@@ -47,12 +50,16 @@ const GestorDashboard = ({ adminViewSchoolId }: GestorDashboardProps) => {
   const [loading, setLoading] = useState(true);
   const [activeSection, setActiveSection] = useState<'home' | 'tickets' | 'consultor-agenda' | 'dash-financeiro' | 'dash-agenda' | 'dash-secretaria' | 'dash-pedagogico' | 'market-analysis'>('home');
   const [showAssistant, setShowAssistant] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const {
     user
   } = useAuth();
   const {
     toast
   } = useToast();
+  
+  const breakpoint = useBreakpoint();
+  const isMobile = useIsMobile();
   
   const isAdminView = !!adminViewSchoolId;
   useEffect(() => {
@@ -176,24 +183,54 @@ const GestorDashboard = ({ adminViewSchoolId }: GestorDashboardProps) => {
   // Views other than home
   if (activeSection !== 'home') {
     const back = () => setActiveSection('home');
-    return <div className="container mx-auto p-4">
-        {activeSection === 'tickets' && <TicketSystem onBack={back} school_id={adminViewSchoolId || schoolData?.id} />}
-        
-        {activeSection === 'consultor-agenda' && <ConsultorAgenda onBack={back} schoolData={schoolData} />}
-        {activeSection === 'dash-financeiro' && <FinancialDashboard onBack={back} dashboardUrl={schoolData.dashboard_links?.financeiro} school_id={adminViewSchoolId || schoolData?.id} />}
-        {activeSection === 'dash-agenda' && <AgendaDashboard onBack={back} dashboardUrl={schoolData.dashboard_links?.agenda} school_id={adminViewSchoolId || schoolData?.id} />}
-        {activeSection === 'dash-secretaria' && <SecretariaDashboard onBack={back} dashboardUrl={schoolData.dashboard_links?.secretaria} school_id={adminViewSchoolId || schoolData?.id} />}
-        {activeSection === 'dash-pedagogico' && <PedagogicoDashboard onBack={back} dashboardUrl={schoolData.dashboard_links?.pedagogico} school_id={adminViewSchoolId || schoolData?.id} />}
-        {activeSection === 'market-analysis' && <MarketAnalysisDashboard onBack={back} schoolId={adminViewSchoolId || schoolData?.id} />}
-        {showAssistant && <AIAssistant onClose={() => setShowAssistant(false)} />}
-      </div>;
+    return (
+      <div className="min-h-screen bg-hero">
+        <MobileHeader
+          title={schoolData?.school_name || 'Portal Prime'}
+          logoUrl={schoolData?.logo_url}
+          onBackClick={back}
+          showBack={true}
+          isAdminView={isAdminView}
+        />
+        <div className="container mx-auto p-mobile safe-area-padding">
+          {activeSection === 'tickets' && <TicketSystem onBack={back} school_id={adminViewSchoolId || schoolData?.id} />}
+          {activeSection === 'consultor-agenda' && <ConsultorAgenda onBack={back} schoolData={schoolData} />}
+          {activeSection === 'dash-financeiro' && <FinancialDashboard onBack={back} dashboardUrl={schoolData.dashboard_links?.financeiro} school_id={adminViewSchoolId || schoolData?.id} />}
+          {activeSection === 'dash-agenda' && <AgendaDashboard onBack={back} dashboardUrl={schoolData.dashboard_links?.agenda} school_id={adminViewSchoolId || schoolData?.id} />}
+          {activeSection === 'dash-secretaria' && <SecretariaDashboard onBack={back} dashboardUrl={schoolData.dashboard_links?.secretaria} school_id={adminViewSchoolId || schoolData?.id} />}
+          {activeSection === 'dash-pedagogico' && <PedagogicoDashboard onBack={back} dashboardUrl={schoolData.dashboard_links?.pedagogico} school_id={adminViewSchoolId || schoolData?.id} />}
+          {activeSection === 'market-analysis' && <MarketAnalysisDashboard onBack={back} schoolId={adminViewSchoolId || schoolData?.id} />}
+          {showAssistant && <AIAssistant onClose={() => setShowAssistant(false)} />}
+        </div>
+      </div>
+    );
   }
-  return <div className="min-h-screen bg-hero">
-      <div className="container mx-auto p-6 space-y-8">
+  return (
+    <div className="min-h-screen bg-hero overflow-x-hidden">
+      {/* Mobile Header */}
+      <MobileHeader
+        title={schoolData?.school_name || 'Portal Prime'}
+        subtitle={isAdminView ? 'Visualização de administrador' : 'Gerencie sua escola com excelência'}
+        logoUrl={schoolData?.logo_url}
+        onMenuClick={() => setMobileMenuOpen(true)}
+        isAdminView={isAdminView}
+      />
+
+      {/* Mobile Navigation */}
+      {isMobile && (
+        <MobileNavigation
+          activeSection={activeSection}
+          onNavigate={navigateTo}
+          marketAnalysisEnabled={schoolData.market_analysis_enabled}
+          className="absolute top-4 left-4 z-10"
+        />
+      )}
+
+      <div className="container mx-auto p-mobile safe-area-padding spacing-mobile">
         {/* Admin viewing indicator */}
-        {isAdminView && (
-          <div className="bg-primary/10 border border-primary/20 rounded-lg px-4 py-3 mb-6">
-            <div className="flex items-center gap-2 text-sm">
+        {isAdminView && !isMobile && (
+          <div className="bg-primary/10 border border-primary/20 rounded-lg px-4 py-3">
+            <div className="flex items-center gap-2 text-responsive-sm">
               <Badge variant="secondary">Admin View</Badge>
               <span className="text-primary font-medium">Visualizando como Admin:</span>
               <span className="font-semibold">{schoolData?.school_name}</span>
@@ -202,127 +239,115 @@ const GestorDashboard = ({ adminViewSchoolId }: GestorDashboardProps) => {
         )}
 
         {/* Welcome Message */}
-        <div className="text-left py-8 animate-fade-in">
-          <h1 className="text-5xl font-bold mb-4 text-gradient">
-            {isAdminView ? schoolData?.school_name : 'Bem-vindo ao seu Portal Prime'}
-          </h1>
-          <p className="text-xl text-muted-foreground">
-            {isAdminView ? 'Portal da escola - Visualização de administrador' : 'Gerencie sua escola com excelência'}
-          </p>
-        </div>
+        {!isMobile && (
+          <div className="text-left py-mobile animate-fade-in">
+            <h1 className="text-responsive-2xl font-bold mb-4 text-gradient">
+              {isAdminView ? schoolData?.school_name : 'Bem-vindo ao seu Portal Prime'}
+            </h1>
+            <p className="text-responsive-lg text-muted-foreground">
+              {isAdminView ? 'Portal da escola - Visualização de administrador' : 'Gerencie sua escola com excelência'}
+            </p>
+          </div>
+        )}
 
         {/* Novidades - Carrossel de Banners */}
         <NovidadesCarousel schoolId={userProfile.school_id} />
 
-        {/* Alternar tema - only show for regular gestor view */}
-        {!isAdminView && (
+        {/* Alternar tema - only show for regular gestor view and desktop */}
+        {!isAdminView && !isMobile && (
           <div className="flex justify-end">
             <ThemeToggle />
           </div>
         )}
 
-        {/* Destaques */}
-        <section className="grid md:grid-cols-2 gap-8">
-          <Card className="card-elegant card-interactive rounded-xl animate-scale-in" 
+        {/* Destaques - Mobile responsive */}
+        <section className="mobile-grid">
+          <Card className="mobile-card card-elegant card-interactive rounded-xl animate-scale-in" 
                 onClick={() => navigateTo('tickets')}>
             <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-3 text-xl">
-                <ClipboardList className="h-6 w-6 text-primary" /> 
-                Acompanhar Tickets
+              <CardTitle className="flex items-center gap-3 mobile-heading">
+                <ClipboardList className="h-6 w-6 text-primary flex-shrink-0" /> 
+                <span className="truncate">Acompanhar Tickets</span>
               </CardTitle>
-              <CardDescription className="text-base">Crie e acompanhe solicitações de suporte</CardDescription>
+              <CardDescription className="mobile-text">Crie e acompanhe solicitações de suporte</CardDescription>
             </CardHeader>
           </Card>
 
-          <Card className="card-elegant card-interactive rounded-xl animate-scale-in" 
+          <Card className="mobile-card card-elegant card-interactive rounded-xl animate-scale-in" 
                 onClick={() => navigateTo('consultor-agenda')}>
             <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-3 text-xl">
-                <CalendarDays className="h-6 w-6 text-primary" /> 
-                Agenda do Consultor
+              <CardTitle className="flex items-center gap-3 mobile-heading">
+                <CalendarDays className="h-6 w-6 text-primary flex-shrink-0" /> 
+                <span className="truncate">Agenda do Consultor</span>
               </CardTitle>
-              <CardDescription className="text-base">Agende reuniões e converse no WhatsApp</CardDescription>
+              <CardDescription className="mobile-text">Agende reuniões e converse no WhatsApp</CardDescription>
+            </CardHeader>
+          </Card>
+
+          {/* Análise de Mercado - Integrated in grid for mobile */}
+          {schoolData.market_analysis_enabled && (
+            <Card className="mobile-card card-elegant card-interactive rounded-xl animate-scale-in" 
+                  onClick={() => navigateTo('market-analysis')}>
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-3 mobile-heading">
+                  <TrendingUp className="h-6 w-6 text-primary flex-shrink-0" /> 
+                  <span className="truncate">Estudo de Mercado</span>
+                  <Badge variant="secondary" className="text-xs ml-auto">BETA</Badge>
+                </CardTitle>
+                <CardDescription className="mobile-text">Análise competitiva da região</CardDescription>
+              </CardHeader>
+            </Card>
+          )}
+
+          <Card className="mobile-card card-elegant card-interactive rounded-xl animate-scale-in" 
+                onClick={() => navigateTo('dash-financeiro')}>
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-3 mobile-heading">
+                <Wallet className="h-6 w-6 text-primary flex-shrink-0" /> 
+                <span className="truncate">Dashboard Financeiro</span>
+              </CardTitle>
+              <CardDescription className="mobile-text">Receitas, inadimplência e projeções</CardDescription>
+            </CardHeader>
+          </Card>
+
+          <Card className="mobile-card card-elegant card-interactive rounded-xl animate-scale-in" 
+                onClick={() => navigateTo('dash-agenda')}>
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-3 mobile-heading">
+                <CalendarDays className="h-6 w-6 text-primary flex-shrink-0" /> 
+                <span className="truncate">Proesc Agenda</span>
+              </CardTitle>
+              <CardDescription className="mobile-text">Compromissos e lembretes acadêmicos</CardDescription>
+            </CardHeader>
+          </Card>
+
+          <Card className="mobile-card card-elegant card-interactive rounded-xl animate-scale-in" 
+                onClick={() => navigateTo('dash-pedagogico')}>
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-3 mobile-heading">
+                <GraduationCap className="h-6 w-6 text-primary flex-shrink-0" /> 
+                <span className="truncate">Dashboard Pedagógico</span>
+              </CardTitle>
+              <CardDescription className="mobile-text">Avaliações e desempenho acadêmico</CardDescription>
+            </CardHeader>
+          </Card>
+
+          <Card className="mobile-card card-elegant card-interactive rounded-xl animate-scale-in" 
+                onClick={() => navigateTo('dash-secretaria')}>
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-3 mobile-heading">
+                <ClipboardCheck className="h-6 w-6 text-primary flex-shrink-0" /> 
+                <span className="truncate">Dashboard Secretaria</span>
+              </CardTitle>
+              <CardDescription className="mobile-text">Gestão documental e processos</CardDescription>
             </CardHeader>
           </Card>
         </section>
-
-        {/* Análise de Mercado - Seção centralizada */}
-        {schoolData.market_analysis_enabled && (
-          <section className="flex justify-center">
-            <div className="w-full max-w-md">
-              <Card className="card-elegant card-interactive rounded-xl animate-scale-in relative" 
-                    onClick={() => navigateTo('market-analysis')}>
-                <CardHeader className="pb-3">
-                  <CardTitle className="flex items-center gap-3 text-xl justify-center">
-                    <TrendingUp className="h-6 w-6 text-primary" /> 
-                    Estudo de Mercado
-                    <span className="ml-2 px-2 py-1 text-xs font-semibold bg-primary/10 text-primary rounded-full border border-primary/20">
-                      BETA
-                    </span>
-                  </CardTitle>
-                  <CardDescription className="text-base text-center">Análise competitiva da região (Prime)</CardDescription>
-                </CardHeader>
-              </Card>
-            </div>
-          </section>
-        )}
-
-        {/* Dashboards */}
-        <section className="space-y-6">
-          <h2 className="text-2xl font-semibold text-foreground">Dashboards</h2>
-          <div className="grid md:grid-cols-2 gap-8">
-
-            <Card className="card-elegant card-interactive rounded-xl animate-scale-in" 
-                  onClick={() => navigateTo('dash-financeiro')}>
-              <CardHeader className="pb-3">
-                <CardTitle className="flex items-center gap-3 text-xl">
-                  <Wallet className="h-6 w-6 text-primary" /> 
-                  Dashboard Financeiro
-                </CardTitle>
-                <CardDescription className="text-base">Receitas, inadimplência e projeções</CardDescription>
-              </CardHeader>
-            </Card>
-
-            <Card className="card-elegant card-interactive rounded-xl animate-scale-in" 
-                  onClick={() => navigateTo('dash-agenda')}>
-              <CardHeader className="pb-3">
-                <CardTitle className="flex items-center gap-3 text-xl">
-                  <CalendarDays className="h-6 w-6 text-primary" /> 
-                  Proesc Agenda
-                </CardTitle>
-                <CardDescription className="text-base">Compromissos e lembretes acadêmicos</CardDescription>
-              </CardHeader>
-            </Card>
-
-            <Card className="card-elegant card-interactive rounded-xl animate-scale-in" 
-                  onClick={() => navigateTo('dash-pedagogico')}>
-              <CardHeader className="pb-3">
-                <CardTitle className="flex items-center gap-3 text-xl">
-                  <GraduationCap className="h-6 w-6 text-primary" /> 
-                  Dashboard Pedagógico
-                </CardTitle>
-                <CardDescription className="text-base">Avaliações e desempenho acadêmico</CardDescription>
-              </CardHeader>
-            </Card>
-
-            <Card className="card-elegant card-interactive rounded-xl animate-scale-in" 
-                  onClick={() => navigateTo('dash-secretaria')}>
-              <CardHeader className="pb-3">
-                <CardTitle className="flex items-center gap-3 text-xl">
-                  <ClipboardCheck className="h-6 w-6 text-primary" /> 
-                  Dashboard Secretaria
-                </CardTitle>
-                <CardDescription className="text-base">Gestão documental e processos</CardDescription>
-              </CardHeader>
-            </Card>
-
-          </div>
-        </section>
-
 
         {/* AI Assistant - only show for regular gestor view */}
         {!isAdminView && showAssistant && <AIAssistant onClose={() => setShowAssistant(false)} />}
       </div>
-    </div>;
+    </div>
+  );
 };
 export default GestorDashboard;

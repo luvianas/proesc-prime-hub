@@ -35,6 +35,8 @@ import ImageCropperDialog from "@/components/ImageCropperDialog";
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip";
 import MobileActionsMenu from "@/components/MobileActionsMenu";
 import Footer from "@/components/Footer";
+import { useIsMobile } from '@/hooks/useBreakpoint';
+import MobileHeader from '@/components/MobileHeader';
 const Index = () => {
   const [showAI, setShowAI] = useState(false);
   const [activeSection, setActiveSection] = useState("dashboard");
@@ -73,6 +75,8 @@ const Index = () => {
   const {
     toast
   } = useToast();
+  
+  const isMobile = useIsMobile();
   const openProfile = async () => {
     if (!user) return;
     setProfileDialogOpen(true);
@@ -234,31 +238,66 @@ const Index = () => {
 
   // Render gestor dashboard for gestor users
   if (userRole === 'gestor') {
-    return <div className="min-h-screen auth-background">
-        <div className="grid grid-cols-3 items-center p-6 border-b border-border/30 bg-card/90 backdrop-blur-md shadow-elegant">
-          <div className="flex items-center gap-6 justify-self-start">
-            {schoolHeader?.logoUrl ? <img src={schoolHeader.logoUrl} alt={`Logo ${schoolHeader.schoolName}`} className="w-16 h-16 object-contain rounded hover-scale" loading="lazy" /> : <div className="w-16 h-16 rounded bg-gradient-primary text-white flex items-center justify-center font-bold hover-scale">
-                {schoolHeader?.schoolName?.charAt(0).toUpperCase()}
-              </div>}
-            <div className="hidden md:block">
-              <h1 className="text-xl font-bold text-gradient">{schoolHeader?.schoolName}</h1>
-              <Badge variant="secondary" className="text-xs bg-primary/10 text-primary border-primary/20">Portal Prime</Badge>
+    return (
+      <div className="min-h-screen auth-background overflow-x-hidden">
+        {/* Mobile Header */}
+        <MobileHeader
+          title={schoolHeader?.schoolName || 'Portal Prime'}
+          subtitle="Portal Prime"
+          logoUrl={schoolHeader?.logoUrl}
+          avatarUrl={avatarUrl}
+          onProfileClick={openProfile}
+        />
+
+        {/* Desktop Header */}
+        {!isMobile && (
+          <div className="grid grid-cols-3 items-center p-6 border-b border-border/30 bg-card/90 backdrop-blur-md shadow-elegant">
+            <div className="flex items-center gap-6 justify-self-start">
+              {schoolHeader?.logoUrl ? (
+                <img 
+                  src={schoolHeader.logoUrl} 
+                  alt={`Logo ${schoolHeader.schoolName}`} 
+                  className="w-16 h-16 object-contain rounded hover-scale" 
+                  loading="lazy" 
+                />
+              ) : (
+                <div className="w-16 h-16 rounded bg-gradient-primary text-white flex items-center justify-center font-bold hover-scale">
+                  {schoolHeader?.schoolName?.charAt(0).toUpperCase()}
+                </div>
+              )}
+              <div>
+                <h1 className="text-xl font-bold text-gradient">{schoolHeader?.schoolName}</h1>
+                <Badge variant="secondary" className="text-xs bg-primary/10 text-primary border-primary/20">
+                  Portal Prime
+                </Badge>
+              </div>
             </div>
-          </div>
-          <div className="justify-self-center">
-          <TooltipProvider delayDuration={150}>
-  <Tooltip>
-    <TooltipTrigger asChild>
-      <a href="https://app.proesc.com" target="_blank" rel="noopener noreferrer" aria-label="Retornar ao Proesc" className="inline-flex items-center justify-center rounded-md px-2 py-1 hover:opacity-80 transition-opacity cursor-pointer hover-scale">
-        <img src="/lovable-uploads/31be6a89-85b7-486f-b156-ebe5b3557c02.png" alt="Proesc Prime" className="h-10 mx-auto" loading="lazy" />
-      </a>
-    </TooltipTrigger>
-    <TooltipContent side="bottom">Retornar ao Proesc</TooltipContent>
-  </Tooltip>
-          </TooltipProvider>
-          </div>
-          <div className="justify-self-end flex items-center gap-3">
-            <div className="hidden md:flex items-center gap-3">
+            
+            <div className="justify-self-center">
+              <TooltipProvider delayDuration={150}>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <a 
+                      href="https://app.proesc.com" 
+                      target="_blank" 
+                      rel="noopener noreferrer" 
+                      aria-label="Retornar ao Proesc" 
+                      className="inline-flex items-center justify-center rounded-md px-2 py-1 hover:opacity-80 transition-opacity cursor-pointer hover-scale"
+                    >
+                      <img 
+                        src="/lovable-uploads/31be6a89-85b7-486f-b156-ebe5b3557c02.png" 
+                        alt="Proesc Prime" 
+                        className="h-10 mx-auto" 
+                        loading="lazy" 
+                      />
+                    </a>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom">Retornar ao Proesc</TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
+            
+            <div className="justify-self-end flex items-center gap-3">
               <ThemeToggle />
               <Button onClick={openProfile} variant="outline" className="rounded-full w-12 h-12 p-0 btn-elegant hover-glow">
                 <Avatar className="w-10 h-10">
@@ -273,54 +312,95 @@ const Index = () => {
                 Sair
               </Button>
             </div>
-            <div className="md:hidden">
-              <MobileActionsMenu onOpenProfile={openProfile} />
-            </div>
           </div>
-        </div>
+        )}
         <Dialog open={profileDialogOpen} onOpenChange={setProfileDialogOpen}>
-          <DialogContent className="sm:max-w-lg">
+          <DialogContent className="sm:max-w-lg mx-4">
             <DialogHeader>
               <DialogTitle>Meu Perfil</DialogTitle>
             </DialogHeader>
-            <div className="space-y-4">
-              <div className="flex items-center gap-4">
-                <Avatar className="h-16 w-16">
+            <div className="spacing-mobile">
+              <div className="flex flex-col sm:flex-row items-center gap-4">
+                <Avatar className="h-16 w-16 flex-shrink-0">
                   <AvatarImage src={avatarUrl} alt="Foto do perfil" />
                   <AvatarFallback>
                     {schoolHeader?.schoolName?.charAt(0).toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
-                <div>
+                <div className="flex-1 w-full">
                   <Label htmlFor="avatar">Foto do perfil</Label>
-                  <Input id="avatar" type="file" accept="image/*" onChange={e => e.target.files && handleAvatarChange(e.target.files[0])} disabled={loadingProfile} className="border-2 border-dashed border-muted-foreground/50 hover:border-primary transition-colors file:mr-3 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-primary file:text-primary-foreground hover:file:bg-primary/90 cursor-pointer py-0 px-0" />
-                  <p className="text-xs text-muted-foreground mt-1">Use uma imagem quadrada (PNG ou JPG).</p>
+                  <Input 
+                    id="avatar" 
+                    type="file" 
+                    accept="image/*" 
+                    onChange={e => e.target.files && handleAvatarChange(e.target.files[0])} 
+                    disabled={loadingProfile} 
+                    className="mobile-touch-target border-2 border-dashed border-muted-foreground/50 hover:border-primary transition-colors file:mr-3 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-primary file:text-primary-foreground hover:file:bg-primary/90 cursor-pointer py-0 px-0" 
+                  />
+                  <p className="text-responsive-xs text-muted-foreground mt-1">
+                    Use uma imagem quadrada (PNG ou JPG).
+                  </p>
                 </div>
               </div>
-              <div className="space-y-3">
+              <div className="spacing-mobile">
                 <div className="space-y-2">
                   <Label htmlFor="name">Nome</Label>
-                  <Input id="name" value={profileName} onChange={e => setProfileName(e.target.value)} />
+                  <Input 
+                    id="name" 
+                    value={profileName} 
+                    onChange={e => setProfileName(e.target.value)}
+                    className="mobile-touch-target"
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="email">E-mail</Label>
-                  <Input id="email" type="email" value={profileEmail} onChange={e => setProfileEmail(e.target.value)} />
+                  <Input 
+                    id="email" 
+                    type="email" 
+                    value={profileEmail} 
+                    onChange={e => setProfileEmail(e.target.value)}
+                    className="mobile-touch-target"
+                  />
                 </div>
-                <div className="grid md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="password">Nova senha</Label>
-                    <Input id="password" type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} />
+                    <Input 
+                      id="password" 
+                      type="password" 
+                      value={newPassword} 
+                      onChange={e => setNewPassword(e.target.value)}
+                      className="mobile-touch-target"
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="confirmPassword">Confirmar senha</Label>
-                    <Input id="confirmPassword" type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} />
+                    <Input 
+                      id="confirmPassword" 
+                      type="password" 
+                      value={confirmPassword} 
+                      onChange={e => setConfirmPassword(e.target.value)}
+                      className="mobile-touch-target"
+                    />
                   </div>
                 </div>
               </div>
             </div>
-            <div className="flex justify-end gap-2 pt-2">
-              <Button variant="ghost" onClick={() => setProfileDialogOpen(false)}>Cancelar</Button>
-              <Button onClick={saveProfile} disabled={savingProfile}>{savingProfile ? 'Salvando...' : 'Salvar'}</Button>
+            <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 pt-2">
+              <Button 
+                variant="ghost" 
+                onClick={() => setProfileDialogOpen(false)}
+                className="mobile-touch-target"
+              >
+                Cancelar
+              </Button>
+              <Button 
+                onClick={saveProfile} 
+                disabled={savingProfile}
+                className="mobile-touch-target"
+              >
+                {savingProfile ? 'Salvando...' : 'Salvar'}
+              </Button>
             </div>
           </DialogContent>
         </Dialog>
@@ -386,19 +466,30 @@ const Index = () => {
           </Dialog>}
         <GestorDashboard />
         <Footer />
-      </div>;
+      </div>
+    );
   }
 
   // Render user dashboard for regular users
   if (userRole === 'user') {
-    return <div className="min-h-screen">
-        <div className="absolute top-4 right-4 z-10 flex items-center gap-2">
-          <ThemeToggle />
-          <Button variant="outline" onClick={signOut} className="bg-white/90 backdrop-blur">
-            <LogOut className="w-4 h-4 mr-2" />
-            Sair
-          </Button>
-        </div>
+    return (
+      <div className="min-h-screen overflow-x-hidden">
+        {/* Mobile Header for User */}
+        <MobileHeader
+          title="Portal Prime"
+          subtitle="Dashboard do usuário"
+        />
+
+        {/* Desktop Header for User */}
+        {!isMobile && (
+          <div className="absolute top-4 right-4 z-10 flex items-center gap-2">
+            <ThemeToggle />
+            <Button variant="outline" onClick={signOut} className="bg-white/90 backdrop-blur mobile-touch-target">
+              <LogOut className="w-4 h-4 mr-2" />
+              Sair
+            </Button>
+          </div>
+        )}
         {/* Force password change dialog */}
         {mustChangePassword && !forceDismissed && <Dialog open onOpenChange={() => {}}>
             <DialogContent className="sm:max-w-md">
@@ -458,9 +549,12 @@ const Index = () => {
               </div>
             </DialogContent>
           </Dialog>}
-        <UserDashboard />
+        <div className="container mx-auto p-mobile safe-area-padding">
+          <UserDashboard />
+        </div>
         <Footer />
-      </div>;
+      </div>
+    );
   }
 
   // Fallback - show original dashboard for users without specific roles
