@@ -712,7 +712,7 @@ const AdminDashboard = () => {
   }
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
+    <div className="container mx-auto p-6 space-y-6 overflow-x-hidden max-w-full">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">Painel Administrativo</h1>
@@ -791,39 +791,40 @@ const AdminDashboard = () => {
 
 
       {!minimized && (
-        <Tabs defaultValue="users" className="space-y-4">
-          <div className="flex items-center justify-between">
-            <TabsList className="bg-muted/50 p-1 rounded-lg border border-border">
-              <TabsTrigger 
-                value="users" 
-                className="data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm data-[state=active]:border data-[state=active]:border-primary/50 hover:bg-accent hover:text-accent-foreground hover:border hover:border-primary/30 transition-all duration-200"
-              >
-                Usuários
-              </TabsTrigger>
-              <TabsTrigger 
-                value="schools" 
-                className="data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm data-[state=active]:border data-[state=active]:border-primary/50 hover:bg-accent hover:text-accent-foreground hover:border hover:border-primary/30 transition-all duration-200"
-              >
-                Instituições
-              </TabsTrigger>
-              <TabsTrigger 
-                value="banners" 
-                className="data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm data-[state=active]:border data-[state=active]:border-primary/50 hover:bg-accent hover:text-accent-foreground hover:border hover:border-primary/30 transition-all duration-200"
-              >
-                Novidades
-              </TabsTrigger>
-              <TabsTrigger 
-                value="usage" 
-                className="data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm data-[state=active]:border data-[state=active]:border-primary/50 hover:bg-accent hover:text-accent-foreground hover:border hover:border-primary/30 transition-all duration-200"
-              >
-                Dados de Uso
-              </TabsTrigger>
-            </TabsList>
-          </div>
+        <div className="space-y-4 overflow-x-hidden max-w-full">
+          <Tabs defaultValue="users" className="space-y-4">
+            <div className="flex items-center justify-between">
+              <TabsList className={`bg-muted/50 p-1 rounded-lg border border-border ${isMobile ? 'hidden' : ''}`}>
+                <TabsTrigger 
+                  value="users" 
+                  className="data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm data-[state=active]:border data-[state=active]:border-primary/50 hover:bg-accent hover:text-accent-foreground hover:border hover:border-primary/30 transition-all duration-200"
+                >
+                  Usuários
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="schools" 
+                  className="data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm data-[state=active]:border data-[state=active]:border-primary/50 hover:bg-accent hover:text-accent-foreground hover:border hover:border-primary/30 transition-all duration-200"
+                >
+                  Instituições
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="banners" 
+                  className="data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm data-[state=active]:border data-[state=active]:border-primary/50 hover:bg-accent hover:text-accent-foreground hover:border hover:border-primary/30 transition-all duration-200"
+                >
+                  Novidades
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="usage" 
+                  className="data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm data-[state=active]:border data-[state=active]:border-primary/50 hover:bg-accent hover:text-accent-foreground hover:border hover:border-primary/30 transition-all duration-200"
+                >
+                  Dados de Uso
+                </TabsTrigger>
+              </TabsList>
+            </div>
 
-          <TabsContent value="users" className="space-y-4">
-            <div className="flex justify-between items-center">
-              <h2 className="text-xl font-semibold">Gerenciar Usuários</h2>
+            <TabsContent id="users-section" value="users" className={`space-y-4 ${isMobile ? 'block' : ''}`}>
+              <div className={`flex ${isMobile ? 'flex-col gap-4' : 'justify-between items-center'}`}>
+                <h2 className="text-xl font-semibold">Gerenciar Usuários</h2>
               <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
                 <DialogTrigger asChild>
                   <Button>
@@ -1125,8 +1126,8 @@ const AdminDashboard = () => {
             </Card>
           </TabsContent>
 
-          <TabsContent value="schools" className="space-y-4">
-            <div className="flex justify-between items-center">
+          <TabsContent id="schools-section" value="schools" className={`space-y-4 ${isMobile ? 'block' : ''}`}>
+            <div className={`flex ${isMobile ? 'flex-col gap-4' : 'justify-between items-center'}`}>
               <h2 className="text-xl font-semibold">Gerenciar Escolas</h2>
               <Dialog open={schoolDialogOpen} onOpenChange={setSchoolDialogOpen}>
                 <DialogTrigger asChild>
@@ -1405,8 +1406,8 @@ const AdminDashboard = () => {
             </Card>
           </TabsContent>
 
-          <TabsContent value="banners" className="space-y-4">
-            <div className="flex justify-end">
+          <TabsContent id="novidades-section" value="banners" className={`space-y-4 ${isMobile ? 'block' : ''}`}>
+            <div className={`flex ${isMobile ? 'flex-col gap-4' : 'justify-end'}`}>
               <Dialog open={bannerDialogOpen} onOpenChange={setBannerDialogOpen}>
                 <DialogTrigger asChild>
                   <Button>+ Adicionar Banner</Button>
@@ -1483,10 +1484,11 @@ const AdminDashboard = () => {
             </div>
             <BannersManager key={bannersReloadKey} />
           </TabsContent>
-          <TabsContent value="usage" className="space-y-4">
+          <TabsContent id="usage-section" value="usage" className={`space-y-4 ${isMobile ? 'block' : ''}`}>
             <UsageDashboard />
           </TabsContent>
-        </Tabs>
+          </Tabs>
+        </div>
       )}
 
       {/* Edit User Dialog */}

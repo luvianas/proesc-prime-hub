@@ -196,8 +196,8 @@ const GestorDashboard = ({
         {showAssistant && <AIAssistant onClose={() => setShowAssistant(false)} />}
       </div>;
   }
-  return <div className="min-h-screen bg-hero overflow-safe">
-      <div className="container mx-auto spacing-mobile space-y-4 sm:space-y-6 lg:space-y-8">
+  return <div className="min-h-screen bg-hero overflow-x-hidden max-w-full">
+      <div className="container mx-auto spacing-mobile space-y-4 sm:space-y-6 lg:space-y-8 max-w-full overflow-hidden">
         {/* Admin viewing indicator */}
         {isAdminView && <div className="bg-primary/10 border border-primary/20 rounded-lg px-4 py-3 mb-6">
             <div className="flex items-center gap-2 text-sm">
@@ -224,7 +224,7 @@ const GestorDashboard = ({
         {!isAdminView}
 
         {/* Destaques */}
-        <section className="mobile-grid-2 gap-4 sm:gap-6 lg:gap-8">
+        <section className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 lg:gap-8">
           <Card className="card-elegant card-interactive rounded-xl animate-scale-in mobile-touch-target" onClick={() => navigateTo('tickets')}>
             <CardHeader className="pb-3 spacing-mobile">
               <CardTitle className="flex items-center gap-2 sm:gap-3 text-responsive-base sm:text-lg lg:text-xl">
@@ -267,7 +267,7 @@ const GestorDashboard = ({
         {/* Dashboards */}
         <section className="space-y-4 sm:space-y-6">
           <h2 className="text-responsive-lg sm:text-xl lg:text-2xl font-semibold text-foreground">Dashboards</h2>
-          <div className="mobile-grid-2 gap-4 sm:gap-6 lg:gap-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 lg:gap-8">
 
             <Card className="card-elegant card-interactive rounded-xl animate-scale-in mobile-touch-target" onClick={() => navigateTo('dash-financeiro')}>
               <CardHeader className="pb-3 spacing-mobile">

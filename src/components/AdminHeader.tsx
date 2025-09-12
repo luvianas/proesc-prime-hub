@@ -11,6 +11,8 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
 import MobileActionsMenu from '@/components/MobileActionsMenu';
+import MobileAdminSidebar from '@/components/MobileAdminSidebar';
+import { useBreakpoint } from '@/hooks/useBreakpoint';
 import ImageCropperDialog from '@/components/ImageCropperDialog';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
@@ -20,6 +22,7 @@ const AdminHeader = () => {
   const { user, signOut } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
+  const { isMobile } = useBreakpoint();
   const [profileDialogOpen, setProfileDialogOpen] = useState(false);
   
   // Complete admin profile states (matching AdminDashboard)
@@ -193,9 +196,22 @@ const AdminHeader = () => {
 
   const showBackButton = location.pathname.includes('/admin/school/') || location.pathname === '/admin/dashboard';
 
+  // Admin dashboard navigation functions for mobile sidebar
+  const scrollToSection = (sectionId: string) => {
+    const element = document.getElementById(sectionId);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  };
+
+  const handleNavigateToUsers = () => scrollToSection('users-section');
+  const handleNavigateToSchools = () => scrollToSection('schools-section');
+  const handleNavigateToNovidades = () => scrollToSection('novidades-section');
+  const handleNavigateToUsage = () => scrollToSection('usage-section');
+
   return (
     <>
-      <div className="grid grid-cols-3 items-center p-4 border-b border-border/30 bg-card/90 backdrop-blur-md shadow-elegant">
+      <div className="grid grid-cols-3 items-center p-4 border-b border-border/30 bg-card/90 backdrop-blur-md shadow-elegant overflow-x-hidden">
         <div className="justify-self-start">
           <h1 className="text-xl font-semibold text-gradient">Sistema de Controle - Admin</h1>
         </div>
@@ -224,7 +240,7 @@ const AdminHeader = () => {
               </Button>
             )}
             <ThemeToggle />
-            <Button onClick={openProfile} variant="outline" className="rounded-full w-12 h-12 p-0 btn-elegant hover-glow">
+            <Button onClick={openProfile} variant="outline" className="rounded-full w-12 h-12 p-0 btn-elegant hover-glow hover:ring-2 hover:ring-primary/50 hover:scale-105 transition-all duration-200">
               <Avatar className="w-10 h-10">
                 <AvatarImage src={adminProfile.avatar_url} alt="Foto do perfil" />
                 <AvatarFallback className="bg-gradient-primary text-white">
@@ -238,7 +254,20 @@ const AdminHeader = () => {
             </Button>
           </div>
           <div className="md:hidden">
-            <MobileActionsMenu onOpenProfile={openProfile} showBackButton={showBackButton} onBack={handleBackToSelection} />
+            {isMobile && location.pathname === '/admin/dashboard' ? (
+              <MobileAdminSidebar 
+                onOpenProfile={openProfile} 
+                showBackButton={showBackButton} 
+                onBack={handleBackToSelection}
+                adminProfile={adminProfile}
+                onNavigateToUsers={handleNavigateToUsers}
+                onNavigateToSchools={handleNavigateToSchools}
+                onNavigateToNovidades={handleNavigateToNovidades}
+                onNavigateToUsage={handleNavigateToUsage}
+              />
+            ) : (
+              <MobileActionsMenu onOpenProfile={openProfile} showBackButton={showBackButton} onBack={handleBackToSelection} />
+            )}
           </div>
         </div>
       </div>

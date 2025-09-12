@@ -169,10 +169,10 @@ const MobileSidebarNavigation: React.FC<MobileSidebarNavigationProps> = ({
         <Button
           variant="ghost"
           size="icon"
-          className="mobile-touch-target hover-glow"
+          className="mobile-touch-target hover-glow hover:ring-2 hover:ring-primary/50 hover:scale-105 transition-all duration-200 hover:shadow-lg"
           aria-label="Menu de navegação"
         >
-          <Avatar className="h-8 w-8">
+          <Avatar className="h-8 w-8 hover:scale-105 transition-transform duration-200">
             <AvatarImage src={userProfile?.avatar_url} alt={userProfile?.name} />
             <AvatarFallback className="bg-primary text-primary-foreground text-sm">
               {userProfile?.name?.charAt(0)?.toUpperCase() || 'U'}
