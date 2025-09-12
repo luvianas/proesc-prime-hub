@@ -33,7 +33,8 @@ interface MobileNavigationProps {
   onNavigate: (section: string) => void;
   marketAnalysisEnabled?: boolean;
   onProfileClick?: () => void;
-  className?: string;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
 const MobileNavigation: React.FC<MobileNavigationProps> = ({
@@ -41,11 +42,11 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
   onNavigate,
   marketAnalysisEnabled = false,
   onProfileClick,
-  className = ""
+  open = false,
+  onOpenChange
 }) => {
   const { setTheme, theme } = useTheme();
   const { signOut } = useAuth();
-  const [open, setOpen] = React.useState(false);
 
   const navigationItems: NavigationItem[] = [
     {
@@ -54,7 +55,6 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
       icon: Home,
       onClick: () => {
         onNavigate('home');
-        setOpen(false);
       }
     },
     {
@@ -63,7 +63,6 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
       icon: ClipboardList,
       onClick: () => {
         onNavigate('tickets');
-        setOpen(false);
       }
     },
     {
@@ -72,7 +71,6 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
       icon: CalendarDays,
       onClick: () => {
         onNavigate('consultor-agenda');
-        setOpen(false);
       }
     },
     ...(marketAnalysisEnabled ? [{
@@ -81,7 +79,6 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
       icon: TrendingUp,
       onClick: () => {
         onNavigate('market-analysis');
-        setOpen(false);
       }
     }] : []),
     {
@@ -90,7 +87,6 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
       icon: Wallet,
       onClick: () => {
         onNavigate('dash-financeiro');
-        setOpen(false);
       }
     },
     {
@@ -99,7 +95,6 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
       icon: CalendarDays,
       onClick: () => {
         onNavigate('dash-agenda');
-        setOpen(false);
       }
     },
     {
@@ -108,7 +103,6 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
       icon: GraduationCap,
       onClick: () => {
         onNavigate('dash-pedagogico');
-        setOpen(false);
       }
     },
     {
@@ -117,7 +111,6 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
       icon: ClipboardCheck,
       onClick: () => {
         onNavigate('dash-secretaria');
-        setOpen(false);
       }
     }
   ];
@@ -129,22 +122,22 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
   const handleProfileClick = () => {
     if (onProfileClick) {
       onProfileClick();
-      setOpen(false);
+      onOpenChange?.(false);
     }
   };
 
   const handleSignOut = () => {
     signOut();
-    setOpen(false);
+    onOpenChange?.(false);
   };
 
   return (
-    <Sheet open={open} onOpenChange={setOpen}>
+    <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetTrigger asChild>
         <Button
           variant="ghost"
           size="icon"
-          className={`mobile-touch-target ${className}`}
+          className="mobile-touch-target hidden"
           aria-label="Menu de navegação"
         >
           <Menu className="h-5 w-5" />
@@ -168,7 +161,10 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
                 return (
                   <button
                     key={item.id}
-                    onClick={item.onClick}
+                  onClick={() => {
+                    item.onClick();
+                    onOpenChange?.(false);
+                  }}
                     disabled={item.disabled}
                     className={`mobile-nav-item w-full text-left ${
                       isActive 

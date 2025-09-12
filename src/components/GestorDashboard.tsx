@@ -217,14 +217,17 @@ const GestorDashboard = ({ adminViewSchoolId }: GestorDashboardProps) => {
       />
 
       {/* Mobile Navigation */}
-      {isMobile && (
-        <MobileNavigation
-          activeSection={activeSection}
-          onNavigate={navigateTo}
-          marketAnalysisEnabled={schoolData.market_analysis_enabled}
-          className="absolute top-4 left-4 z-10"
-        />
-      )}
+      <MobileNavigation
+        activeSection={activeSection}
+        onNavigate={navigateTo}
+        marketAnalysisEnabled={schoolData.market_analysis_enabled}
+        open={mobileMenuOpen}
+        onOpenChange={setMobileMenuOpen}
+        onProfileClick={() => {
+          // For now, we don't have profile functionality in gestor dashboard
+          // This would need to be passed from the parent Index component
+        }}
+      />
 
       <div className="container mx-auto p-mobile safe-area-padding spacing-mobile">
         {/* Admin viewing indicator */}
