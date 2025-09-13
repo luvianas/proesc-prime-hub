@@ -378,6 +378,40 @@
     border: 1px solid hsl(var(--border) / 0.2);
   }
   
+  /* Logo adaptive container and effects */
+  .logo-adaptive {
+    @apply p-2 rounded-lg border transition-all duration-300;
+    background: hsl(var(--card));
+    border: 1px solid hsl(var(--border));
+    box-shadow: 0 2px 8px hsl(var(--shadow) / 0.1);
+  }
+
+  .logo-adaptive:hover {
+    border-color: hsl(var(--primary) / 0.3);
+    box-shadow: 0 4px 12px hsl(var(--shadow) / 0.15);
+  }
+
+  .logo-adaptive img {
+    @apply w-full h-full object-contain transition-all duration-300;
+  }
+
+  /* Smart filters for logo visibility */
+  :root .logo-adaptive img {
+    filter: drop-shadow(0 1px 3px hsl(var(--foreground) / 0.1));
+  }
+
+  .dark .logo-adaptive img {
+    filter: brightness(1.1) contrast(1.1) drop-shadow(0 1px 3px hsl(var(--background) / 0.3));
+  }
+
+  .logo-adaptive.logo-round {
+    @apply rounded-full;
+  }
+
+  .logo-adaptive.logo-round img {
+    @apply rounded-full;
+  }
+  
   .auth-background {
     background: var(--gradient-auth);
     position: relative;
