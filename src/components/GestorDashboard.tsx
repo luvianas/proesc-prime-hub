@@ -17,6 +17,7 @@ import NovidadesCarousel from '@/components/NovidadesCarousel';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
 import { logEvent } from '@/lib/analytics';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
+import { usePageTimer, useSessionTracker, useFeatureTracking } from '@/hooks/useAdvancedAnalytics';
 interface SchoolCustomization {
   id: string;
   school_name: string;
@@ -60,6 +61,14 @@ const GestorDashboard = ({
     isTablet
   } = useBreakpoint();
   const isAdminView = !!adminViewSchoolId;
+  
+  // Advanced Analytics Hooks
+  const { timeSpent } = usePageTimer({
+    pageName: activeSection === 'home' ? 'gestor_dashboard_home' : `gestor_dashboard_${activeSection}`
+  });
+  const { sessionId } = useSessionTracker();
+  const { trackFeatureInteraction, trackMenuClick, trackTimeOnFeature } = useFeatureTracking();
+  
   useEffect(() => {
     fetchSchoolData();
   }, [user, adminViewSchoolId]);
@@ -92,12 +101,35 @@ const GestorDashboard = ({
     }
   }, [activeSection]);
   const navigateTo = (section: typeof activeSection) => {
+    const startTime = Date.now();
+    
+    // Track menu interaction with enhanced data
+    trackMenuClick(section, 'main_dashboard', 1);
+    trackFeatureInteraction('dashboard_navigation', 'section_click', {
+      from_section: activeSection,
+      to_section: section,
+      user_type: isAdminView ? 'admin_view' : 'gestor',
+      session_id: sessionId,
+      time_on_previous_section: timeSpent
+    });
+    
+    // Track time spent on previous section if leaving home
+    if (activeSection === 'home' && timeSpent > 0) {
+      trackTimeOnFeature('dashboard_home', Date.now() - (timeSpent * 1000));
+    }
+    
     setActiveSection(section);
+    
+    // Legacy tracking for backward compatibility
     logEvent({
       event_type: 'click',
       event_name: 'open_section',
       properties: {
-        section
+        section,
+        previous_section: activeSection,
+        time_spent_on_previous: timeSpent,
+        session_id: sessionId,
+        admin_view: isAdminView
       }
     });
   };

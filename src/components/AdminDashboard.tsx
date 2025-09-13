@@ -16,6 +16,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { createClient } from '@supabase/supabase-js';
 import BannersManager from '@/components/BannersManager';
 import UsageDashboard from '@/components/UsageDashboard';
+import AdvancedUsageAnalytics from '@/components/AdvancedUsageAnalytics';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
 import ImageCropperDialog from '@/components/ImageCropperDialog';
@@ -166,6 +167,7 @@ const AdminDashboard = () => {
   // Pagination states
   const [currentUserPage, setCurrentUserPage] = useState(1);
   const [currentSchoolPage, setCurrentSchoolPage] = useState(1);
+  const [showAdvancedAnalytics, setShowAdvancedAnalytics] = useState(false);
   const ITEMS_PER_PAGE = 10;
   const uploadImage = async (file: File, folder: string) => {
     try {
@@ -818,6 +820,12 @@ const AdminDashboard = () => {
                   className="data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm data-[state=active]:border data-[state=active]:border-primary/50 hover:bg-accent hover:text-accent-foreground hover:border hover:border-primary/30 transition-all duration-200"
                 >
                   Dados de Uso
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="advanced-analytics" 
+                  className="data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm data-[state=active]:border data-[state=active]:border-primary/50 hover:bg-accent hover:text-accent-foreground hover:border hover:border-primary/30 transition-all duration-200"
+                >
+                  Analytics Avançados
                 </TabsTrigger>
               </TabsList>
             </div>
@@ -1486,6 +1494,24 @@ const AdminDashboard = () => {
           </TabsContent>
           <TabsContent id="usage-section" value="usage" className={`space-y-4 ${isMobile ? 'block' : ''}`}>
             <UsageDashboard />
+          </TabsContent>
+          <TabsContent id="advanced-analytics-section" value="advanced-analytics" className={`space-y-4 ${isMobile ? 'block' : ''}`}>
+            {showAdvancedAnalytics ? (
+              <AdvancedUsageAnalytics onBack={() => setShowAdvancedAnalytics(false)} />
+            ) : (
+              <div className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <h2 className="text-xl font-semibold">Analytics Avançados</h2>
+                  <Button onClick={() => setShowAdvancedAnalytics(true)}>
+                    Visualizar Analytics Detalhados
+                  </Button>
+                </div>
+                <p className="text-muted-foreground">
+                  Acesse insights avançados sobre o uso da plataforma, incluindo análise de engajamento, 
+                  jornadas de usuário e ROI por funcionalidade.
+                </p>
+              </div>
+            )}
           </TabsContent>
           </Tabs>
         </div>

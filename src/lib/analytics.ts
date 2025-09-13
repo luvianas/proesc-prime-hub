@@ -39,10 +39,15 @@ async function ensureContext() {
 }
 
 export type LogEventInput = {
-  event_type: string;
+  event_type: 'page_view' | 'click' | 'session_start' | 'session_end' | 'page_enter' | 'page_exit' | 'feature_interaction' | 'menu_click' | 'time_tracking';
   event_name: string;
   properties?: Record<string, any>;
   page?: string;
+  duration?: number;
+  session_duration?: number;
+  depth_level?: number;
+  previous_page?: string;
+  next_page?: string;
 };
 
 export async function logEvent(input: LogEventInput) {
