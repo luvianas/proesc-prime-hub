@@ -28,9 +28,23 @@ const App = () => (
               <Routes>
                 <Route path="/" element={<Index />} />
                 <Route path="/auth" element={<Auth />} />
+                
+                {/* Gestor routes - all render Index.tsx */}
+                <Route path="/inicio" element={<Index />} />
+                <Route path="/acompanhar-tickets" element={<Index />} />
+                <Route path="/acompanhar-tickets/:id" element={<Index />} />
+                <Route path="/agenda-consultor" element={<Index />} />
+                <Route path="/dashboard/financeiro" element={<Index />} />
+                <Route path="/dashboard/agenda" element={<Index />} />
+                <Route path="/dashboard/secretaria" element={<Index />} />
+                <Route path="/dashboard/pedagogico" element={<Index />} />
+                <Route path="/estudo-mercado" element={<Index />} />
+                
+                {/* Admin routes */}
                 <Route path="/admin" element={<AdminLayout><SchoolSelector /></AdminLayout>} />
                 <Route path="/admin/dashboard" element={<AdminLayout><AdminDashboard /></AdminLayout>} />
                 <Route path="/admin/school/:schoolId" element={<AdminLayout><SchoolViewer /></AdminLayout>} />
+                
                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                 <Route path="*" element={<NotFound />} />
               </Routes>

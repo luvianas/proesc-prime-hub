@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate, useLocation, useParams } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { School, CalendarDays, ClipboardList, Wallet, ClipboardCheck, GraduationCap, TrendingUp } from 'lucide-react';
@@ -50,6 +51,9 @@ const GestorDashboard = ({
   const [loading, setLoading] = useState(true);
   const [activeSection, setActiveSection] = useState<'home' | 'tickets' | 'consultor-agenda' | 'dash-financeiro' | 'dash-agenda' | 'dash-secretaria' | 'dash-pedagogico' | 'market-analysis'>('home');
   const [showAssistant, setShowAssistant] = useState(false);
+  const navigate = useNavigate();
+  const location = useLocation();
+  const params = useParams();
   const {
     user
   } = useAuth();
@@ -69,6 +73,29 @@ const GestorDashboard = ({
   const { sessionId } = useSessionTracker();
   const { trackFeatureInteraction, trackMenuClick, trackTimeOnFeature } = useFeatureTracking();
   
+  // Synchronize URL with activeSection state
+  useEffect(() => {
+    const pathToSection: Record<string, typeof activeSection> = {
+      '/inicio': 'home',
+      '/acompanhar-tickets': 'tickets',
+      '/agenda-consultor': 'consultor-agenda',
+      '/dashboard/financeiro': 'dash-financeiro',
+      '/dashboard/agenda': 'dash-agenda',
+      '/dashboard/secretaria': 'dash-secretaria',
+      '/dashboard/pedagogico': 'dash-pedagogico',
+      '/estudo-mercado': 'market-analysis'
+    };
+    
+    // Check if this is a ticket details page
+    if (location.pathname.startsWith('/acompanhar-tickets/') && params.id) {
+      setActiveSection('tickets');
+      return;
+    }
+    
+    const section = pathToSection[location.pathname] || 'home';
+    setActiveSection(section);
+  }, [location.pathname, params.id]);
+
   useEffect(() => {
     fetchSchoolData();
   }, [user, adminViewSchoolId]);
@@ -118,7 +145,19 @@ const GestorDashboard = ({
       trackTimeOnFeature('dashboard_home', Date.now() - (timeSpent * 1000));
     }
     
-    setActiveSection(section);
+    // Navigate to specific URL instead of just changing state
+    const sectionToPath = {
+      'home': '/inicio',
+      'tickets': '/acompanhar-tickets',
+      'consultor-agenda': '/agenda-consultor',
+      'dash-financeiro': '/dashboard/financeiro',
+      'dash-agenda': '/dashboard/agenda',
+      'dash-secretaria': '/dashboard/secretaria',
+      'dash-pedagogico': '/dashboard/pedagogico',
+      'market-analysis': '/estudo-mercado'
+    };
+    
+    navigate(sectionToPath[section] || '/inicio');
     
     // Legacy tracking for backward compatibility
     logEvent({
@@ -215,7 +254,7 @@ const GestorDashboard = ({
 
   // Views other than home
   if (activeSection !== 'home') {
-    const back = () => setActiveSection('home');
+    const back = () => navigate('/inicio');
     return <div className="container mx-auto p-4">
         {activeSection === 'tickets' && <TicketSystem onBack={back} school_id={adminViewSchoolId || schoolData?.id} />}
         

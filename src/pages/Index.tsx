@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Navigate, Link } from "react-router-dom";
+import { Navigate, Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { LogOut, User } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
@@ -40,6 +40,7 @@ const Index = () => {
   const [showAI, setShowAI] = useState(false);
   const [activeSection, setActiveSection] = useState("dashboard");
   const [expandedDashboard, setExpandedDashboard] = useState<string | null>(null);
+  const location = useLocation();
   const {
     user,
     userRole,
@@ -232,6 +233,11 @@ const Index = () => {
   // Redirect admin users to the school selector
   if (userRole === 'admin') {
     return <Navigate to="/admin" replace />;
+  }
+
+  // Redirect gestor users from "/" to "/inicio"
+  if (userRole === 'gestor' && location.pathname === '/') {
+    return <Navigate to="/inicio" replace />;
   }
 
   // Render gestor dashboard for gestor users

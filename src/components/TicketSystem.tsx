@@ -1,5 +1,6 @@
 
 import { useState, useEffect } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -34,6 +35,8 @@ interface Ticket {
 const TicketSystem = ({ onBack, school_id }: TicketSystemProps) => {
   const { user, userRole } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
+  const params = useParams();
   const [showNewTicket, setShowNewTicket] = useState(false);
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [loading, setLoading] = useState(true);
@@ -469,22 +472,20 @@ const TicketSystem = ({ onBack, school_id }: TicketSystemProps) => {
   };
 
   const openTicketDetails = (ticketId: string) => {
-    setSelectedTicketId(ticketId);
-    setShowTicketDetails(true);
+    navigate(`/acompanhar-tickets/${ticketId}`);
   };
 
   const closeTicketDetails = () => {
-    setSelectedTicketId(null);
-    setShowTicketDetails(false);
+    navigate('/acompanhar-tickets');
   };
 
 
 
-  // Se estiver mostrando detalhes, renderizar a página de detalhes
-  if (showTicketDetails && selectedTicketId) {
+  // Se estiver em uma rota de detalhes do ticket, renderizar a página de detalhes
+  if (params.id) {
     return (
       <TicketDetailsPage 
-        ticketId={selectedTicketId} 
+        ticketId={params.id} 
         onBack={closeTicketDetails}
       />
     );
