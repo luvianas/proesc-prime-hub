@@ -55,7 +55,7 @@ interface SchoolAnalytics {
 }
 
 // Features to exclude from metrics (basic navigation, not actual features)
-const EXCLUDED_FEATURES = ['gestor', 'admin', 'user', 'home', 'dashboard', 'unknown', 'auth', 'login', 'logout'];
+const EXCLUDED_FEATURES = ['gestor', 'admin', 'user', 'home', 'dashboard', 'unknown', 'auth', 'login', 'logout', 'page'];
 
 const COLORS = ['hsl(var(--primary))', 'hsl(var(--secondary))', 'hsl(var(--accent))', '#8884d8', '#82ca9d', '#ffc658'];
 
