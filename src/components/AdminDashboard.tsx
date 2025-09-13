@@ -69,18 +69,29 @@ interface SchoolCustomization {
 }
 
 const AdminDashboard = () => {
+  // Core state
   const [users, setUsers] = useState<User[]>([]);
   const [environments, setEnvironments] = useState<Environment[]>([]);
   const [schools, setSchools] = useState<SchoolCustomization[]>([]);
   const [adminUsers, setAdminUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  
+  // Dialog states
   const [dialogOpen, setDialogOpen] = useState(false);
   const [schoolDialogOpen, setSchoolDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editSchoolDialogOpen, setEditSchoolDialogOpen] = useState(false);
   const [profileDialogOpen, setProfileDialogOpen] = useState(false);
+  
+  // Edit states
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [editingSchool, setEditingSchool] = useState<SchoolCustomization | null>(null);
+  
+  // Pagination states - DEFINIDOS AQUI PARA GARANTIR DISPONIBILIDADE
+  const [currentUserPage, setCurrentUserPage] = useState(1);
+  const [currentSchoolPage, setCurrentSchoolPage] = useState(1);
+  const [range, setRange] = useState<'7d' | '30d'>('30d');
+  const ITEMS_PER_PAGE = 10;
   const [newUser, setNewUser] = useState({
     email: '',
     name: '',
@@ -165,12 +176,6 @@ const AdminDashboard = () => {
   const [uploadingUserAvatar, setUploadingUserAvatar] = useState(false);
   const [uploadingEditUserAvatar, setUploadingEditUserAvatar] = useState(false);
   
-  
-  // Pagination states
-  const [currentUserPage, setCurrentUserPage] = useState(1);
-  const [currentSchoolPage, setCurrentSchoolPage] = useState(1);
-  const [range, setRange] = useState<'7d' | '30d'>('30d');
-  const ITEMS_PER_PAGE = 10;
   const uploadImage = async (file: File, folder: string) => {
     try {
       const ext = file.name.split('.').pop() || 'png';
