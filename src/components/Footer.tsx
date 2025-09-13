@@ -73,9 +73,7 @@ const Footer = () => {
         <div className="pt-6 border-t border-border">
           <div className="flex flex-col md:flex-row justify-between items-center gap-4">
             <p className="text-sm text-muted-foreground font-sora">© 2025 Proesc. Todos os direitos reservados.</p>
-            <p className="text-xs text-muted-foreground font-sora">
-              Prime Hub v2.0.0 - Desenvolvido com ❤️ para educação
-            </p>
+            <p className="text-xs text-muted-foreground font-sora">Prime Hub v2.5.5 - Desenvolvido com ❤️ para educação</p>
           </div>
         </div>
       </div>
