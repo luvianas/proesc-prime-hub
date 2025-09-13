@@ -69,6 +69,7 @@ export default function AdvancedUsageAnalytics({ onBack }: AdvancedUsageAnalytic
   const [events, setEvents] = useState<UsageEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [dateRange, setDateRange] = useState<'7d' | '30d' | '90d'>('30d');
+  const [schoolsMap, setSchoolsMap] = useState<Map<string, string>>(new Map());
   const { toast } = useToast();
 
   useEffect(() => {
@@ -82,6 +83,20 @@ export default function AdvancedUsageAnalytics({ onBack }: AdvancedUsageAnalytic
       const startDate = new Date();
       startDate.setDate(startDate.getDate() - daysAgo);
 
+      // Fetch schools data first
+      const { data: schools, error: schoolsError } = await supabase
+        .from('school_customizations')
+        .select('school_id, school_name');
+
+      if (schoolsError) throw schoolsError;
+
+      // Create schools lookup map
+      const schoolsLookup = new Map(
+        (schools || []).map(s => [s.school_id, s.school_name])
+      );
+      setSchoolsMap(schoolsLookup);
+
+      // Fetch usage events
       const { data, error } = await supabase
         .from('usage_events')
         .select('*')
@@ -283,7 +298,7 @@ export default function AdvancedUsageAnalytics({ onBack }: AdvancedUsageAnalytic
 
       return {
         school_id,
-        school_name: `Escola ${school_id.slice(-8)}`, // Placeholder - pode ser melhorado com dados reais
+        school_name: schoolsMap.get(school_id) || `Escola ${school_id.slice(-8)}`,
         totalEvents: data.events.length,
         uniqueUsers: data.users.size,
         totalTime,
