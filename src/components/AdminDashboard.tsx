@@ -163,11 +163,11 @@ const AdminDashboard = () => {
   // Avatar upload states for user form
   const [uploadingUserAvatar, setUploadingUserAvatar] = useState(false);
   const [uploadingEditUserAvatar, setUploadingEditUserAvatar] = useState(false);
+  const [showAdvancedAnalytics, setShowAdvancedAnalytics] = useState(false);
   
   // Pagination states
   const [currentUserPage, setCurrentUserPage] = useState(1);
   const [currentSchoolPage, setCurrentSchoolPage] = useState(1);
-  const [showAdvancedAnalytics, setShowAdvancedAnalytics] = useState(false);
   const ITEMS_PER_PAGE = 10;
   const uploadImage = async (file: File, folder: string) => {
     try {
