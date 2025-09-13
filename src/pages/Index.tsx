@@ -239,19 +239,9 @@ const Index = () => {
     return <div className="min-h-screen auth-background">
         <div className="grid grid-cols-3 items-center p-6 border-b border-border/30 bg-card/90 backdrop-blur-md shadow-elegant">
           <div className="flex items-center gap-6 justify-self-start">
-            {schoolHeader?.logoUrl ? (
-              <div className="logo-adaptive w-16 h-16 flex-shrink-0 hover-scale">
-                <img 
-                  src={schoolHeader.logoUrl} 
-                  alt={`Logo ${schoolHeader.schoolName}`} 
-                  loading="lazy" 
-                />
-              </div>
-            ) : (
-              <div className="w-16 h-16 rounded bg-gradient-primary text-white flex items-center justify-center font-bold hover-scale">
+            {schoolHeader?.logoUrl ? <img src={schoolHeader.logoUrl} alt={`Logo ${schoolHeader.schoolName}`} className="w-16 h-16 object-contain rounded hover-scale" loading="lazy" /> : <div className="w-16 h-16 rounded bg-gradient-primary text-white flex items-center justify-center font-bold hover-scale">
                 {schoolHeader?.schoolName?.charAt(0).toUpperCase()}
-              </div>
-            )}
+              </div>}
             <div className="hidden md:block">
               <h1 className="text-xl font-bold text-gradient">{schoolHeader?.schoolName}</h1>
               <Badge variant="secondary" className="text-xs bg-primary/10 text-primary border-primary/20">Portal Prime</Badge>

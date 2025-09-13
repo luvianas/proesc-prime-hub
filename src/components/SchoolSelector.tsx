@@ -141,14 +141,11 @@ const SchoolSelector = () => {
               <CardHeader className="pb-3">
                 <div className="flex items-center gap-3">
                   {school.logo_url ? (
-                    <div className="logo-adaptive logo-round h-10 w-10 flex-shrink-0">
-                      <img 
-                        src={school.logo_url} 
-                        alt={`Logo ${school.school_name}`}
-                        className="h-full w-full"
-                        loading="lazy"
-                      />
-                    </div>
+                    <img 
+                      src={school.logo_url} 
+                      alt={`Logo ${school.school_name}`}
+                      className="h-10 w-10 rounded-full object-cover"
+                    />
                   ) : (
                     <School className="h-10 w-10 text-primary" />
                   )}
