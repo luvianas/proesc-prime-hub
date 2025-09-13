@@ -17,6 +17,7 @@ import { createClient } from '@supabase/supabase-js';
 import BannersManager from '@/components/BannersManager';
 import UsageDashboard from '@/components/UsageDashboard';
 import AdvancedUsageAnalytics from '@/components/AdvancedUsageAnalytics';
+import EventsTable from '@/components/EventsTable';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
 import ImageCropperDialog from '@/components/ImageCropperDialog';
@@ -168,6 +169,7 @@ const AdminDashboard = () => {
   // Pagination states
   const [currentUserPage, setCurrentUserPage] = useState(1);
   const [currentSchoolPage, setCurrentSchoolPage] = useState(1);
+  const [range, setRange] = useState<'7d' | '30d'>('30d');
   const ITEMS_PER_PAGE = 10;
   const uploadImage = async (file: File, folder: string) => {
     try {
@@ -1490,6 +1492,7 @@ const AdminDashboard = () => {
             <div className="space-y-8">
               <UsageDashboard />
               <AdvancedUsageAnalytics />
+              <EventsTable range={range} />
             </div>
           </TabsContent>
           </Tabs>
