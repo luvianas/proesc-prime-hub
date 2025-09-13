@@ -75,6 +75,9 @@ const GestorDashboard = ({
   
   // Synchronize URL with activeSection state
   useEffect(() => {
+    // Skip URL synchronization if this is an admin view
+    if (isAdminView) return;
+    
     const pathToSection: Record<string, typeof activeSection> = {
       '/inicio': 'home',
       '/acompanhar-tickets': 'tickets',
@@ -94,7 +97,7 @@ const GestorDashboard = ({
     
     const section = pathToSection[location.pathname] || 'home';
     setActiveSection(section);
-  }, [location.pathname, params.id]);
+  }, [location.pathname, params.id, isAdminView]);
 
   useEffect(() => {
     fetchSchoolData();
@@ -146,18 +149,23 @@ const GestorDashboard = ({
     }
     
     // Navigate to specific URL instead of just changing state
-    const sectionToPath = {
-      'home': '/inicio',
-      'tickets': '/acompanhar-tickets',
-      'consultor-agenda': '/agenda-consultor',
-      'dash-financeiro': '/dashboard/financeiro',
-      'dash-agenda': '/dashboard/agenda',
-      'dash-secretaria': '/dashboard/secretaria',
-      'dash-pedagogico': '/dashboard/pedagogico',
-      'market-analysis': '/estudo-mercado'
-    };
-    
-    navigate(sectionToPath[section] || '/inicio');
+    // For admin view, just change the state without navigating
+    if (isAdminView) {
+      setActiveSection(section);
+    } else {
+      const sectionToPath = {
+        'home': '/inicio',
+        'tickets': '/acompanhar-tickets',
+        'consultor-agenda': '/agenda-consultor',
+        'dash-financeiro': '/dashboard/financeiro',
+        'dash-agenda': '/dashboard/agenda',
+        'dash-secretaria': '/dashboard/secretaria',
+        'dash-pedagogico': '/dashboard/pedagogico',
+        'market-analysis': '/estudo-mercado'
+      };
+      
+      navigate(sectionToPath[section] || '/inicio');
+    }
     
     // Legacy tracking for backward compatibility
     logEvent({
