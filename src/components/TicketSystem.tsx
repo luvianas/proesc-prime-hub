@@ -469,8 +469,8 @@ const TicketSystem = ({ onBack, school_id }: TicketSystemProps) => {
   };
 
   const openTicketDetails = (ticketId: string) => {
-    setSelectedTicketId(ticketId);
-    setShowTicketDetails(true);
+    // Navigate to ticket details page using router
+    window.location.href = `/acompanhar-tickets/${ticketId}`;
   };
 
   const closeTicketDetails = () => {
@@ -480,16 +480,7 @@ const TicketSystem = ({ onBack, school_id }: TicketSystemProps) => {
 
 
 
-  // Se estiver mostrando detalhes, renderizar a página de detalhes
-  if (showTicketDetails && selectedTicketId) {
-    return (
-      <TicketDetailsPage 
-        ticketId={selectedTicketId} 
-        onBack={closeTicketDetails}
-      />
-    );
-  }
-
+  // Remove internal ticket details navigation since we use router now
   return (
     <div>
       {/* Header */}
