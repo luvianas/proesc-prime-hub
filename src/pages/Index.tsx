@@ -234,9 +234,168 @@ const Index = () => {
     return <Navigate to="/admin" replace />;
   }
 
-  // Redirect gestor users to the new home page
+  // Render gestor dashboard for gestor users
   if (userRole === 'gestor') {
-    return <Navigate to="/inicio" replace />;
+    return <div className="min-h-screen auth-background">
+        <div className="grid grid-cols-3 items-center p-6 border-b border-border/30 bg-card/90 backdrop-blur-md shadow-elegant">
+          <div className="flex items-center gap-6 justify-self-start">
+            {schoolHeader?.logoUrl ? <img src={schoolHeader.logoUrl} alt={`Logo ${schoolHeader.schoolName}`} className="w-16 h-16 object-contain rounded hover-scale" loading="lazy" /> : <div className="w-16 h-16 rounded bg-gradient-primary text-white flex items-center justify-center font-bold hover-scale">
+                {schoolHeader?.schoolName?.charAt(0).toUpperCase()}
+              </div>}
+            <div className="hidden md:block">
+              <h1 className="text-xl font-bold text-gradient">{schoolHeader?.schoolName}</h1>
+              <Badge variant="secondary" className="text-xs bg-primary/10 text-primary border-primary/20">Portal Prime</Badge>
+            </div>
+          </div>
+          <div className="justify-self-center">
+          <TooltipProvider delayDuration={150}>
+  <Tooltip>
+    <TooltipTrigger asChild>
+      <a href="https://app.proesc.com" target="_blank" rel="noopener noreferrer" aria-label="Retornar ao Proesc" className="inline-flex items-center justify-center rounded-md px-2 py-1 hover:opacity-80 transition-opacity cursor-pointer hover-scale">
+        <img src="/lovable-uploads/31be6a89-85b7-486f-b156-ebe5b3557c02.png" alt="Proesc Prime" className="h-10 mx-auto" loading="lazy" />
+      </a>
+    </TooltipTrigger>
+    <TooltipContent side="bottom">Retornar ao Proesc</TooltipContent>
+  </Tooltip>
+          </TooltipProvider>
+          </div>
+          <div className="justify-self-end flex items-center gap-3">
+            <div className="hidden md:flex items-center gap-3">
+              <ThemeToggle />
+              <Button onClick={openProfile} variant="outline" className="rounded-full w-12 h-12 p-0 btn-elegant hover-glow">
+                <Avatar className="w-10 h-10">
+                  <AvatarImage src={avatarUrl} alt="Foto do perfil" />
+                  <AvatarFallback className="bg-gradient-primary text-white">
+                    {schoolHeader?.schoolName?.charAt(0).toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+              </Button>
+              <Button onClick={signOut} className="btn-elegant shadow-elegant">
+                <LogOut className="w-4 h-4 mr-2" />
+                Sair
+              </Button>
+            </div>
+            <div className="md:hidden">
+              <MobileSidebarNavigation 
+                onOpenProfile={openProfile}
+                userProfile={{ 
+                  name: profileName, 
+                  email: profileEmail, 
+                  avatar_url: avatarUrl 
+                }}
+              />
+            </div>
+          </div>
+        </div>
+        <Dialog open={profileDialogOpen} onOpenChange={setProfileDialogOpen}>
+          <DialogContent className="sm:max-w-lg">
+            <DialogHeader>
+              <DialogTitle>Meu Perfil</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="flex items-center gap-4">
+                <Avatar className="h-16 w-16">
+                  <AvatarImage src={avatarUrl} alt="Foto do perfil" />
+                  <AvatarFallback>
+                    {schoolHeader?.schoolName?.charAt(0).toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+                <div>
+                  <Label htmlFor="avatar">Foto do perfil</Label>
+                  <Input id="avatar" type="file" accept="image/*" onChange={e => e.target.files && handleAvatarChange(e.target.files[0])} disabled={loadingProfile} className="border-2 border-dashed border-muted-foreground/50 hover:border-primary transition-colors file:mr-3 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-primary file:text-primary-foreground hover:file:bg-primary/90 cursor-pointer py-0 px-0" />
+                  <p className="text-xs text-muted-foreground mt-1">Use uma imagem quadrada (PNG ou JPG).</p>
+                </div>
+              </div>
+              <div className="space-y-3">
+                <div className="space-y-2">
+                  <Label htmlFor="name">Nome</Label>
+                  <Input id="name" value={profileName} onChange={e => setProfileName(e.target.value)} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="email">E-mail</Label>
+                  <Input id="email" type="email" value={profileEmail} onChange={e => setProfileEmail(e.target.value)} />
+                </div>
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="password">Nova senha</Label>
+                    <Input id="password" type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="confirmPassword">Confirmar senha</Label>
+                    <Input id="confirmPassword" type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} />
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button variant="ghost" onClick={() => setProfileDialogOpen(false)}>Cancelar</Button>
+              <Button onClick={saveProfile} disabled={savingProfile}>{savingProfile ? 'Salvando...' : 'Salvar'}</Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+        <ImageCropperDialog open={cropOpen} onOpenChange={setCropOpen} imageSrc={cropSrc} onConfirm={uploadCroppedAvatar} />
+        {/* Force password change dialog */}
+        {mustChangePassword && !forceDismissed && <Dialog open onOpenChange={() => {}}>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle>Defina uma nova senha</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-3">
+                <div>
+                  <Label htmlFor="newpass-gestor">Nova senha</Label>
+                  <Input id="newpass-gestor" type="password" value={forceNewPassword} onChange={e => setForceNewPassword(e.target.value)} />
+                </div>
+                <div>
+                  <Label htmlFor="confpass-gestor">Confirmar senha</Label>
+                  <Input id="confpass-gestor" type="password" value={forceConfirmPassword} onChange={e => setForceConfirmPassword(e.target.value)} />
+                </div>
+                <Button disabled={forcingChange} onClick={async () => {
+              if (forceNewPassword.length < 8 || !/[A-Z]/.test(forceNewPassword) || !/[a-z]/.test(forceNewPassword) || !/\d/.test(forceNewPassword)) {
+                toast({
+                  title: 'Senha fraca',
+                  description: 'Use 8+ caracteres com maiúscula, minúscula e número.',
+                  variant: 'destructive'
+                });
+                return;
+              }
+              if (forceNewPassword !== forceConfirmPassword) {
+                toast({
+                  title: 'Senhas não conferem',
+                  variant: 'destructive'
+                });
+                return;
+              }
+              try {
+                setForcingChange(true);
+                const {
+                  error: authErr
+                } = await supabase.auth.updateUser({
+                  password: forceNewPassword
+                });
+                if (authErr) throw authErr;
+                await supabase.from('profiles').update({
+                  must_change_password: false
+                } as any).eq('user_id', user!.id);
+                toast({
+                  title: 'Senha alterada com sucesso'
+                });
+                setForceDismissed(true);
+              } catch (e: any) {
+                toast({
+                  title: 'Erro ao alterar senha',
+                  description: e.message,
+                  variant: 'destructive'
+                });
+              } finally {
+                setForcingChange(false);
+              }
+            }}>{forcingChange ? 'Salvando...' : 'Salvar'}</Button>
+              </div>
+            </DialogContent>
+          </Dialog>}
+        <GestorDashboard />
+        <Footer />
+      </div>;
   }
 
   // Render user dashboard for regular users
