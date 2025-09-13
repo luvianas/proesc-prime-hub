@@ -54,6 +54,9 @@ interface SchoolAnalytics {
   lastActivity: string;
 }
 
+// Features to exclude from metrics (basic navigation, not actual features)
+const EXCLUDED_FEATURES = ['gestor', 'admin', 'user', 'home', 'dashboard', 'unknown', 'auth', 'login', 'logout'];
+
 const COLORS = ['hsl(var(--primary))', 'hsl(var(--secondary))', 'hsl(var(--accent))', '#8884d8', '#82ca9d', '#ffc658'];
 
 const BUSINESS_VALUES = {
@@ -71,6 +74,43 @@ export default function AdvancedUsageAnalytics({ onBack }: AdvancedUsageAnalytic
   const [dateRange, setDateRange] = useState<'7d' | '30d' | '90d'>('30d');
   const [schoolsMap, setSchoolsMap] = useState<Map<string, string>>(new Map());
   const { toast } = useToast();
+
+  // Helper function to extract duration from events
+  const getEventDuration = (event: UsageEvent): number => {
+    return event.duration || 
+           event.event_properties?.time_spent_seconds || 
+           event.event_properties?.duration_seconds ||
+           event.event_properties?.time_on_previous_section ||
+           0;
+  };
+
+  // Helper function to extract feature name from events
+  const getFeatureName = (event: UsageEvent): string => {
+    // Priority order for feature name extraction
+    if (event.event_properties?.to_section && 
+        event.event_properties.to_section.startsWith('dash-')) {
+      return event.event_properties.to_section;
+    }
+    
+    if (event.event_properties?.section && 
+        event.event_properties.section.startsWith('dash-')) {
+      return event.event_properties.section;
+    }
+    
+    if (event.event_properties?.feature) {
+      return event.event_properties.feature;
+    }
+    
+    if (event.event_properties?.section) {
+      return event.event_properties.section;
+    }
+    
+    if (event.event_name.includes('_')) {
+      return event.event_name.split('_')[0];
+    }
+    
+    return event.event_name || 'unknown';
+  };
 
   useEffect(() => {
     fetchAdvancedAnalytics();
@@ -125,17 +165,26 @@ export default function AdvancedUsageAnalytics({ onBack }: AdvancedUsageAnalytic
     }>();
 
     events.forEach(event => {
-      if (event.event_type === 'feature_interaction' || event.event_name.includes('_')) {
-        const feature = event.event_properties?.feature || 
-                      event.event_properties?.section || 
-                      event.event_name.split('_')[0] || 'unknown';
+      // Include more event types that represent actual feature usage
+      if (event.event_type === 'feature_interaction' || 
+          event.event_type === 'time_tracking' ||
+          event.event_type === 'page_exit' ||
+          event.event_name.includes('_') ||
+          (event.event_type === 'click' && event.event_properties?.section)) {
+        
+        const feature = getFeatureName(event);
+        
+        // Exclude basic navigation features
+        if (EXCLUDED_FEATURES.includes(feature.toLowerCase())) {
+          return;
+        }
         
         if (!featureMap.has(feature)) {
           featureMap.set(feature, { totalTime: 0, interactions: 0, users: new Set() });
         }
         
         const data = featureMap.get(feature)!;
-        data.totalTime += event.duration || event.event_properties?.duration_seconds || 0;
+        data.totalTime += getEventDuration(event);
         data.interactions += 1;
         data.users.add(event.user_id);
       }
@@ -235,7 +284,7 @@ export default function AdvancedUsageAnalytics({ onBack }: AdvancedUsageAnalytic
       
       const data = dailyMap.get(date)!;
       data.interactions += 1;
-      data.timeSpent += event.duration || 0;
+      data.timeSpent += getEventDuration(event);
       data.users.add(event.user_id);
     });
 
@@ -272,14 +321,16 @@ export default function AdvancedUsageAnalytics({ onBack }: AdvancedUsageAnalytic
       data.events.push(event);
       data.users.add(event.user_id);
       
-      const feature = event.event_properties?.feature || 
-                    event.event_properties?.section || 
-                    event.event_name.split('_')[0] || 'unknown';
-      data.features.set(feature, (data.features.get(feature) || 0) + 1);
+      const feature = getFeatureName(event);
+      
+      // Only count non-excluded features
+      if (!EXCLUDED_FEATURES.includes(feature.toLowerCase())) {
+        data.features.set(feature, (data.features.get(feature) || 0) + 1);
+      }
     });
 
     return Array.from(schoolMap.entries()).map(([school_id, data]) => {
-      const totalTime = data.events.reduce((sum, e) => sum + (e.duration || 0), 0);
+      const totalTime = data.events.reduce((sum, e) => sum + getEventDuration(e), 0);
       const engagementScore = Math.min(
         (totalTime / 3600) * 30 + // Time weight (hours)
         (data.events.length / 100) * 40 + // Event count weight
@@ -307,7 +358,7 @@ export default function AdvancedUsageAnalytics({ onBack }: AdvancedUsageAnalytic
         lastActivity
       };
     }).sort((a, b) => b.engagementScore - a.engagementScore);
-  }, [events]);
+  }, [events, schoolsMap]);
 
   if (loading) {
     return (
@@ -378,7 +429,7 @@ export default function AdvancedUsageAnalytics({ onBack }: AdvancedUsageAnalytic
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
-                  {Math.round(events.reduce((sum, e) => sum + (e.duration || 0), 0) / 3600)}h
+                  {Math.round(events.reduce((sum, e) => sum + getEventDuration(e), 0) / 3600)}h
                 </div>
               </CardContent>
             </Card>
