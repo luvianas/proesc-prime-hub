@@ -13,7 +13,7 @@ import {
 } from 'recharts';
 
 interface AdvancedUsageAnalyticsProps {
-  onBack: () => void;
+  onBack?: () => void;
 }
 
 interface UsageEvent {
@@ -235,9 +235,11 @@ export default function AdvancedUsageAnalytics({ onBack }: AdvancedUsageAnalytic
     <div className="container mx-auto p-4 space-y-6">
       {/* Header */}
       <div className="flex items-center gap-4 mb-6">
-        <Button variant="outline" size="icon" onClick={onBack}>
-          <ArrowLeft className="h-4 w-4" />
-        </Button>
+        {onBack && (
+          <Button variant="outline" size="icon" onClick={onBack}>
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+        )}
         <div>
           <h1 className="text-2xl font-bold">Analytics Avançados</h1>
           <p className="text-muted-foreground">Insights detalhados de uso e valor de negócio</p>

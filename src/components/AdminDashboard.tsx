@@ -163,7 +163,7 @@ const AdminDashboard = () => {
   // Avatar upload states for user form
   const [uploadingUserAvatar, setUploadingUserAvatar] = useState(false);
   const [uploadingEditUserAvatar, setUploadingEditUserAvatar] = useState(false);
-  const [showAdvancedAnalytics, setShowAdvancedAnalytics] = useState(false);
+  
   
   // Pagination states
   const [currentUserPage, setCurrentUserPage] = useState(1);
@@ -820,12 +820,6 @@ const AdminDashboard = () => {
                   className="data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm data-[state=active]:border data-[state=active]:border-primary/50 hover:bg-accent hover:text-accent-foreground hover:border hover:border-primary/30 transition-all duration-200"
                 >
                   Dados de Uso
-                </TabsTrigger>
-                <TabsTrigger 
-                  value="advanced-analytics" 
-                  className="data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm data-[state=active]:border data-[state=active]:border-primary/50 hover:bg-accent hover:text-accent-foreground hover:border hover:border-primary/30 transition-all duration-200"
-                >
-                  Analytics Avançados
                 </TabsTrigger>
               </TabsList>
             </div>
@@ -1493,25 +1487,10 @@ const AdminDashboard = () => {
             <BannersManager key={bannersReloadKey} />
           </TabsContent>
           <TabsContent id="usage-section" value="usage" className={`space-y-4 ${isMobile ? 'block' : ''}`}>
-            <UsageDashboard />
-          </TabsContent>
-          <TabsContent id="advanced-analytics-section" value="advanced-analytics" className={`space-y-4 ${isMobile ? 'block' : ''}`}>
-            {showAdvancedAnalytics ? (
-              <AdvancedUsageAnalytics onBack={() => setShowAdvancedAnalytics(false)} />
-            ) : (
-              <div className="space-y-4">
-                <div className="flex justify-between items-center">
-                  <h2 className="text-xl font-semibold">Analytics Avançados</h2>
-                  <Button onClick={() => setShowAdvancedAnalytics(true)}>
-                    Visualizar Analytics Detalhados
-                  </Button>
-                </div>
-                <p className="text-muted-foreground">
-                  Acesse insights avançados sobre o uso da plataforma, incluindo análise de engajamento, 
-                  jornadas de usuário e ROI por funcionalidade.
-                </p>
-              </div>
-            )}
+            <div className="space-y-8">
+              <UsageDashboard />
+              <AdvancedUsageAnalytics />
+            </div>
           </TabsContent>
           </Tabs>
         </div>
