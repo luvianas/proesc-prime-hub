@@ -43,6 +43,17 @@ interface UserJourney {
   avgDuration: number;
 }
 
+interface SchoolAnalytics {
+  school_id: string;
+  school_name: string;
+  totalEvents: number;
+  uniqueUsers: number;
+  totalTime: number;
+  engagementScore: number;
+  topFeatures: { feature: string; count: number }[];
+  lastActivity: string;
+}
+
 const COLORS = ['hsl(var(--primary))', 'hsl(var(--secondary))', 'hsl(var(--accent))', '#8884d8', '#82ca9d', '#ffc658'];
 
 const BUSINESS_VALUES = {
@@ -223,6 +234,66 @@ export default function AdvancedUsageAnalytics({ onBack }: AdvancedUsageAnalytic
       .sort((a, b) => a.date.localeCompare(b.date));
   }, [events]);
 
+  // School Analytics
+  const schoolAnalytics = useMemo((): SchoolAnalytics[] => {
+    const schoolMap = new Map<string, {
+      events: UsageEvent[];
+      users: Set<string>;
+      features: Map<string, number>;
+    }>();
+
+    events.forEach(event => {
+      if (!event.school_id) return;
+      
+      if (!schoolMap.has(event.school_id)) {
+        schoolMap.set(event.school_id, {
+          events: [],
+          users: new Set(),
+          features: new Map()
+        });
+      }
+      
+      const data = schoolMap.get(event.school_id)!;
+      data.events.push(event);
+      data.users.add(event.user_id);
+      
+      const feature = event.event_properties?.feature || 
+                    event.event_properties?.section || 
+                    event.event_name.split('_')[0] || 'unknown';
+      data.features.set(feature, (data.features.get(feature) || 0) + 1);
+    });
+
+    return Array.from(schoolMap.entries()).map(([school_id, data]) => {
+      const totalTime = data.events.reduce((sum, e) => sum + (e.duration || 0), 0);
+      const engagementScore = Math.min(
+        (totalTime / 3600) * 30 + // Time weight (hours)
+        (data.events.length / 100) * 40 + // Event count weight
+        (data.users.size / 10) * 30, // User diversity weight
+        100
+      );
+
+      const topFeatures = Array.from(data.features.entries())
+        .sort(([,a], [,b]) => b - a)
+        .slice(0, 3)
+        .map(([feature, count]) => ({ feature, count }));
+
+      const lastActivity = data.events.length > 0 
+        ? data.events.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0].created_at
+        : '';
+
+      return {
+        school_id,
+        school_name: `Escola ${school_id.slice(-8)}`, // Placeholder - pode ser melhorado com dados reais
+        totalEvents: data.events.length,
+        uniqueUsers: data.users.size,
+        totalTime,
+        engagementScore: Math.round(engagementScore),
+        topFeatures,
+        lastActivity
+      };
+    }).sort((a, b) => b.engagementScore - a.engagementScore);
+  }, [events]);
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -261,11 +332,12 @@ export default function AdvancedUsageAnalytics({ onBack }: AdvancedUsageAnalytic
       </div>
 
       <Tabs defaultValue="engagement" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="engagement">Engajamento</TabsTrigger>
           <TabsTrigger value="journeys">Jornadas</TabsTrigger>
           <TabsTrigger value="business">ROI</TabsTrigger>
           <TabsTrigger value="trends">Tendências</TabsTrigger>
+          <TabsTrigger value="schools">Escolas</TabsTrigger>
         </TabsList>
 
         <TabsContent value="engagement" className="space-y-6">
@@ -537,6 +609,188 @@ export default function AdvancedUsageAnalytics({ onBack }: AdvancedUsageAnalytic
                     fillOpacity={0.6}
                   />
                 </AreaChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Nova aba de Escolas */}
+        <TabsContent value="schools" className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium flex items-center gap-2">
+                  <BarChart3 className="h-4 w-4" />
+                  Escolas Ativas
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{schoolAnalytics.length}</div>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium flex items-center gap-2">
+                  <TrendingUp className="h-4 w-4" />
+                  Escola Mais Ativa
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-lg font-bold">
+                  {schoolAnalytics[0]?.school_name || 'N/A'}
+                </div>
+                <div className="text-sm text-muted-foreground">
+                  Score: {schoolAnalytics[0]?.engagementScore || 0}
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium flex items-center gap-2">
+                  <Users className="h-4 w-4" />
+                  Total de Usuários
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {schoolAnalytics.reduce((sum, s) => sum + s.uniqueUsers, 0)}
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium flex items-center gap-2">
+                  <Clock className="h-4 w-4" />
+                  Tempo Total
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {Math.round(schoolAnalytics.reduce((sum, s) => sum + s.totalTime, 0) / 3600)}h
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Ranking de Escolas */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <BarChart3 className="h-5 w-5" />
+                Ranking de Escolas por Engajamento
+              </CardTitle>
+              <CardDescription>
+                Baseado em eventos, usuários únicos e tempo de uso
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {schoolAnalytics.slice(0, 10).map((school, index) => (
+                <div key={school.school_id} className="border rounded-lg p-4">
+                  <div className="flex justify-between items-start mb-3">
+                    <div className="flex items-center gap-3">
+                      <Badge variant="outline">#{index + 1}</Badge>
+                      <div>
+                        <div className="font-medium">{school.school_name}</div>
+                        <div className="text-sm text-muted-foreground">
+                          {school.uniqueUsers} usuários • {school.totalEvents} eventos
+                        </div>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-lg font-bold">Score: {school.engagementScore}/100</div>
+                      <div className="text-sm text-muted-foreground">
+                        {Math.round(school.totalTime / 60)} min totais
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <Progress value={school.engagementScore} className="h-2 mb-3" />
+                  
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-sm text-muted-foreground">Top funcionalidades:</span>
+                    {school.topFeatures.map((feature, idx) => (
+                      <Badge key={idx} variant="secondary" className="text-xs">
+                        {feature.feature} ({feature.count})
+                      </Badge>
+                    ))}
+                  </div>
+                  
+                  {school.lastActivity && (
+                    <div className="text-xs text-muted-foreground mt-2">
+                      Última atividade: {new Date(school.lastActivity).toLocaleDateString('pt-BR')}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+
+          {/* Gráfico comparativo de escolas */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Comparação de Eventos por Escola</CardTitle>
+              <CardDescription>
+                Distribuição de atividade entre as escolas mais ativas
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={400}>
+                <BarChart data={schoolAnalytics.slice(0, 8)}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis 
+                    dataKey="school_name" 
+                    angle={-45}
+                    textAnchor="end"
+                    height={80}
+                  />
+                  <YAxis />
+                  <Tooltip 
+                    formatter={(value, name) => [
+                      value,
+                      name === 'totalEvents' ? 'Total de Eventos' : 
+                      name === 'uniqueUsers' ? 'Usuários Únicos' : 'Score de Engajamento'
+                    ]}
+                  />
+                  <Bar dataKey="totalEvents" fill="hsl(var(--primary))" name="totalEvents" />
+                  <Bar dataKey="uniqueUsers" fill="hsl(var(--secondary))" name="uniqueUsers" />
+                </BarChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+
+          {/* Distribuição por escolas - Pie Chart */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Distribuição de Uso por Escola</CardTitle>
+              <CardDescription>
+                Percentual de eventos por escola
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={300}>
+                <PieChart>
+                  <Pie
+                    data={schoolAnalytics.slice(0, 6).map(school => ({
+                      name: school.school_name,
+                      value: school.totalEvents,
+                      percentage: (school.totalEvents / schoolAnalytics.reduce((sum, s) => sum + s.totalEvents, 1)) * 100
+                    }))}
+                    cx="50%"
+                    cy="50%"
+                    outerRadius={100}
+                    fill="#8884d8"
+                    dataKey="value"
+                    label={({ name, percentage }) => `${name}: ${percentage.toFixed(1)}%`}
+                  >
+                    {schoolAnalytics.slice(0, 6).map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                </PieChart>
               </ResponsiveContainer>
             </CardContent>
           </Card>
