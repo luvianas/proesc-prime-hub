@@ -196,8 +196,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     setUserRole(null);
     setMustChangePassword(false);
     
-    // Redirecionar para /auth após logout
-    window.location.href = '/auth';
+    // Redirecionar para /login após logout
+    window.location.href = '/login';
   };
 
   return (

@@ -225,9 +225,9 @@ const Index = () => {
       </div>;
   }
 
-  // Redirect to auth if not logged in
+  // Redirect to login if not logged in
   if (!user) {
-    return <Navigate to="/auth" replace />;
+    return <Navigate to="/login" replace />;
   }
 
   // Redirect admin users to the school selector
@@ -502,7 +502,7 @@ const Index = () => {
       <div className="flex items-center justify-between p-4">
         <Header showAI={showAI} setShowAI={setShowAI} schoolName={schoolHeader?.schoolName} />
         <div className="flex items-center space-x-4">
-          <Link to="/auth">
+          <Link to="/login">
             <Button variant="outline">Entrar no Sistema</Button>
           </Link>
         </div>

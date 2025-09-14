@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -37,6 +37,11 @@ const TicketSystem = ({ onBack, school_id }: TicketSystemProps) => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const params = useParams();
+  const location = useLocation();
+  
+  // Determine if we're in admin view context
+  const isAdminView = location.pathname.includes('/admin/');
+  
   const [showNewTicket, setShowNewTicket] = useState(false);
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [loading, setLoading] = useState(true);
@@ -476,7 +481,13 @@ const TicketSystem = ({ onBack, school_id }: TicketSystemProps) => {
   };
 
   const closeTicketDetails = () => {
-    navigate('/acompanhar-tickets');
+    // If we're in admin context (isAdminView), use the onBack callback
+    // Otherwise, navigate to the tickets list URL
+    if (isAdminView) {
+      onBack();
+    } else {
+      navigate('/acompanhar-tickets');
+    }
   };
 
 

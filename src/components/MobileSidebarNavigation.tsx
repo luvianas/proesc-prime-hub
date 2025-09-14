@@ -61,7 +61,7 @@ const MobileSidebarNavigation: React.FC<MobileSidebarNavigationProps> = ({
           label: "Início",
           icon: Home,
           onClick: () => {
-            onNavigateSection?.('home');
+            window.location.href = '/inicio';
             setOpen(false);
           }
         },
@@ -70,7 +70,7 @@ const MobileSidebarNavigation: React.FC<MobileSidebarNavigationProps> = ({
           label: "Tickets",
           icon: ClipboardList,
           onClick: () => {
-            onNavigateSection?.('tickets');
+            window.location.href = '/acompanhar-tickets';
             setOpen(false);
           }
         },
@@ -79,7 +79,7 @@ const MobileSidebarNavigation: React.FC<MobileSidebarNavigationProps> = ({
           label: "Agenda do Consultor",
           icon: CalendarDays,
           onClick: () => {
-            onNavigateSection?.('consultor-agenda');
+            window.location.href = '/agenda-consultor';
             setOpen(false);
           }
         }
@@ -93,7 +93,7 @@ const MobileSidebarNavigation: React.FC<MobileSidebarNavigationProps> = ({
           label: "Dashboard Financeiro",
           icon: Wallet,
           onClick: () => {
-            onNavigateSection?.('dash-financeiro');
+            window.location.href = '/dashboard/financeiro';
             setOpen(false);
           }
         },
@@ -102,7 +102,7 @@ const MobileSidebarNavigation: React.FC<MobileSidebarNavigationProps> = ({
           label: "Proesc Agenda",
           icon: CalendarDays,
           onClick: () => {
-            onNavigateSection?.('dash-agenda');
+            window.location.href = '/dashboard/agenda';
             setOpen(false);
           }
         },
@@ -111,7 +111,7 @@ const MobileSidebarNavigation: React.FC<MobileSidebarNavigationProps> = ({
           label: "Dashboard Pedagógico",
           icon: GraduationCap,
           onClick: () => {
-            onNavigateSection?.('dash-pedagogico');
+            window.location.href = '/dashboard/pedagogico';
             setOpen(false);
           }
         },
@@ -120,7 +120,7 @@ const MobileSidebarNavigation: React.FC<MobileSidebarNavigationProps> = ({
           label: "Dashboard Secretaria",
           icon: ClipboardCheck,
           onClick: () => {
-            onNavigateSection?.('dash-secretaria');
+            window.location.href = '/dashboard/secretaria';
             setOpen(false);
           }
         }
@@ -136,7 +136,7 @@ const MobileSidebarNavigation: React.FC<MobileSidebarNavigationProps> = ({
       icon: TrendingUp,
       badge: "BETA",
       onClick: () => {
-        onNavigateSection?.('market-analysis');
+        window.location.href = '/estudo-mercado';
         setOpen(false);
       }
     });
