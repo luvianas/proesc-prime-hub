@@ -88,6 +88,99 @@ const normalizeOrganizationId = (orgId: any): string | null => {
   return null;
 };
 
+// Core Zendesk interaction functions
+
+// Get ticket field details including valid values
+async function getTicketFieldDetails(fieldId: number, zendeskUrl: string, authHeaders: any): Promise<any> {
+  console.log(`🔍 Fetching field details for ID: ${fieldId}`);
+  
+  try {
+    const response = await fetch(`${zendeskUrl}/ticket_fields/${fieldId}.json`, {
+      headers: authHeaders
+    });
+
+    if (!response.ok) {
+      console.error(`❌ Error fetching field details: ${response.status} - ${response.statusText}`);
+      return null;
+    }
+
+    const data = await response.json();
+    console.log(`✅ Field details fetched:`, {
+      title: data.ticket_field?.title,
+      type: data.ticket_field?.type,
+      required: data.ticket_field?.required_in_portal,
+      system_field_options: data.ticket_field?.system_field_options?.length || 0,
+      custom_field_options: data.ticket_field?.custom_field_options?.length || 0
+    });
+    return data.ticket_field;
+  } catch (error) {
+    console.error(`❌ Error fetching field details:`, error);
+    return null;
+  }
+}
+
+// Get organization's required fields and form configuration
+async function getOrganizationTicketForm(organizationId: string, zendeskUrl: string, authHeaders: any): Promise<any> {
+  console.log(`🔍 Fetching ticket forms for organization: ${organizationId}`);
+  
+  try {
+    const response = await fetch(`${zendeskUrl}/ticket_forms.json`, {
+      headers: authHeaders
+    });
+
+    if (!response.ok) {
+      console.error(`❌ Error fetching ticket forms: ${response.status} - ${response.statusText}`);
+      return null;
+    }
+
+    const data = await response.json();
+    console.log(`✅ Ticket forms fetched: ${data.ticket_forms?.length || 0} forms found`);
+    return data.ticket_forms;
+  } catch (error) {
+    console.error(`❌ Error fetching ticket forms:`, error);
+    return null;
+  }
+}
+
+// Validate ticket data against Zendesk requirements
+async function validateTicketRequiredField(fieldId: number, currentValue: string, zendeskUrl: string, authHeaders: any): Promise<{ isValid: boolean, validValues?: string[], fieldDetails?: any }> {
+  console.log(`🔍 Validating field ${fieldId} with value: "${currentValue}"`);
+  
+  const fieldDetails = await getTicketFieldDetails(fieldId, zendeskUrl, authHeaders);
+  
+  if (!fieldDetails) {
+    return { isValid: false };
+  }
+
+  console.log(`📝 Field "${fieldDetails.title}" details:`, {
+    type: fieldDetails.type,
+    required: fieldDetails.required_in_portal,
+    has_custom_options: !!fieldDetails.custom_field_options,
+    has_system_options: !!fieldDetails.system_field_options
+  });
+
+  // Check if field has predefined options
+  if (fieldDetails.custom_field_options && fieldDetails.custom_field_options.length > 0) {
+    const validValues = fieldDetails.custom_field_options.map((option: any) => option.value);
+    console.log(`✅ Valid values for "${fieldDetails.title}": ${JSON.stringify(validValues)}`);
+    
+    const isValid = validValues.includes(currentValue);
+    console.log(`🎯 Value "${currentValue}" is ${isValid ? 'VALID' : 'INVALID'} for field "${fieldDetails.title}"`);
+    
+    return {
+      isValid,
+      validValues,
+      fieldDetails
+    };
+  }
+
+  // If no specific options, assume any value is valid
+  return { 
+    isValid: true, 
+    fieldDetails 
+  };
+}
+
 // Function to get detailed ticket information including comments and audits
 const getTicketDetails = async (ticketId: string, subdomain: string, email: string, token: string) => {
   const cleanSubdomain = subdomain.replace(/\.zendesk\.com$/, '');
@@ -686,6 +779,43 @@ serve(async (req) => {
 
         console.log('✅ User validated in Zendesk, proceeding with ticket creation');
 
+        // Validate the required field before creating the ticket
+        const problematicFieldId = 21489510726039;
+        const defaultFieldValue = "sistema_proesc";
+        
+        console.log(`🔍 Validating required field ${problematicFieldId} before ticket creation...`);
+        const fieldValidation = await validateTicketRequiredField(
+          problematicFieldId, 
+          defaultFieldValue, 
+          zendeskUrl, 
+          zendeskHeaders
+        );
+
+        let finalFieldValue = defaultFieldValue;
+        
+        if (!fieldValidation.isValid && fieldValidation.validValues) {
+          console.log(`⚠️ Default value "${defaultFieldValue}" is not valid. Valid values: ${JSON.stringify(fieldValidation.validValues)}`);
+          
+          // Try to use the first valid value as fallback
+          if (fieldValidation.validValues.length > 0) {
+            finalFieldValue = fieldValidation.validValues[0];
+            console.log(`🔄 Using fallback value: "${finalFieldValue}"`);
+          } else {
+            console.error(`❌ No valid values found for required field ${problematicFieldId}`);
+            return new Response(JSON.stringify({
+              error: 'invalid_required_field',
+              message: `Campo obrigatório "${fieldValidation.fieldDetails?.title || 'Árvore de Perguntas'}" não possui valores válidos disponíveis`,
+              fieldDetails: fieldValidation.fieldDetails,
+              tickets: []
+            }), {
+              status: 400,
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+            });
+          }
+        } else {
+          console.log(`✅ Field value "${finalFieldValue}" is valid for field ${problematicFieldId}`);
+        }
+
         // Prepare ticket data
         const ticketData = {
           ticket: {
@@ -700,8 +830,8 @@ serve(async (req) => {
             tags: ['proesc'],
             custom_fields: [
               {
-                id: 21489510726039, // Campo obrigatório "Árvore de Perguntas"
-                value: "sistema_proesc" // Valor padrão para tickets criados pelo sistema
+                id: problematicFieldId,
+                value: finalFieldValue
               }
             ]
           }
@@ -714,7 +844,13 @@ serve(async (req) => {
           requester_email: profile.email,
           zendesk_user_id: userValidation.userId,
           organization_id: organizationId,
-          custom_fields: ticketData.ticket.custom_fields
+          custom_fields: ticketData.ticket.custom_fields,
+          field_validation_result: {
+            field_id: problematicFieldId,
+            used_value: finalFieldValue,
+            is_valid: fieldValidation.isValid,
+            available_values: fieldValidation.validValues
+          }
         });
 
         // Create ticket in Zendesk
@@ -727,6 +863,55 @@ serve(async (req) => {
         if (!createResponse.ok) {
           const errorData = await createResponse.json();
           console.error('❌ Error creating ticket:', errorData);
+          
+          // Handle validation errors (422) with detailed information
+          if (createResponse.status === 422) {
+            let detailedErrorMessage = 'Erro de validação na criação do ticket';
+            let fieldErrors = [];
+            
+            if (errorData.details && errorData.details.base) {
+              fieldErrors = errorData.details.base.map((error: any) => ({
+                field_id: error.ticket_field_id,
+                field_type: error.ticket_field_type,
+                description: error.description,
+                error: error.error
+              }));
+              
+              console.log('📋 Validation errors details:', fieldErrors);
+              
+              // Check if it's the problematic field and get valid values
+              const problematicError = fieldErrors.find((err: any) => err.field_id === problematicFieldId);
+              if (problematicError) {
+                console.log(`🔍 Re-checking field ${problematicFieldId} for valid values...`);
+                const revalidation = await validateTicketRequiredField(
+                  problematicFieldId, 
+                  finalFieldValue, 
+                  zendeskUrl, 
+                  zendeskHeaders
+                );
+                
+                if (revalidation.validValues && revalidation.validValues.length > 0) {
+                  detailedErrorMessage = `Campo "${problematicError.description}" requer um dos seguintes valores: ${revalidation.validValues.join(', ')}. Valor usado: "${finalFieldValue}"`;
+                } else {
+                  detailedErrorMessage = `Campo "${problematicError.description}" é obrigatório mas não foi possível determinar os valores válidos.`;
+                }
+              }
+            }
+            
+            return new Response(JSON.stringify({
+              error: 'validation_error',
+              message: detailedErrorMessage,
+              zendesk_status: createResponse.status,
+              zendesk_error: errorData,
+              field_errors: fieldErrors,
+              tickets: []
+            }), {
+              status: 400,
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+            });
+          }
+          
+          // Handle other errors
           throw new Error(`Failed to create ticket: ${createResponse.status} - ${errorData.description || errorData.error}`);
         }
 
