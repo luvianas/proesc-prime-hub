@@ -7,7 +7,9 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, Plus, Search, Clock, CheckCircle, AlertCircle, ExternalLink, Loader2, User, Filter, ChevronLeft, ChevronRight } from "lucide-react";
+import { ArrowLeft, Plus, Search, Clock, CheckCircle, AlertCircle, ExternalLink, Loader2, User, Filter, ChevronLeft, ChevronRight, Upload, Paperclip, X, Image } from "lucide-react";
+import ReactQuill from 'react-quill';
+import 'react-quill/dist/quill.snow.css';
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/components/ui/use-toast";
@@ -48,6 +50,7 @@ const TicketSystem = ({ onBack, school_id }: TicketSystemProps) => {
   const [creating, setCreating] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [newTicket, setNewTicket] = useState({ title: "", description: "", priority: "normal" });
+  const [attachments, setAttachments] = useState<File[]>([]);
   
   // Filtros e paginação
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -324,7 +327,8 @@ const TicketSystem = ({ onBack, school_id }: TicketSystemProps) => {
           subject: newTicket.title,
           description: newTicket.description,
           priority: newTicket.priority,
-          type: 'question'
+          type: 'question',
+          attachments: attachments.length > 0 ? attachments : undefined
         }
       });
 
@@ -371,6 +375,7 @@ const TicketSystem = ({ onBack, school_id }: TicketSystemProps) => {
       });
 
       setNewTicket({ title: "", description: "", priority: "normal" });
+      setAttachments([]);
       setShowNewTicket(false);
       
       // Reload tickets to show the new one
@@ -491,6 +496,56 @@ const TicketSystem = ({ onBack, school_id }: TicketSystemProps) => {
   useEffect(() => {
     setCurrentPage(1);
   }, [statusFilter, requesterFilter, typeFilter, searchQuery, sortBy]);
+
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(event.target.files || []);
+    setAttachments(prev => [...prev, ...files]);
+  };
+
+  const removeAttachment = (index: number) => {
+    setAttachments(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const handlePaste = (e: ClipboardEvent) => {
+    const items = e.clipboardData?.items;
+    if (items) {
+      for (let i = 0; i < items.length; i++) {
+        const item = items[i];
+        if (item.type.indexOf('image') !== -1) {
+          const blob = item.getAsFile();
+          if (blob) {
+            const file = new File([blob], `pasted-image-${Date.now()}.png`, { type: blob.type });
+            setAttachments(prev => [...prev, file]);
+          }
+        }
+      }
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    const files = Array.from(e.dataTransfer.files);
+    setAttachments(prev => [...prev, ...files]);
+  };
+
+  const quillModules = {
+    toolbar: [
+      [{ 'header': [1, 2, 3, false] }],
+      ['bold', 'italic', 'underline', 'strike'],
+      [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+      ['link', 'image'],
+      ['clean']
+    ],
+  };
+
+  const quillFormats = [
+    'header', 'bold', 'italic', 'underline', 'strike',
+    'list', 'bullet', 'link', 'image'
+  ];
 
   const searchTickets = () => {
     // A busca agora é feita automaticamente através dos filtros
@@ -666,27 +721,174 @@ const TicketSystem = ({ onBack, school_id }: TicketSystemProps) => {
         <Card className="mb-6">
           <CardHeader>
             <CardTitle>Criar Novo Ticket</CardTitle>
-            <CardDescription>Descreva seu problema ou solicitação</CardDescription>
+            <CardDescription>Descreva seu problema ou solicitação com texto rico e anexos</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <Input 
-              placeholder="Título do ticket" 
-              value={newTicket.title}
-              onChange={(e) => setNewTicket(prev => ({ ...prev, title: e.target.value }))}
-            />
-            <Textarea 
-              placeholder="Descreva detalhadamente sua solicitação..." 
-              rows={4}
-              value={newTicket.description}
-              onChange={(e) => setNewTicket(prev => ({ ...prev, description: e.target.value }))}
-            />
-            <div className="flex justify-end space-x-2">
-              <Button variant="outline" onClick={() => setShowNewTicket(false)} disabled={creating}>
+          <CardContent className="space-y-6">
+            {/* Title Input */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Título *</label>
+              <Input 
+                placeholder="Título do ticket" 
+                value={newTicket.title}
+                onChange={(e) => setNewTicket(prev => ({ ...prev, title: e.target.value }))}
+                disabled={creating}
+              />
+            </div>
+
+            {/* Rich Text Editor */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Descrição *</label>
+              <div 
+                className="min-h-[200px] border rounded-md"
+                onDrop={handleDrop}
+                onDragOver={handleDragOver}
+                onPaste={handlePaste as any}
+              >
+                <ReactQuill
+                  theme="snow"
+                  value={newTicket.description}
+                  onChange={(value) => setNewTicket(prev => ({ ...prev, description: value }))}
+                  modules={quillModules}
+                  formats={quillFormats}
+                  placeholder="Descreva detalhadamente sua solicitação... 
+
+Dicas:
+• Use Ctrl+V para colar imagens
+• Arraste arquivos para esta área
+• Use a formatação para destacar informações importantes"
+                  className="min-h-[150px]"
+                  style={{ height: '180px' }}
+                />
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Suporte a texto rico, imagens (Ctrl+V) e formatação. Arraste arquivos ou use o botão abaixo.
+              </p>
+            </div>
+
+            {/* File Upload Section */}
+            <div className="space-y-3">
+              <div className="flex items-center space-x-2">
+                <label className="text-sm font-medium">Anexos</label>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => document.getElementById('file-upload')?.click()}
+                  disabled={creating}
+                >
+                  <Paperclip className="h-4 w-4 mr-2" />
+                  Adicionar Arquivos
+                </Button>
+                <input
+                  id="file-upload"
+                  type="file"
+                  multiple
+                  className="hidden"
+                  onChange={handleFileUpload}
+                  accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.gif,.txt,.zip,.rar"
+                />
+              </div>
+
+              {/* Drag & Drop Zone */}
+              <div 
+                className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-4 text-center hover:border-muted-foreground/50 transition-colors"
+                onDrop={handleDrop}
+                onDragOver={handleDragOver}
+              >
+                <Upload className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
+                <p className="text-sm text-muted-foreground">
+                  Arraste arquivos aqui ou clique no botão acima
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Suporte: PDF, DOC, DOCX, imagens, TXT, ZIP (até 25MB por arquivo)
+                </p>
+              </div>
+
+              {/* Attached Files List */}
+              {attachments.length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-sm font-medium">Arquivos anexados ({attachments.length}):</p>
+                  <div className="space-y-2 max-h-32 overflow-y-auto">
+                    {attachments.map((file, index) => (
+                      <div key={index} className="flex items-center justify-between bg-muted/50 p-2 rounded border">
+                        <div className="flex items-center space-x-2 flex-1 min-w-0">
+                          {file.type.startsWith('image/') ? (
+                            <Image className="h-4 w-4 text-blue-500 flex-shrink-0" />
+                          ) : (
+                            <Paperclip className="h-4 w-4 text-gray-500 flex-shrink-0" />
+                          )}
+                          <span className="text-sm truncate" title={file.name}>
+                            {file.name}
+                          </span>
+                          <span className="text-xs text-muted-foreground flex-shrink-0">
+                            ({(file.size / 1024 / 1024).toFixed(1)}MB)
+                          </span>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => removeAttachment(index)}
+                          disabled={creating}
+                          className="h-6 w-6 p-0 hover:bg-destructive/10 hover:text-destructive"
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Priority Selection */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Prioridade</label>
+              <Select 
+                value={newTicket.priority} 
+                onValueChange={(value) => setNewTicket(prev => ({ ...prev, priority: value }))}
+                disabled={creating}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="low">Baixa</SelectItem>
+                  <SelectItem value="normal">Normal</SelectItem>
+                  <SelectItem value="high">Alta</SelectItem>
+                  <SelectItem value="urgent">Urgente</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex justify-end space-x-3 pt-2">
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                  setShowNewTicket(false);
+                  setNewTicket({ title: "", description: "", priority: "normal" });
+                  setAttachments([]);
+                }} 
+                disabled={creating}
+              >
                 Cancelar
               </Button>
-              <Button onClick={createTicket} disabled={creating}>
-                {creating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Criar Ticket
+              <Button 
+                onClick={createTicket} 
+                disabled={creating || !newTicket.title.trim() || !newTicket.description.trim()}
+                className="min-w-[120px]"
+              >
+                {creating ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Criando...
+                  </>
+                ) : (
+                  <>
+                    <Plus className="mr-2 h-4 w-4" />
+                    Criar Ticket
+                  </>
+                )}
               </Button>
             </div>
           </CardContent>

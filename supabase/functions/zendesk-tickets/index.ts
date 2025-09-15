@@ -739,7 +739,7 @@ serve(async (req) => {
       console.log('🎫 Creating new ticket in Zendesk');
       
       try {
-        const { subject, description, priority = 'normal', type = 'question' } = requestBody || {};
+        const { subject, description, priority = 'normal', type = 'question', attachments } = requestBody || {};
         
         if (!subject || subject.trim() === '') {
           return new Response(JSON.stringify({
@@ -759,6 +759,48 @@ serve(async (req) => {
             status: 400,
             headers: { ...corsHeaders, 'Content-Type': 'application/json' }
           });
+        }
+
+        // Process HTML description and extract base64 images if present
+        let processedDescription = description.trim();
+        let uploadTokens: string[] = [];
+        
+        // Check if description contains HTML (ReactQuill output)
+        if (description.includes('<') && description.includes('>')) {
+          console.log('📝 Processing HTML description for rich content...');
+          try {
+            const { html: processedHtml, base64Images } = await processQuillHtml(description);
+            processedDescription = processedHtml;
+            console.log(`🖼️ Found ${base64Images.length} base64 images in HTML content`);
+            
+            // Upload base64 images to Zendesk and get upload tokens
+            if (base64Images.length > 0) {
+              console.log(`📤 Uploading ${base64Images.length} base64 images...`);
+              for (const base64Data of base64Images) {
+                try {
+                  const uploadToken = await uploadImageToZendesk(base64Data, zendeskHeaders);
+                  if (uploadToken) {
+                    uploadTokens.push(uploadToken);
+                    console.log(`✅ Image uploaded, token: ${uploadToken}`);
+                  }
+                } catch (error) {
+                  console.error("❌ Error uploading image:", error);
+                }
+              }
+            }
+          } catch (error) {
+            console.error('❌ Error processing HTML content:', error);
+            // Fallback to plain text if HTML processing fails
+            processedDescription = description.replace(/<[^>]*>/g, '').trim();
+          }
+        }
+
+        // TODO: Process file attachments if any
+        // Note: File attachment handling would require additional implementation
+        // as edge functions need special handling for binary data
+        if (attachments && Array.isArray(attachments) && attachments.length > 0) {
+          console.log(`📎 Note: ${attachments.length} file attachments detected but not yet implemented`);
+          // Placeholder for future file attachment implementation
         }
 
         // Validate that user exists in Zendesk before creating ticket
@@ -821,7 +863,8 @@ serve(async (req) => {
           ticket: {
             subject: subject.trim(),
             comment: {
-              body: description.trim()
+              html_body: processedDescription,
+              uploads: uploadTokens.length > 0 ? uploadTokens : undefined
             },
             priority: mapPriorityToZendesk(priority),
             type: type,
