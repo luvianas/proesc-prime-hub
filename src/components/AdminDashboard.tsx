@@ -1671,7 +1671,12 @@ const AdminDashboard = () => {
                       <div>
                         <div className="font-medium">{consultantPreview.name}</div>
                         <div className="text-muted-foreground">WhatsApp: {consultantPreview.consultant_whatsapp || '—'}</div>
-                        <div className="text-muted-foreground truncate">Agenda: {consultantPreview.consultant_calendar_url || '—'}</div>
+                            <div className="text-muted-foreground">
+                              Agenda: {consultantPreview.consultant_calendar_url ? 
+                                <span className="text-green-600">✅ Preenchido</span> : 
+                                <span className="text-red-500">❌ Não Preenchido</span>
+                              }
+                            </div>
                       </div>
                     </div>
                   </div>
