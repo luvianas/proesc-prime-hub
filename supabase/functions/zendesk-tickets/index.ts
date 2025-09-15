@@ -498,9 +498,32 @@ serve(async (req) => {
   // Check if it's a POST request with body data
   if (req.method === 'POST') {
     try {
-      requestBody = await req.json();
-      ticketId = requestBody.ticket_id || ticketId;
-      action = requestBody.action || action;
+      // Check if it's FormData (multipart) or JSON
+      const contentType = req.headers.get('content-type') || '';
+      
+      if (contentType.includes('multipart/form-data')) {
+        console.log('📎 Processing FormData request');
+        const formData = await req.formData();
+        
+        // Extract basic fields from FormData
+        requestBody = {
+          action: formData.get('action') || 'create_ticket',
+          subject: formData.get('subject'),
+          description: formData.get('description'),
+          priority: formData.get('priority') || 'normal',
+          type: formData.get('type') || 'question',
+          organization_id: formData.get('organization_id'),
+          files: formData.getAll('files')
+        };
+        
+        action = requestBody.action;
+      } else {
+        console.log('📄 Processing JSON request');
+        requestBody = await req.json();
+        ticketId = requestBody.ticket_id || ticketId;
+        action = requestBody.action || action;
+      }
+      
       console.log('📥 POST request body:', { action, ticket_id: ticketId });
     } catch (error) {
       console.log('⚠️ Failed to parse POST body, using query params only');
@@ -736,10 +759,30 @@ serve(async (req) => {
 
     // Handle create ticket request
     if (action === 'create_ticket') {
-      console.log('🎫 Creating new ticket in Zendesk');
+      console.log('🎫 Zendesk-tickets: Creating new ticket');
       
       try {
-        const { subject, description, priority = 'normal', type = 'question', attachments } = requestBody || {};
+        let subject, description, priority, type, files;
+        let uploadTokens: string[] = [];
+        
+        // Extract data from request (FormData or JSON)
+        if (requestBody?.files) {
+          // FormData request
+          subject = requestBody.subject;
+          description = requestBody.description;
+          priority = requestBody.priority || 'normal';
+          type = requestBody.type || 'question';
+          files = requestBody.files;
+          console.log(`📎 Processing FormData with ${files.length} files`);
+        } else {
+          // JSON request
+          const data = requestBody || {};
+          subject = data.subject;
+          description = data.description;
+          priority = data.priority || 'normal';
+          type = data.type || 'question';
+          files = [];
+        }
         
         if (!subject || subject.trim() === '') {
           return new Response(JSON.stringify({
@@ -763,28 +806,63 @@ serve(async (req) => {
 
         // Process HTML description and extract base64 images if present
         let processedDescription = description.trim();
-        let uploadTokens: string[] = [];
         
         // Check if description contains HTML (ReactQuill output)
         if (description.includes('<') && description.includes('>')) {
           console.log('📝 Processing HTML description for rich content...');
           try {
-            const { html: processedHtml, base64Images } = await processQuillHtml(description);
+            const { html: processedHtml, base64Images } = processQuillHtml(description);
             processedDescription = processedHtml;
             console.log(`🖼️ Found ${base64Images.length} base64 images in HTML content`);
             
             // Upload base64 images to Zendesk and get upload tokens
             if (base64Images.length > 0) {
               console.log(`📤 Uploading ${base64Images.length} base64 images...`);
-              for (const base64Data of base64Images) {
+              for (let i = 0; i < base64Images.length; i++) {
+                const base64Image = base64Images[i];
                 try {
-                  const uploadToken = await uploadImageToZendesk(base64Data, zendeskHeaders);
-                  if (uploadToken) {
-                    uploadTokens.push(uploadToken);
-                    console.log(`✅ Image uploaded, token: ${uploadToken}`);
+                  console.log(`⬆️ Uploading base64 image ${i + 1}/${base64Images.length}`);
+                  
+                  // Extract image data and format
+                  const matches = base64Image.match(/^data:image\/([a-zA-Z]*);base64,(.*)$/);
+                  if (!matches) {
+                    console.error('❌ Invalid base64 image format');
+                    continue;
                   }
-                } catch (error) {
-                  console.error("❌ Error uploading image:", error);
+                  
+                  const imageType = matches[1];
+                  const imageData = matches[2];
+                  const fileName = `pasted_image_${Date.now()}_${i + 1}.${imageType}`;
+                  
+                  // Create binary data
+                  const binaryData = Uint8Array.from(atob(imageData), c => c.charCodeAt(0));
+                  
+                  // Create form data for Zendesk upload
+                  const uploadFormData = new FormData();
+                  const blob = new Blob([binaryData], { type: `image/${imageType}` });
+                  uploadFormData.append('file', blob, fileName);
+                  
+                  const uploadResponse = await fetch(`${zendeskUrl}/uploads.json`, {
+                    method: 'POST',
+                    headers: {
+                      'Authorization': `Basic ${credentials}`,
+                    },
+                    body: uploadFormData,
+                  });
+                  
+                  if (uploadResponse.ok) {
+                    const uploadResult = await uploadResponse.json();
+                    if (uploadResult.upload?.token) {
+                      uploadTokens.push(uploadResult.upload.token);
+                      console.log(`✅ Base64 image uploaded successfully: ${fileName}, token: ${uploadResult.upload.token}`);
+                    } else {
+                      console.error('❌ Failed to get upload token for base64 image');
+                    }
+                  } else {
+                    console.error(`❌ Failed to upload base64 image, status: ${uploadResponse.status}`);
+                  }
+                } catch (uploadError) {
+                  console.error('❌ Error uploading base64 image:', uploadError);
                 }
               }
             }
@@ -795,12 +873,48 @@ serve(async (req) => {
           }
         }
 
-        // TODO: Process file attachments if any
-        // Note: File attachment handling would require additional implementation
-        // as edge functions need special handling for binary data
-        if (attachments && Array.isArray(attachments) && attachments.length > 0) {
-          console.log(`📎 Note: ${attachments.length} file attachments detected but not yet implemented`);
-          // Placeholder for future file attachment implementation
+        // Process file attachments
+        if (files && files.length > 0) {
+          console.log(`📎 Processing ${files.length} file attachments`);
+          
+          for (const file of files) {
+            if (file && file.size > 0) {
+              try {
+                console.log(`⬆️ Uploading file: ${file.name} (${file.size} bytes)`);
+                
+                // Convert file to ArrayBuffer
+                const arrayBuffer = await file.arrayBuffer();
+                const uint8Array = new Uint8Array(arrayBuffer);
+                
+                // Create form data for Zendesk upload
+                const uploadFormData = new FormData();
+                const blob = new Blob([uint8Array], { type: file.type });
+                uploadFormData.append('file', blob, file.name);
+                
+                const uploadResponse = await fetch(`${zendeskUrl}/uploads.json`, {
+                  method: 'POST',
+                  headers: {
+                    'Authorization': `Basic ${credentials}`,
+                  },
+                  body: uploadFormData,
+                });
+                
+                if (uploadResponse.ok) {
+                  const uploadResult = await uploadResponse.json();
+                  if (uploadResult.upload?.token) {
+                    uploadTokens.push(uploadResult.upload.token);
+                    console.log(`✅ File uploaded successfully: ${file.name}, token: ${uploadResult.upload.token}`);
+                  } else {
+                    console.error(`❌ Failed to get upload token for file: ${file.name}`);
+                  }
+                } else {
+                  console.error(`❌ Failed to upload file: ${file.name}, status: ${uploadResponse.status}`);
+                }
+              } catch (fileError) {
+                console.error(`❌ Error uploading file ${file.name}:`, fileError);
+              }
+            }
+          }
         }
 
         // Validate that user exists in Zendesk before creating ticket
@@ -859,6 +973,7 @@ serve(async (req) => {
         }
 
         // Prepare ticket data
+        console.log(`🎫 Creating ticket with ${uploadTokens.length} upload tokens`);
         const ticketData = {
           ticket: {
             subject: subject.trim(),
@@ -887,6 +1002,7 @@ serve(async (req) => {
           requester_email: profile.email,
           zendesk_user_id: userValidation.userId,
           organization_id: organizationId,
+          uploads_count: uploadTokens.length,
           custom_fields: ticketData.ticket.custom_fields,
           field_validation_result: {
             field_id: problematicFieldId,

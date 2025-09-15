@@ -305,87 +305,117 @@ const TicketSystem = ({ onBack, school_id }: TicketSystemProps) => {
   const createTicket = async () => {
     if (!newTicket.title.trim() || !newTicket.description.trim()) {
       toast({
-        title: "Campos obrigatórios",
-        description: "Preencha o título e descrição do ticket.",
+        title: "Erro",
+        description: "Por favor, preencha o título e a descrição do ticket.",
         variant: "destructive",
       });
       return;
     }
 
+    setCreating(true);
+
     try {
-      setCreating(true);
+      let response;
       
-      const { data: session } = await supabase.auth.getSession();
-      
-      // Criar ticket diretamente no Zendesk via zendesk-tickets
-      const { data, error } = await supabase.functions.invoke('zendesk-tickets', {
-        headers: {
-          Authorization: `Bearer ${session?.session?.access_token}`
-        },
-        body: { 
-          action: 'create_ticket',
-          subject: newTicket.title,
-          description: newTicket.description,
-          priority: newTicket.priority,
-          type: 'question',
-          attachments: attachments.length > 0 ? attachments : undefined
-        }
-      });
-
-      if (error) {
-        throw error;
-      }
-
-      // Handle specific error cases from the function
-      if (data?.error) {
-        console.error('❌ TicketSystem: Erro ao criar ticket:', data);
+      // Use FormData if there are file attachments, otherwise use JSON
+      if (attachments.length > 0) {
+        console.log('📎 Sending request with FormData due to file attachments');
+        const formData = new FormData();
+        formData.append('action', 'create_ticket');
+        formData.append('subject', newTicket.title);
+        formData.append('description', newTicket.description);
+        formData.append('priority', newTicket.priority);
+        formData.append('type', 'question');
         
-        switch (data.error) {
-          case 'user_not_found_in_zendesk':
-            toast({
-              title: "Usuário não encontrado no Zendesk",
-              description: data.message || "Entre em contato com o administrador para criar seu acesso.",
-              variant: "destructive",
-            });
-            break;
-            
-          case 'subject_required':
-          case 'description_required':
-            toast({
-              title: "Dados incompletos",
-              description: data.message || "Preencha todos os campos obrigatórios.",
-              variant: "destructive",
-            });
-            break;
-            
-          default:
-            toast({
-              title: "Erro ao criar ticket",
-              description: data.message || "Não foi possível criar o ticket. Tente novamente.",
-              variant: "destructive",
-            });
+        // Add file attachments
+        attachments.forEach((file) => {
+          formData.append('files', file);
+        });
+        
+        if (school_id) {
+          formData.append('organization_id', school_id);
         }
-        return;
+
+        // Use Supabase edge function URL directly for FormData
+        const { data: { session } } = await supabase.auth.getSession();
+        const functionUrl = `https://yzlbtfhjohjhnqjbtmjn.supabase.co/functions/v1/zendesk-tickets`;
+        
+        response = await fetch(functionUrl, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${session?.access_token}`,
+            'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl6bGJ0Zmhqb2hqaG5xamJ0bWpuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQ0MjI4MzgsImV4cCI6MjA2OTk5ODgzOH0.wfdPLyebymkk34wW6GVm-fzq9zLO9-4xJQDSf3zEnTY',
+          },
+          body: formData,
+        });
+
+        const data = await response.json();
+        
+        if (!response.ok) {
+          throw new Error(data.error || 'Erro ao enviar ticket com anexos');
+        }
+
+        if (data.success) {
+          toast({
+            title: "Sucesso",
+            description: "Ticket criado com sucesso!",
+          });
+          
+          // Reset form
+          setNewTicket({
+            title: "",
+            description: "",
+            priority: "normal",
+          });
+          setAttachments([]);
+          setShowNewTicket(false);
+          
+          // Reload tickets
+          loadTickets();
+        } else {
+          throw new Error(data.error || 'Erro desconhecido ao criar ticket');
+        }
+      } else {
+        console.log('📄 Sending JSON request (no file attachments)');
+        const { data, error } = await supabase.functions.invoke('zendesk-tickets', {
+          body: {
+            action: 'create_ticket',
+            subject: newTicket.title,
+            description: newTicket.description,
+            priority: newTicket.priority,
+            type: 'question',
+            ...(school_id && { organization_id: school_id })
+          }
+        });
+
+        if (error) throw error;
+
+        if (data.success) {
+          toast({
+            title: "Sucesso",
+            description: "Ticket criado com sucesso!",
+          });
+          
+          // Reset form
+          setNewTicket({
+            title: "",
+            description: "",
+            priority: "normal",
+          });
+          setAttachments([]);
+          setShowNewTicket(false);
+          
+          // Reload tickets
+          loadTickets();
+        } else {
+          throw new Error(data.error || 'Erro desconhecido ao criar ticket');
+        }
       }
-
-      // Success case
-      toast({
-        title: "Ticket criado com sucesso",
-        description: `Ticket #${data.ticket?.zendesk_id} criado no Zendesk.`,
-      });
-
-      setNewTicket({ title: "", description: "", priority: "normal" });
-      setAttachments([]);
-      setShowNewTicket(false);
-      
-      // Reload tickets to show the new one
-      loadTickets();
-      
     } catch (error) {
       console.error('Error creating ticket:', error);
       toast({
-        title: "Erro ao criar ticket",
-        description: "Não foi possível criar o ticket. Tente novamente.",
+        title: "Erro",
+        description: error instanceof Error ? error.message : "Erro ao criar ticket. Tente novamente.",
         variant: "destructive",
       });
     } finally {
