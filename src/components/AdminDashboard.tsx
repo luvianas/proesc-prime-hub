@@ -1145,7 +1145,7 @@ const AdminDashboard = () => {
                     Nova Escola
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="sm:max-w-lg max-h-[80vh] overflow-y-auto">
+                <DialogContent className="sm:max-w-3xl max-h-[80vh] overflow-y-auto">
                   <DialogHeader>
                     <DialogTitle>Criar Nova Escola</DialogTitle>
                     <DialogDescription>
@@ -1246,70 +1246,6 @@ const AdminDashboard = () => {
                         placeholder="Ex: 12345, 98765" 
                         type="number"
                       />
-                    </div>
-                    
-                    <div className="space-y-4">
-                      <h4 className="font-medium">Links dos Dashboards (Metabase)</h4>
-                      <div className="space-y-2">
-                        <Label htmlFor="dashFinanceiro">Dashboard Financeiro</Label>
-                        <Input 
-                          id="dashFinanceiro" 
-                          value={newSchool.dashboard_links?.financeiro || ''} 
-                          onChange={e => setNewSchool({
-                            ...newSchool,
-                            dashboard_links: {
-                              ...newSchool.dashboard_links,
-                              financeiro: e.target.value
-                            }
-                          })} 
-                          placeholder="https://metabase.escola.com/public/dashboard/..." 
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="dashAgenda">Dashboard Agenda</Label>
-                        <Input 
-                          id="dashAgenda" 
-                          value={newSchool.dashboard_links?.agenda || ''} 
-                          onChange={e => setNewSchool({
-                            ...newSchool,
-                            dashboard_links: {
-                              ...newSchool.dashboard_links,
-                              agenda: e.target.value
-                            }
-                          })} 
-                          placeholder="https://metabase.escola.com/public/dashboard/..." 
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="dashSecretaria">Dashboard Secretaria</Label>
-                        <Input 
-                          id="dashSecretaria" 
-                          value={newSchool.dashboard_links?.secretaria || ''} 
-                          onChange={e => setNewSchool({
-                            ...newSchool,
-                            dashboard_links: {
-                              ...newSchool.dashboard_links,
-                              secretaria: e.target.value
-                            }
-                          })} 
-                          placeholder="https://metabase.escola.com/public/dashboard/..." 
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="dashPedagogico">Dashboard Pedagógico</Label>
-                        <Input 
-                          id="dashPedagogico" 
-                          value={newSchool.dashboard_links?.pedagogico || ''} 
-                          onChange={e => setNewSchool({
-                            ...newSchool,
-                            dashboard_links: {
-                              ...newSchool.dashboard_links,
-                              pedagogico: e.target.value
-                            }
-                          })} 
-                          placeholder="https://metabase.escola.com/public/dashboard/..." 
-                        />
-                      </div>
                     </div>
                     <Button onClick={createSchool} className="w-full">
                       Criar Escola
@@ -1635,7 +1571,7 @@ const AdminDashboard = () => {
 
       {/* Edit School Dialog */}
       <Dialog open={editSchoolDialogOpen} onOpenChange={setEditSchoolDialogOpen}>
-        <DialogContent className="sm:max-w-lg max-h-[80vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-3xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Editar Escola</DialogTitle>
             <DialogDescription>Modificar configurações da escola selecionada</DialogDescription>
@@ -1774,66 +1710,6 @@ const AdminDashboard = () => {
                     ⚠️ Atenção: Esta funcionalidade consome créditos da API do Google Maps
                   </div>
                 )}
-              </div>
-              
-              <div className="space-y-4">
-                <h4 className="font-medium">Links dos Dashboards (Metabase)</h4>
-                <div className="space-y-2">
-                  <Label htmlFor="editDashFinanceiro">Dashboard Financeiro</Label>
-                  <Input 
-                    id="editDashFinanceiro" 
-                    value={editingSchool.dashboard_links?.financeiro || ''} 
-                    onChange={e => setEditingSchool({
-                      ...editingSchool,
-                      dashboard_links: {
-                        ...editingSchool.dashboard_links,
-                        financeiro: e.target.value
-                      }
-                    })} 
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="editDashAgenda">Dashboard Agenda</Label>
-                  <Input 
-                    id="editDashAgenda" 
-                    value={editingSchool.dashboard_links?.agenda || ''} 
-                    onChange={e => setEditingSchool({
-                      ...editingSchool,
-                      dashboard_links: {
-                        ...editingSchool.dashboard_links,
-                        agenda: e.target.value
-                      }
-                    })} 
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="editDashSecretaria">Dashboard Secretaria</Label>
-                  <Input 
-                    id="editDashSecretaria" 
-                    value={editingSchool.dashboard_links?.secretaria || ''} 
-                    onChange={e => setEditingSchool({
-                      ...editingSchool,
-                      dashboard_links: {
-                        ...editingSchool.dashboard_links,
-                        secretaria: e.target.value
-                      }
-                    })} 
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="editDashPedagogico">Dashboard Pedagógico</Label>
-                  <Input 
-                    id="editDashPedagogico" 
-                    value={editingSchool.dashboard_links?.pedagogico || ''} 
-                    onChange={e => setEditingSchool({
-                      ...editingSchool,
-                      dashboard_links: {
-                        ...editingSchool.dashboard_links,
-                        pedagogico: e.target.value
-                      }
-                    })} 
-                  />
-                </div>
               </div>
               
               <div className="flex gap-2">
