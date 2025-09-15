@@ -110,6 +110,7 @@ const AdminDashboard = () => {
     organization_id: '',
     metabase_integration_url: '',
     address: '',
+    market_analysis_enabled: false,
     dashboard_links: {
       financeiro: '',
       agenda: '',
@@ -432,6 +433,7 @@ const AdminDashboard = () => {
         organization_id: newSchool.organization_id ? parseInt(newSchool.organization_id) : null,
         metabase_integration_url: newSchool.metabase_integration_url,
         address: newSchool.address,
+        market_analysis_enabled: newSchool.market_analysis_enabled,
         dashboard_links: newSchool.dashboard_links,
         created_by: (await supabase.auth.getUser()).data.user?.id
       }]).select().single();
@@ -449,6 +451,7 @@ const AdminDashboard = () => {
         organization_id: '',
         metabase_integration_url: '',
         address: '',
+        market_analysis_enabled: false,
         dashboard_links: {
           financeiro: '',
           agenda: '',
@@ -1189,20 +1192,49 @@ const AdminDashboard = () => {
                       {newSchool.logo_url && <img src={newSchool.logo_url} alt="Logo da escola" className="h-12 rounded" />}
                     </div>
                     
-                    {/* Endereço da Escola */}
-                    <div className="space-y-2">
-                      <Label htmlFor="schoolAddress">Endereço da Escola</Label>
-                      <Input 
-                        id="schoolAddress" 
-                        value={newSchool.address} 
-                        onChange={e => setNewSchool({
-                          ...newSchool,
-                          address: e.target.value
-                        })} 
-                        placeholder="Rua, Número, Bairro, Cidade - Estado, CEP" 
-                      />
-                      <p className="text-xs text-muted-foreground">Endereço completo para análise de mercado</p>
+                    {/* Controle do Estudo de Mercado */}
+                    <div className="space-y-3 p-4 border rounded-lg bg-muted/50">
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-1">
+                          <Label htmlFor="newMarketAnalysisEnabled" className="text-sm font-medium">
+                            Habilitar Estudo de Mercado
+                          </Label>
+                          <p className="text-xs text-muted-foreground">
+                            Permite acesso à análise de mercado usando Google Maps API
+                          </p>
+                        </div>
+                        <Switch
+                          id="newMarketAnalysisEnabled"
+                          checked={newSchool.market_analysis_enabled || false}
+                          onCheckedChange={(checked) => setNewSchool({
+                            ...newSchool,
+                            market_analysis_enabled: checked
+                          })}
+                        />
+                      </div>
+                      {newSchool.market_analysis_enabled && (
+                        <div className="text-xs text-amber-600 bg-amber-50 p-2 rounded border border-amber-200">
+                          ⚠️ Atenção: Esta funcionalidade consome créditos da API do Google Maps
+                        </div>
+                      )}
                     </div>
+
+                    {/* Endereço da Escola - só aparece se estudo de mercado habilitado */}
+                    {newSchool.market_analysis_enabled && (
+                      <div className="space-y-2">
+                        <Label htmlFor="schoolAddress">Endereço da Escola</Label>
+                        <Input 
+                          id="schoolAddress" 
+                          value={newSchool.address} 
+                          onChange={e => setNewSchool({
+                            ...newSchool,
+                            address: e.target.value
+                          })} 
+                          placeholder="Rua, Número, Bairro, Cidade - Estado, CEP" 
+                        />
+                        <p className="text-xs text-muted-foreground">Endereço completo para análise de mercado</p>
+                      </div>
+                    )}
                     
                     <div className="space-y-2">
                       <Label htmlFor="consultant_id">Consultor Responsável</Label>
@@ -1611,20 +1643,6 @@ const AdminDashboard = () => {
                 {editingSchool.logo_url && <img src={editingSchool.logo_url} alt="Logo da escola" className="h-12 rounded" />}
               </div>
               
-              {/* Endereço da Escola */}
-              <div className="space-y-2">
-                <Label htmlFor="editSchoolAddress">Endereço da Escola</Label>
-                <Input 
-                  id="editSchoolAddress" 
-                  value={editingSchool.address || ''} 
-                  onChange={e => setEditingSchool({
-                    ...editingSchool,
-                    address: e.target.value
-                  })} 
-                  placeholder="Rua, Número, Bairro, Cidade - Estado, CEP" 
-                />
-                <p className="text-xs text-muted-foreground">Endereço completo para análise de mercado</p>
-              </div>
               
               <div className="space-y-2">
                 <Label htmlFor="editConsultantId">Consultor Responsável</Label>
@@ -1711,6 +1729,23 @@ const AdminDashboard = () => {
                   </div>
                 )}
               </div>
+
+              {/* Endereço da Escola - só aparece se estudo de mercado habilitado */}
+              {editingSchool.market_analysis_enabled && (
+                <div className="space-y-2">
+                  <Label htmlFor="editSchoolAddress">Endereço da Escola</Label>
+                  <Input 
+                    id="editSchoolAddress" 
+                    value={editingSchool.address || ''} 
+                    onChange={e => setEditingSchool({
+                      ...editingSchool,
+                      address: e.target.value
+                    })} 
+                    placeholder="Rua, Número, Bairro, Cidade - Estado, CEP" 
+                  />
+                  <p className="text-xs text-muted-foreground">Endereço completo para análise de mercado</p>
+                </div>
+              )}
               
               <div className="flex gap-2">
                 <Button variant="outline" onClick={() => setEditSchoolDialogOpen(false)}>Cancelar</Button>
