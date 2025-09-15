@@ -312,15 +312,19 @@ const TicketSystem = ({ onBack, school_id }: TicketSystemProps) => {
     try {
       setCreating(true);
       
-      // Enviar email diretamente para contato@proesc.com
-      const { data, error } = await supabase.functions.invoke('send-ticket-email', {
+      const { data: session } = await supabase.auth.getSession();
+      
+      // Criar ticket diretamente no Zendesk via zendesk-tickets
+      const { data, error } = await supabase.functions.invoke('zendesk-tickets', {
+        headers: {
+          Authorization: `Bearer ${session?.session?.access_token}`
+        },
         body: { 
-          title: newTicket.title,
+          action: 'create_ticket',
+          subject: newTicket.title,
           description: newTicket.description,
           priority: newTicket.priority,
-          userEmail: userProfile.email,
-          userName: userProfile.name,
-          schoolName: schoolInfo.schoolName
+          type: 'question'
         }
       });
 
@@ -328,18 +332,55 @@ const TicketSystem = ({ onBack, school_id }: TicketSystemProps) => {
         throw error;
       }
 
+      // Handle specific error cases from the function
+      if (data?.error) {
+        console.error('❌ TicketSystem: Erro ao criar ticket:', data);
+        
+        switch (data.error) {
+          case 'user_not_found_in_zendesk':
+            toast({
+              title: "Usuário não encontrado no Zendesk",
+              description: data.message || "Entre em contato com o administrador para criar seu acesso.",
+              variant: "destructive",
+            });
+            break;
+            
+          case 'subject_required':
+          case 'description_required':
+            toast({
+              title: "Dados incompletos",
+              description: data.message || "Preencha todos os campos obrigatórios.",
+              variant: "destructive",
+            });
+            break;
+            
+          default:
+            toast({
+              title: "Erro ao criar ticket",
+              description: data.message || "Não foi possível criar o ticket. Tente novamente.",
+              variant: "destructive",
+            });
+        }
+        return;
+      }
+
+      // Success case
       toast({
-        title: "Ticket enviado",
-        description: "Seu ticket foi enviado por email para nossa equipe de suporte.",
+        title: "Ticket criado com sucesso",
+        description: `Ticket #${data.ticket?.zendesk_id} criado no Zendesk.`,
       });
 
       setNewTicket({ title: "", description: "", priority: "normal" });
       setShowNewTicket(false);
+      
+      // Reload tickets to show the new one
+      loadTickets();
+      
     } catch (error) {
       console.error('Error creating ticket:', error);
       toast({
-        title: "Erro ao enviar ticket",
-        description: "Não foi possível enviar o ticket. Tente novamente.",
+        title: "Erro ao criar ticket",
+        description: "Não foi possível criar o ticket. Tente novamente.",
         variant: "destructive",
       });
     } finally {

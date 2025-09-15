@@ -50,6 +50,21 @@ const mapZendeskPriority = (priority: string): string => {
   return priorityMap[priority] || priority;
 };
 
+// Map Portuguese priority to English for Zendesk API
+const mapPriorityToZendesk = (priority: string): string => {
+  const priorityMap: { [key: string]: string } = {
+    'Baixa': 'low',
+    'baixa': 'low',
+    'Normal': 'normal',
+    'normal': 'normal',
+    'Alta': 'high',
+    'alta': 'high',
+    'Urgente': 'urgent',
+    'urgente': 'urgent'
+  };
+  return priorityMap[priority] || 'normal';
+};
+
 // Convert scientific notation to integer for organization_id
 const normalizeOrganizationId = (orgId: any): string | null => {
   if (!orgId) return null;
@@ -625,6 +640,135 @@ serve(async (req) => {
       'Authorization': `Basic ${credentials}`,
       'Content-Type': 'application/json',
     };
+
+    // Handle create ticket request
+    if (action === 'create_ticket') {
+      console.log('🎫 Creating new ticket in Zendesk');
+      
+      try {
+        const { subject, description, priority = 'normal', type = 'question' } = requestBody || {};
+        
+        if (!subject || subject.trim() === '') {
+          return new Response(JSON.stringify({
+            error: 'subject_required',
+            message: 'Título do ticket é obrigatório'
+          }), {
+            status: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          });
+        }
+        
+        if (!description || description.trim() === '') {
+          return new Response(JSON.stringify({
+            error: 'description_required',
+            message: 'Descrição do ticket é obrigatória'
+          }), {
+            status: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          });
+        }
+
+        // Validate that user exists in Zendesk before creating ticket
+        console.log('🔍 Validating user in Zendesk:', profile.email);
+        const userValidation = await validateZendeskUser(profile.email, ZENDESK_SUBDOMAIN, ZENDESK_EMAIL, ZENDESK_API_TOKEN);
+        
+        if (!userValidation.exists) {
+          console.log('❌ User not found in Zendesk, blocking ticket creation');
+          return new Response(JSON.stringify({
+            error: 'user_not_found_in_zendesk',
+            message: 'Usuário não encontrado no Zendesk. Entre em contato com o administrador para criar seu acesso.',
+            details: 'Para criar tickets, você precisa ter uma conta ativa no sistema Zendesk da sua escola.'
+          }), {
+            status: 403,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          });
+        }
+
+        console.log('✅ User validated in Zendesk, proceeding with ticket creation');
+
+        // Prepare ticket data
+        const ticketData = {
+          ticket: {
+            subject: subject.trim(),
+            comment: {
+              body: description.trim()
+            },
+            priority: mapPriorityToZendesk(priority),
+            type: type,
+            requester_id: userValidation.userId,
+            organization_id: organizationId ? parseInt(organizationId) : null,
+            tags: ['proesc']
+          }
+        };
+
+        console.log('📝 Creating ticket data:', {
+          subject: subject.trim(),
+          priority: mapPriorityToZendesk(priority),
+          type: type,
+          requester_email: profile.email,
+          zendesk_user_id: userValidation.userId,
+          organization_id: organizationId
+        });
+
+        // Create ticket in Zendesk
+        const createResponse = await fetch(`${zendeskUrl}/tickets.json`, {
+          method: 'POST',
+          headers: zendeskHeaders,
+          body: JSON.stringify(ticketData)
+        });
+
+        if (!createResponse.ok) {
+          const errorData = await createResponse.json();
+          console.error('❌ Error creating ticket:', errorData);
+          throw new Error(`Failed to create ticket: ${createResponse.status} - ${errorData.description || errorData.error}`);
+        }
+
+        const result = await createResponse.json();
+        const createdTicket = result.ticket;
+        
+        console.log('✅ Ticket created successfully:', {
+          ticket_id: createdTicket.id,
+          subject: createdTicket.subject,
+          status: createdTicket.status
+        });
+
+        // Transform created ticket to our format
+        const transformedTicket = {
+          id: createdTicket.id.toString(),
+          title: createdTicket.subject,
+          description: createdTicket.description || description.trim(),
+          status: mapZendeskStatus(createdTicket.status),
+          priority: mapZendeskPriority(createdTicket.priority),
+          created: createdTicket.created_at,
+          category: createdTicket.type,
+          zendesk_id: createdTicket.id,
+          zendesk_url: createdTicket.url,
+          organization_id: createdTicket.organization_id?.toString(),
+          requester_id: createdTicket.requester_id?.toString(),
+          requester_name: userValidation.user?.name,
+          requester_email: userValidation.user?.email
+        };
+
+        return new Response(JSON.stringify({
+          success: true,
+          message: 'Ticket criado com sucesso no Zendesk',
+          ticket: transformedTicket
+        }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+
+      } catch (error) {
+        console.error('❌ Error creating ticket:', error);
+        return new Response(JSON.stringify({
+          error: 'create_ticket_failed',
+          message: 'Erro ao criar ticket no Zendesk',
+          details: error.message
+        }), {
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+    }
 
     // Handle add comment request
     if (action === 'add-comment' && ticketId) {
