@@ -697,7 +697,13 @@ serve(async (req) => {
             type: type,
             requester_id: userValidation.userId,
             organization_id: organizationId ? parseInt(organizationId) : null,
-            tags: ['proesc']
+            tags: ['proesc'],
+            custom_fields: [
+              {
+                id: 21489510726039, // Campo obrigatório "Árvore de Perguntas"
+                value: "sistema_proesc" // Valor padrão para tickets criados pelo sistema
+              }
+            ]
           }
         };
 
@@ -707,7 +713,8 @@ serve(async (req) => {
           type: type,
           requester_email: profile.email,
           zendesk_user_id: userValidation.userId,
-          organization_id: organizationId
+          organization_id: organizationId,
+          custom_fields: ticketData.ticket.custom_fields
         });
 
         // Create ticket in Zendesk
