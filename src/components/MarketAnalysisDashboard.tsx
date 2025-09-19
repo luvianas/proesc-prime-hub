@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, MapPin, TrendingUp, Users, Star, DollarSign, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import GoogleMapContainer from './GoogleMapContainer';
 
 declare global {
   interface Window {
@@ -63,10 +64,6 @@ const MarketAnalysisDashboard: React.FC<MarketAnalysisProps> = ({ onBack, school
   const [currentPage, setCurrentPage] = useState(1);
   const [competitorsPerPage] = useState(10);
   
-  const mapRef = useRef<HTMLDivElement>(null);
-  const mapInstanceRef = useRef<any>(null);
-  const markersRef = useRef<any[]>([]);
-  
   const { toast } = useToast();
 
   useEffect(() => {
@@ -74,65 +71,40 @@ const MarketAnalysisDashboard: React.FC<MarketAnalysisProps> = ({ onBack, school
   }, [schoolId]);
 
   useEffect(() => {
-    if (marketData && mapRef.current && !mapInstanceRef.current) {
+    if (marketData && !mapError) {
       const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
       
       if (!validateApiKey(apiKey)) {
         setMapError('Chave da API do Google Maps inválida ou não configurada');
         setMapLoading(false);
         console.error('❌ Google Maps API key inválida:', apiKey);
-        return;
       }
-      
-      initializeMap();
     }
   }, [marketData]);
 
-  // Cleanup when component unmounts - minimal approach
-  useEffect(() => {
-    return () => {
-      // Only cleanup Google Maps objects, never touch DOM directly
-      if (markersRef.current) {
-        markersRef.current.forEach(marker => {
-          if (marker && typeof marker.setMap === 'function') {
-            try {
-              marker.setMap(null);
-            } catch (error) {
-              console.warn('Error cleaning marker:', error);
-            }
-          }
-        });
-        markersRef.current = [];
-      }
-      
-      if (mapInstanceRef.current) {
-        try {
-          mapInstanceRef.current = null;
-        } catch (error) {
-          console.warn('Error cleaning map:', error);
-        }
-      }
-    };
-  }, []);
+  const validateApiKey = (apiKey: string | undefined): boolean => {
+    if (!apiKey) return false;
+    
+    // Remove quotes and whitespace
+    const cleanKey = apiKey.trim().replace(/^["']|["']$/g, '');
+    
+    // Basic format validation for Google Maps API key
+    const googleMapsKeyPattern = /^AIza[0-9A-Za-z-_]{35}$/;
+    return googleMapsKeyPattern.test(cleanKey);
+  };
 
-  const cleanupMap = () => {
-    // Minimal cleanup - only clear references, no DOM manipulation
-    try {
-      if (markersRef.current) {
-        markersRef.current.forEach(marker => {
-          if (marker && typeof marker.setMap === 'function') {
-            marker.setMap(null);
-          }
-        });
-        markersRef.current = [];
-      }
+  const handleMapLoad = () => {
+    setMapLoading(false);
+  };
 
-      if (mapInstanceRef.current) {
-        mapInstanceRef.current = null;
-      }
-    } catch (error) {
-      console.warn('⚠️ Error during map cleanup:', error);
-    }
+  const handleMapError = (errorMessage: string) => {
+    setMapError(errorMessage);
+    setMapLoading(false);
+    toast({
+      title: "Erro no Mapa",
+      description: errorMessage,
+      variant: "destructive"
+    });
   };
 
   const fetchSchoolData = async () => {
@@ -237,160 +209,6 @@ const MarketAnalysisDashboard: React.FC<MarketAnalysisProps> = ({ onBack, school
     }
   };
 
-  const validateApiKey = (apiKey: string | undefined): boolean => {
-    if (!apiKey) return false;
-    
-    // Remove quotes and whitespace
-    const cleanKey = apiKey.trim().replace(/^["']|["']$/g, '');
-    
-    // Basic format validation for Google Maps API key
-    const googleMapsKeyPattern = /^AIza[0-9A-Za-z-_]{35}$/;
-    return googleMapsKeyPattern.test(cleanKey);
-  };
-
-  const initializeMap = async () => {
-    if (!marketData || !mapRef.current) return;
-
-    setMapLoading(true);
-    setMapError(null);
-
-    try {
-      console.log('🗺️ Inicializando Google Maps...');
-      console.log('🔑 API Key disponível:', !!import.meta.env.VITE_GOOGLE_MAPS_API_KEY);
-      
-      // Load Google Maps dynamically
-      if (!window.google) {
-        const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY?.trim().replace(/^["']|["']$/g, '');
-        
-        const script = document.createElement('script');
-        script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&callback=initMap&loading=async`;
-        script.async = true;
-        script.defer = true;
-        
-        // Define função callback global para o Google Maps
-        window.initMap = () => {
-          console.log('✅ Google Maps API carregada via callback');
-        };
-        
-        console.log('📥 Carregando Google Maps API...');
-        
-        await new Promise((resolve, reject) => {
-          script.onload = () => {
-            console.log('✅ Google Maps API carregada com sucesso');
-            resolve(true);
-          };
-          script.onerror = (error) => {
-            console.error('❌ Erro ao carregar Google Maps:', error);
-            reject(new Error('Falha ao carregar a API do Google Maps'));
-          };
-          
-          // Adiciona tratamento para erro de API key inválida
-          window.gm_authFailure = () => {
-            console.error('❌ Erro de autenticação do Google Maps - API key inválida');
-            reject(new Error('Chave da API do Google Maps inválida ou sem permissão'));
-          };
-          
-          document.head.appendChild(script);
-        });
-      }
-
-      // Create a new div inside the container for the map
-      // This ensures React never tries to manage the map's internal DOM
-      const mapContainer = document.createElement('div');
-      mapContainer.style.width = '100%';
-      mapContainer.style.height = '100%';
-      mapContainer.style.borderRadius = '0.5rem';
-      
-      // Clear any existing content and add our isolated container
-      if (mapRef.current) {
-        mapRef.current.innerHTML = '';
-        mapRef.current.appendChild(mapContainer);
-      }
-
-      const map = new window.google.maps.Map(mapContainer, {
-        center: marketData.center_coordinates,
-        zoom: 13,
-        styles: [
-          {
-            featureType: "poi.school",
-            stylers: [{ visibility: "on" }]
-          }
-        ]
-      });
-
-      mapInstanceRef.current = map;
-
-      // Add marker for main school
-      const schoolMarker = new window.google.maps.Marker({
-        map,
-        position: marketData.center_coordinates,
-        title: schoolData?.school_name || 'Sua Escola',
-        icon: {
-          url: 'data:image/svg+xml;charset=UTF-8,%3Csvg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="%23ff0000"%3E%3Cpath d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/%3E%3C/svg%3E',
-          scaledSize: new window.google.maps.Size(40, 40)
-        }
-      });
-
-      // Store main school marker reference for cleanup  
-      markersRef.current.push(schoolMarker);
-
-      // Add markers for competitors and store references
-      marketData.competitors.forEach((competitor, index) => {
-        const marker = new window.google.maps.Marker({
-          map,
-          position: competitor.geometry.location,
-          title: competitor.name,
-          icon: {
-            url: 'data:image/svg+xml;charset=UTF-8,%3Csvg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 24 24" fill="%233b82f6"%3E%3Cpath d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/%3E%3C/svg%3E',
-            scaledSize: new window.google.maps.Size(30, 30)
-          }
-        });
-        
-        // Store marker reference for cleanup
-        markersRef.current.push(marker);
-
-        const infoWindow = new window.google.maps.InfoWindow({
-          content: `
-            <div class="p-2">
-              <h3 class="font-semibold">${competitor.name}</h3>
-              <p class="text-sm text-gray-600">${competitor.vicinity}</p>
-              ${competitor.rating ? `<p class="text-sm">⭐ ${competitor.rating} (${competitor.user_ratings_total || 0} avaliações)</p>` : ''}
-              ${competitor.price_level !== undefined ? `<p class="text-sm">💰 Nível de preço: ${competitor.price_level}/4</p>` : ''}
-            </div>
-          `
-        });
-
-        marker.addListener('click', () => {
-          infoWindow.open(map, marker);
-        });
-      });
-
-      setMapLoading(false);
-      console.log('🎯 Mapa inicializado com sucesso com', marketData.competitors.length, 'concorrentes');
-
-    } catch (err: any) {
-      console.error('❌ Falha ao carregar Google Maps:', err);
-      setMapLoading(false);
-      
-      let errorMessage = 'Erro ao carregar o mapa';
-      
-      if (err.message?.includes('API key') || err.message?.includes('inválida') || err.message?.includes('permissão')) {
-        errorMessage = 'Chave da API do Google Maps inválida ou serviço não ativado';
-      } else if (err.message?.includes('quota') || err.message?.includes('billing')) {
-        errorMessage = 'Limite de uso da API atingido ou problemas de faturamento';
-      } else if (err.message?.includes('network') || err.message?.includes('fetch')) {
-        errorMessage = 'Problema de conexão. Tente novamente';
-      }
-      
-      setMapError(errorMessage);
-      
-      toast({
-        title: "Erro no Mapa",
-        description: errorMessage,
-        variant: "destructive"
-      });
-    }
-  };
 
   const getPriceLevelText = (level?: number) => {
     switch (level) {
@@ -567,11 +385,8 @@ const MarketAnalysisDashboard: React.FC<MarketAnalysisProps> = ({ onBack, school
             <CardDescription>Localização das escolas na região</CardDescription>
           </CardHeader>
           <CardContent>
-            <div 
-              ref={mapRef}
-              className="w-full h-[400px] rounded-lg bg-muted/50 overflow-hidden relative"
-            >
-              {mapError && (
+            <div className="w-full h-[400px] rounded-lg bg-muted/50 overflow-hidden relative">
+              {mapError ? (
                 <div className="absolute inset-0 flex items-center justify-center text-center text-muted-foreground z-10 bg-background/80">
                   <div>
                     <MapPin className="h-8 w-8 mx-auto mb-2 text-destructive" />
@@ -583,21 +398,26 @@ const MarketAnalysisDashboard: React.FC<MarketAnalysisProps> = ({ onBack, school
                       onClick={() => {
                         setMapError(null);
                         setMapLoading(true);
-                        initializeMap();
                       }}
                     >
                       Tentar Novamente
                     </Button>
                   </div>
                 </div>
-              )}
-              {mapLoading && !mapError && (
+              ) : mapLoading ? (
                 <div className="absolute inset-0 flex items-center justify-center text-center text-muted-foreground z-10 bg-background/80">
                   <div>
                     <MapPin className="h-8 w-8 mx-auto mb-2 animate-pulse" />
                     <p>Carregando mapa...</p>
                   </div>
                 </div>
+              ) : (
+                <GoogleMapContainer
+                  marketData={marketData}
+                  schoolData={schoolData}
+                  onMapLoad={handleMapLoad}
+                  onMapError={handleMapError}
+                />
               )}
             </div>
           </CardContent>
