@@ -58,6 +58,8 @@ const MarketAnalysisDashboard: React.FC<MarketAnalysisProps> = ({ onBack, school
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [schoolData, setSchoolData] = useState<any>(null);
+  const [mapLoading, setMapLoading] = useState(true);
+  const [mapError, setMapError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [competitorsPerPage] = useState(10);
   
@@ -72,29 +74,16 @@ const MarketAnalysisDashboard: React.FC<MarketAnalysisProps> = ({ onBack, school
 
   useEffect(() => {
     if (marketData && mapRef.current && !mapInstanceRef.current) {
-      // Verifica se a API key está disponível antes de tentar inicializar o mapa
       const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
-      if (apiKey) {
-        initializeMap();
-      } else {
-        // Mostra mensagem informativa quando não há API key
-        if (mapRef.current) {
-          mapRef.current.innerHTML = `
-            <div class="flex items-center justify-center h-full bg-muted rounded-lg">
-              <div class="text-center p-6">
-                <div class="text-4xl mb-3">🗺️</div>
-                <h3 class="font-semibold text-foreground mb-2">Visualização do mapa não disponível</h3>
-                <p class="text-sm text-muted-foreground mb-3">
-                  Para visualizar o mapa com as escolas concorrentes, é necessário configurar a API key do Google Maps para o frontend.
-                </p>
-                <p class="text-xs text-muted-foreground">
-                  Os dados de análise estão disponíveis abaixo
-                </p>
-              </div>
-            </div>
-          `;
-        }
+      
+      if (!validateApiKey(apiKey)) {
+        setMapError('Chave da API do Google Maps inválida ou não configurada');
+        setMapLoading(false);
+        console.error('❌ Google Maps API key inválida:', apiKey);
+        return;
       }
+      
+      initializeMap();
     }
   }, [marketData]);
 
@@ -200,8 +189,22 @@ const MarketAnalysisDashboard: React.FC<MarketAnalysisProps> = ({ onBack, school
     }
   };
 
+  const validateApiKey = (apiKey: string | undefined): boolean => {
+    if (!apiKey) return false;
+    
+    // Remove quotes and whitespace
+    const cleanKey = apiKey.trim().replace(/^["']|["']$/g, '');
+    
+    // Basic format validation for Google Maps API key
+    const googleMapsKeyPattern = /^AIza[0-9A-Za-z-_]{35}$/;
+    return googleMapsKeyPattern.test(cleanKey);
+  };
+
   const initializeMap = async () => {
     if (!marketData || !mapRef.current) return;
+
+    setMapLoading(true);
+    setMapError(null);
 
     try {
       console.log('🗺️ Inicializando Google Maps...');
@@ -209,14 +212,9 @@ const MarketAnalysisDashboard: React.FC<MarketAnalysisProps> = ({ onBack, school
       
       // Load Google Maps dynamically
       if (!window.google) {
-        const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
-        if (!apiKey) {
-          // Exibe mensagem amigável quando não há API key configurada
-          throw new Error('Para visualizar o mapa, é necessário configurar a chave da API do Google Maps no Console do Google Cloud para o domínio da Lovable.');
-        }
+        const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY?.trim().replace(/^["']|["']$/g, '');
         
         const script = document.createElement('script');
-        // Adiciona callback para lidar com erros de API key
         script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&callback=initMap&loading=async`;
         script.async = true;
         script.defer = true;
@@ -300,38 +298,30 @@ const MarketAnalysisDashboard: React.FC<MarketAnalysisProps> = ({ onBack, school
         });
       });
 
+      setMapLoading(false);
+      console.log('🎯 Mapa inicializado com sucesso com', marketData.competitors.length, 'concorrentes');
+
     } catch (err: any) {
-      console.error('❌ Erro ao inicializar o mapa:', err);
+      console.error('❌ Falha ao carregar Google Maps:', err);
+      setMapLoading(false);
       
-      // Determina a mensagem de erro baseada no tipo
       let errorMessage = 'Erro ao carregar o mapa';
+      
       if (err.message?.includes('API key') || err.message?.includes('inválida') || err.message?.includes('permissão')) {
-        errorMessage = 'A chave da API do Google Maps precisa ser configurada para este domínio. Entre em contato com o suporte.';
-      } else if (err.message?.includes('Falha ao carregar')) {
-        errorMessage = 'Não foi possível conectar com os serviços do Google Maps';
+        errorMessage = 'Chave da API do Google Maps inválida ou serviço não ativado';
+      } else if (err.message?.includes('quota') || err.message?.includes('billing')) {
+        errorMessage = 'Limite de uso da API atingido ou problemas de faturamento';
+      } else if (err.message?.includes('network') || err.message?.includes('fetch')) {
+        errorMessage = 'Problema de conexão. Tente novamente';
       }
+      
+      setMapError(errorMessage);
       
       toast({
-        title: 'Problema com o Mapa',
+        title: "Erro no Mapa",
         description: errorMessage,
-        variant: 'destructive'
+        variant: "destructive"
       });
-      
-      // Adiciona uma mensagem de fallback no container do mapa
-      if (mapRef.current) {
-        mapRef.current.innerHTML = `
-          <div class="flex items-center justify-center h-full bg-gray-100 rounded-lg">
-            <div class="text-center p-6">
-              <div class="text-4xl mb-3">🗺️</div>
-              <h3 class="font-semibold text-gray-700 mb-2">Mapa temporariamente indisponível</h3>
-              <p class="text-sm text-gray-600 mb-3">${errorMessage}</p>
-              <p class="text-xs text-gray-500">
-                Os dados de análise estão disponíveis abaixo
-              </p>
-            </div>
-          </div>
-        `;
-      }
     }
   };
 
@@ -510,7 +500,33 @@ const MarketAnalysisDashboard: React.FC<MarketAnalysisProps> = ({ onBack, school
             <CardDescription>Localização das escolas na região</CardDescription>
           </CardHeader>
           <CardContent>
-            <div ref={mapRef} className="w-full h-[400px] rounded-lg" />
+            <div 
+              ref={mapRef} 
+              className="w-full h-[400px] rounded-lg bg-muted/50 flex items-center justify-center"
+            >
+              {mapError ? (
+                <div className="text-center text-muted-foreground">
+                  <MapPin className="h-8 w-8 mx-auto mb-2 text-destructive" />
+                  <p className="text-sm">{mapError}</p>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="mt-2"
+                    onClick={() => {
+                      setMapError(null);
+                      initializeMap();
+                    }}
+                  >
+                    Tentar Novamente
+                  </Button>
+                </div>
+              ) : mapLoading ? (
+                <div className="text-center text-muted-foreground">
+                  <MapPin className="h-8 w-8 mx-auto mb-2 animate-pulse" />
+                  <p>Carregando mapa...</p>
+                </div>
+              ) : null}
+            </div>
           </CardContent>
         </Card>
 
