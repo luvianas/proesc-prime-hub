@@ -88,16 +88,36 @@ const MarketAnalysisDashboard: React.FC<MarketAnalysisProps> = ({ onBack, school
     }
   }, [marketData]);
 
-  // Cleanup when component unmounts
+  // Cleanup when component unmounts - minimal approach
   useEffect(() => {
     return () => {
-      cleanupMap();
+      // Only cleanup Google Maps objects, never touch DOM directly
+      if (markersRef.current) {
+        markersRef.current.forEach(marker => {
+          if (marker && typeof marker.setMap === 'function') {
+            try {
+              marker.setMap(null);
+            } catch (error) {
+              console.warn('Error cleaning marker:', error);
+            }
+          }
+        });
+        markersRef.current = [];
+      }
+      
+      if (mapInstanceRef.current) {
+        try {
+          mapInstanceRef.current = null;
+        } catch (error) {
+          console.warn('Error cleaning map:', error);
+        }
+      }
     };
   }, []);
 
   const cleanupMap = () => {
+    // Minimal cleanup - only clear references, no DOM manipulation
     try {
-      // Clear all markers first
       if (markersRef.current) {
         markersRef.current.forEach(marker => {
           if (marker && typeof marker.setMap === 'function') {
@@ -107,14 +127,9 @@ const MarketAnalysisDashboard: React.FC<MarketAnalysisProps> = ({ onBack, school
         markersRef.current = [];
       }
 
-      // Clear map instance
       if (mapInstanceRef.current) {
         mapInstanceRef.current = null;
       }
-
-      // Let React handle DOM cleanup - don't manually manipulate DOM nodes
-      // The map container will be cleaned up by React's normal lifecycle
-      
     } catch (error) {
       console.warn('⚠️ Error during map cleanup:', error);
     }
@@ -279,7 +294,20 @@ const MarketAnalysisDashboard: React.FC<MarketAnalysisProps> = ({ onBack, school
         });
       }
 
-      const map = new window.google.maps.Map(mapRef.current, {
+      // Create a new div inside the container for the map
+      // This ensures React never tries to manage the map's internal DOM
+      const mapContainer = document.createElement('div');
+      mapContainer.style.width = '100%';
+      mapContainer.style.height = '100%';
+      mapContainer.style.borderRadius = '0.5rem';
+      
+      // Clear any existing content and add our isolated container
+      if (mapRef.current) {
+        mapRef.current.innerHTML = '';
+        mapRef.current.appendChild(mapContainer);
+      }
+
+      const map = new window.google.maps.Map(mapContainer, {
         center: marketData.center_coordinates,
         zoom: 13,
         styles: [
@@ -303,7 +331,10 @@ const MarketAnalysisDashboard: React.FC<MarketAnalysisProps> = ({ onBack, school
         }
       });
 
-      // Add markers for competitors
+      // Store main school marker reference for cleanup  
+      markersRef.current.push(schoolMarker);
+
+      // Add markers for competitors and store references
       marketData.competitors.forEach((competitor, index) => {
         const marker = new window.google.maps.Marker({
           map,
@@ -314,6 +345,9 @@ const MarketAnalysisDashboard: React.FC<MarketAnalysisProps> = ({ onBack, school
             scaledSize: new window.google.maps.Size(30, 30)
           }
         });
+        
+        // Store marker reference for cleanup
+        markersRef.current.push(marker);
 
         const infoWindow = new window.google.maps.InfoWindow({
           content: `
@@ -535,11 +569,10 @@ const MarketAnalysisDashboard: React.FC<MarketAnalysisProps> = ({ onBack, school
           <CardContent>
             <div 
               ref={mapRef}
-              key={`map-${marketData?.competitors.length || 0}`}
-              className="w-full h-[400px] rounded-lg bg-muted/50"
+              className="w-full h-[400px] rounded-lg bg-muted/50 overflow-hidden relative"
             >
-              {mapError ? (
-                <div className="flex items-center justify-center h-full text-center text-muted-foreground">
+              {mapError && (
+                <div className="absolute inset-0 flex items-center justify-center text-center text-muted-foreground z-10 bg-background/80">
                   <div>
                     <MapPin className="h-8 w-8 mx-auto mb-2 text-destructive" />
                     <p className="text-sm">{mapError}</p>
@@ -557,14 +590,15 @@ const MarketAnalysisDashboard: React.FC<MarketAnalysisProps> = ({ onBack, school
                     </Button>
                   </div>
                 </div>
-              ) : mapLoading ? (
-                <div className="flex items-center justify-center h-full text-center text-muted-foreground">
+              )}
+              {mapLoading && !mapError && (
+                <div className="absolute inset-0 flex items-center justify-center text-center text-muted-foreground z-10 bg-background/80">
                   <div>
                     <MapPin className="h-8 w-8 mx-auto mb-2 animate-pulse" />
                     <p>Carregando mapa...</p>
                   </div>
                 </div>
-              ) : null}
+              )}
             </div>
           </CardContent>
         </Card>
