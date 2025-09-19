@@ -241,6 +241,63 @@ export type Database = {
           },
         ]
       }
+      school_pricing_data: {
+        Row: {
+          annual_fee: number | null
+          city: string
+          confidence_score: number | null
+          created_at: string
+          data_source: string
+          enrollment_fee: number | null
+          id: string
+          last_updated: string
+          monthly_fee: number | null
+          place_id: string | null
+          price_range: string | null
+          raw_data: Json | null
+          school_name: string
+          state: string
+          updated_at: string
+          website_url: string | null
+        }
+        Insert: {
+          annual_fee?: number | null
+          city: string
+          confidence_score?: number | null
+          created_at?: string
+          data_source: string
+          enrollment_fee?: number | null
+          id?: string
+          last_updated?: string
+          monthly_fee?: number | null
+          place_id?: string | null
+          price_range?: string | null
+          raw_data?: Json | null
+          school_name: string
+          state: string
+          updated_at?: string
+          website_url?: string | null
+        }
+        Update: {
+          annual_fee?: number | null
+          city?: string
+          confidence_score?: number | null
+          created_at?: string
+          data_source?: string
+          enrollment_fee?: number | null
+          id?: string
+          last_updated?: string
+          monthly_fee?: number | null
+          place_id?: string | null
+          price_range?: string | null
+          raw_data?: Json | null
+          school_name?: string
+          state?: string
+          updated_at?: string
+          website_url?: string | null
+        }
+        Relationships: []
+      }
       usage_events: {
         Row: {
           browser: string | null

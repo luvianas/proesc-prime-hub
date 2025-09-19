@@ -33,6 +33,13 @@ interface CompetitorData {
     }
   };
   price_level?: number;
+  pricing_data?: {
+    monthly_fee?: number;
+    annual_fee?: number;
+    price_range?: 'budget' | 'moderate' | 'expensive' | 'luxury';
+    confidence_score?: number;
+    data_source?: string;
+  };
 }
 
 interface MarketData {
@@ -40,13 +47,24 @@ interface MarketData {
   analysis: {
     total_competitors: number;
     average_rating: number;
+    high_rated_count: number;
     price_distribution: {
       budget: number;
       moderate: number;
       expensive: number;
       luxury: number;
     };
-    insights: string[];
+    pricing_insights: {
+      schools_with_pricing: number;
+      average_monthly_fee?: number;
+      price_range_distribution: {
+        budget: number;
+        moderate: number;
+        expensive: number;
+        luxury: number;
+      };
+    };
+    insights: string;
   };
   center_coordinates: {
     lat: number;
@@ -491,11 +509,9 @@ const MarketAnalysisDashboard: React.FC<MarketAnalysisProps> = ({ onBack, school
             <CardDescription>Análise da concorrência</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {marketData.analysis.insights.map((insight, index) => (
-              <div key={index} className="p-3 bg-muted rounded-lg">
-                <p className="text-sm">{insight}</p>
-              </div>
-            ))}
+          <div className="p-4 bg-blue-50 dark:bg-blue-950/20 rounded-lg border-l-4 border-blue-500">
+            <p className="text-blue-800 dark:text-blue-200">{marketData.analysis.insights}</p>
+          </div>
             
             <div className="space-y-3">
               <div>

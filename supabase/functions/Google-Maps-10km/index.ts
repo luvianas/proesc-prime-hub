@@ -20,28 +20,278 @@ interface PlaceResult {
   price_level?: number;
 }
 
+interface EnrichedPlaceResult extends PlaceResult {
+  pricing_data?: {
+    monthly_fee?: number;
+    annual_fee?: number;
+    price_range?: 'budget' | 'moderate' | 'expensive' | 'luxury';
+    confidence_score?: number;
+    data_source?: string;
+  };
+}
+
 interface MarketAnalysisRequest {
   address: string;
   radius?: number; // radius in meters, default 10000 (10km)
 }
 
 interface MarketAnalysisResponse {
-  competitors: PlaceResult[];
+  competitors: EnrichedPlaceResult[];
   analysis: {
     total_competitors: number;
     average_rating: number;
+    high_rated_count: number;
     price_distribution: {
       budget: number;
       moderate: number;
       expensive: number;
       luxury: number;
     };
-    insights: string[];
+    pricing_insights: {
+      schools_with_pricing: number;
+      average_monthly_fee?: number;
+      price_range_distribution: {
+        budget: number;
+        moderate: number;
+        expensive: number;
+        luxury: number;
+      };
+    };
+    insights: string;
   };
   center_coordinates: {
     lat: number;
     lng: number;
   };
+}
+
+async function enrichWithPricingData(competitors: PlaceResult[]): Promise<EnrichedPlaceResult[]> {
+  console.log(`💰 Starting pricing enrichment for ${competitors.length} competitors`);
+  
+  const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+  const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+  
+  const enrichedCompetitors: EnrichedPlaceResult[] = [];
+  
+  for (const competitor of competitors) {
+    try {
+      // Try to get city and state from vicinity
+      const locationParts = competitor.vicinity?.split(',').map(s => s.trim()) || [];
+      const city = locationParts[locationParts.length - 2] || 'Unknown';
+      const state = locationParts[locationParts.length - 1] || 'Unknown';
+      
+      console.log(`🔍 Enriching ${competitor.name} in ${city}, ${state}`);
+      
+      // Call our pricing enrichment function
+      const pricingResponse = await fetch(`${supabaseUrl}/functions/v1/school-pricing-enrichment`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${supabaseAnonKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          schoolName: competitor.name,
+          city: city,
+          state: state,
+          placeId: competitor.place_id
+        })
+      });
+      
+      let pricingData = null;
+      if (pricingResponse.ok) {
+        const pricingResult = await pricingResponse.json();
+        if (pricingResult.success) {
+          pricingData = {
+            monthly_fee: pricingResult.data.monthly_fee,
+            annual_fee: pricingResult.data.annual_fee,
+            price_range: pricingResult.data.price_range,
+            confidence_score: pricingResult.data.confidence_score,
+            data_source: pricingResult.data.data_source
+          };
+          console.log(`✅ Got pricing data for ${competitor.name}: R$ ${pricingData.monthly_fee}/month`);
+        }
+      } else {
+        console.log(`❌ Failed to get pricing data for ${competitor.name}`);
+      }
+      
+      enrichedCompetitors.push({
+        ...competitor,
+        pricing_data: pricingData
+      });
+      
+    } catch (error) {
+      console.error(`❌ Error enriching ${competitor.name}:`, error);
+      enrichedCompetitors.push(competitor);
+    }
+  }
+  
+  console.log(`💰 Pricing enrichment completed: ${enrichedCompetitors.filter(c => c.pricing_data).length}/${competitors.length} schools with pricing data`);
+  return enrichedCompetitors;
+}
+
+function performMarketAnalysis(competitors: EnrichedPlaceResult[]) {
+  // Basic analysis
+  const totalCompetitors = competitors.length;
+  const ratingsData = competitors.filter(p => p.rating).map(p => p.rating!);
+  const averageRating = ratingsData.length > 0 
+    ? ratingsData.reduce((a, b) => a + b, 0) / ratingsData.length 
+    : 0;
+  const highRatedCount = competitors.filter(c => c.rating && c.rating >= 4.5).length;
+
+  // Enhanced price analysis using both Google Places price_level and our enriched pricing data
+  const priceDistribution = {
+    budget: 0,    // price_level 1 or monthly_fee <= 500
+    moderate: 0,  // price_level 2 or monthly_fee 501-1200  
+    expensive: 0, // price_level 3 or monthly_fee 1201-2500
+    luxury: 0     // price_level 4 or monthly_fee > 2500
+  };
+
+  const pricingInsights = {
+    schools_with_pricing: 0,
+    average_monthly_fee: undefined as number | undefined,
+    price_range_distribution: {
+      budget: 0,
+      moderate: 0,
+      expensive: 0,
+      luxury: 0
+    }
+  };
+
+  // Analyze pricing data from our enrichment
+  const competitorsWithPricing = competitors.filter(c => c.pricing_data?.monthly_fee);
+  pricingInsights.schools_with_pricing = competitorsWithPricing.length;
+
+  if (competitorsWithPricing.length > 0) {
+    const totalFees = competitorsWithPricing.reduce((sum, c) => sum + (c.pricing_data!.monthly_fee!), 0);
+    pricingInsights.average_monthly_fee = Math.round(totalFees / competitorsWithPricing.length);
+
+    competitorsWithPricing.forEach(competitor => {
+      const priceRange = competitor.pricing_data!.price_range!;
+      pricingInsights.price_range_distribution[priceRange]++;
+      priceDistribution[priceRange]++;
+    });
+  }
+
+  // Fallback to Google Places price_level for remaining schools
+  const competitorsWithPriceLevel = competitors.filter(c => 
+    !c.pricing_data?.monthly_fee && c.price_level !== undefined
+  );
+  
+  console.log(`Competitors with pricing data: ${competitorsWithPricing.length}`);
+  console.log(`Competitors with Google price levels: ${competitorsWithPriceLevel.length}`);
+
+  competitorsWithPriceLevel.forEach(competitor => {
+    switch (competitor.price_level) {
+      case 1:
+        priceDistribution.budget++;
+        break;
+      case 2:
+        priceDistribution.moderate++;
+        break;
+      case 3:
+        priceDistribution.expensive++;
+        break;
+      case 4:
+        priceDistribution.luxury++;
+        break;
+    }
+  });
+
+  console.log(`Enhanced price distribution:`, priceDistribution);
+  console.log(`Pricing insights:`, pricingInsights);
+
+  return {
+    total_competitors: competitors.length,
+    average_rating: averageRating,
+    high_rated_count: highRatedCount,
+    price_distribution: priceDistribution,
+    pricing_insights: pricingInsights,
+    insights: generateEnhancedInsights(
+      competitors.length, 
+      averageRating, 
+      highRatedCount, 
+      priceDistribution, 
+      pricingInsights
+    )
+  };
+}
+
+function generateEnhancedInsights(
+  totalCompetitors: number,
+  averageRating: number,
+  highRatedCount: number,
+  priceDistribution: { budget: number; moderate: number; expensive: number; luxury: number },
+  pricingInsights: {
+    schools_with_pricing: number;
+    average_monthly_fee?: number;
+    price_range_distribution: { budget: number; moderate: number; expensive: number; luxury: number };
+  }
+): string {
+  const insights = [];
+  
+  // Competition level
+  if (totalCompetitors < 5) {
+    insights.push("Mercado com baixa concorrência - boa oportunidade para destacar-se.");
+  } else if (totalCompetitors < 15) {
+    insights.push("Concorrência moderada - importante focar na diferenciação.");
+  } else {
+    insights.push("Mercado altamente competitivo - necessário estratégia robusta de posicionamento.");
+  }
+  
+  // Rating insights
+  if (averageRating > 4.5) {
+    insights.push("Concorrentes têm avaliações muito altas - foque na excelência do serviço.");
+  } else if (averageRating > 4.0) {
+    insights.push("Avaliações dos concorrentes são boas - há espaço para superar expectativas.");
+  } else {
+    insights.push("Oportunidade de diferenciação através da qualidade - concorrentes têm avaliações medianas.");
+  }
+  
+  // Enhanced pricing insights
+  if (pricingInsights.schools_with_pricing > 0) {
+    const pricingPercentage = Math.round((pricingInsights.schools_with_pricing / totalCompetitors) * 100);
+    insights.push(`Dados de preços obtidos para ${pricingPercentage}% dos concorrentes.`);
+    
+    if (pricingInsights.average_monthly_fee) {
+      insights.push(`Mensalidade média na região: R$ ${pricingInsights.average_monthly_fee}.`);
+    }
+    
+    // Price positioning analysis
+    const dominantPriceRange = Object.entries(pricingInsights.price_range_distribution).reduce((a, b) => 
+      pricingInsights.price_range_distribution[a[0] as keyof typeof pricingInsights.price_range_distribution] > 
+      pricingInsights.price_range_distribution[b[0] as keyof typeof pricingInsights.price_range_distribution] ? a : b
+    )[0];
+    
+    const categoryNames = {
+      budget: 'econômico (até R$ 500)',
+      moderate: 'moderado (R$ 501-1.200)',
+      expensive: 'premium (R$ 1.201-2.500)',
+      luxury: 'luxo (acima de R$ 2.500)'
+    };
+    
+    if (pricingInsights.price_range_distribution[dominantPriceRange as keyof typeof pricingInsights.price_range_distribution] > 0) {
+      insights.push(`Mercado predominantemente ${categoryNames[dominantPriceRange as keyof typeof categoryNames]}.`);
+    }
+  } else {
+    // Fallback to Google Places price levels
+    const totalWithPricing = Object.values(priceDistribution).reduce((sum, count) => sum + count, 0);
+    if (totalWithPricing > 0) {
+      const dominantCategory = Object.entries(priceDistribution).reduce((a, b) => 
+        priceDistribution[a[0] as keyof typeof priceDistribution] > priceDistribution[b[0] as keyof typeof priceDistribution] ? a : b
+      )[0];
+      
+      const categoryNames = {
+        budget: 'econômico',
+        moderate: 'moderado',
+        expensive: 'premium',
+        luxury: 'luxo'
+      };
+      
+      insights.push(`Posicionamento de preço: mercado ${categoryNames[dominantCategory as keyof typeof categoryNames]} (baseado em dados limitados).`);
+    }
+  }
+  
+  return insights.join(' ');
 }
 
 serve(async (req) => {
@@ -187,9 +437,9 @@ serve(async (req) => {
       has_next_page: !!nextPageToken
     });
     
-    // Get additional pages if available (up to 30 results total for faster response)
+    // Get additional pages if available (up to 20 results total for faster response)
     let pageCount = 1;
-    while (nextPageToken && allCompetitors.length < 30 && pageCount < 3) {
+    while (nextPageToken && allCompetitors.length < 20 && pageCount < 2) {
       console.log(`📄 Fetching page ${pageCount + 1}...`);
       
       // Wait 1.5 seconds before next request (reduced for speed)
@@ -239,72 +489,30 @@ serve(async (req) => {
       pages_processed: pageCount
     });
 
-    // Analyze the data
-    const totalCompetitors = competitors.length;
-    const ratingsData = competitors.filter(p => p.rating).map(p => p.rating!);
-    const averageRating = ratingsData.length > 0 
-      ? ratingsData.reduce((a, b) => a + b, 0) / ratingsData.length 
-      : 0;
-
-    // Price distribution analysis (based on price_level 0-4)
-    const priceDistribution = {
-      budget: competitors.filter(p => p.price_level === 0 || p.price_level === 1).length,
-      moderate: competitors.filter(p => p.price_level === 2).length,
-      expensive: competitors.filter(p => p.price_level === 3).length,
-      luxury: competitors.filter(p => p.price_level === 4).length,
-    };
+    // Enrich competitors with pricing data
+    const enrichedCompetitors = await enrichWithPricingData(competitors);
     
-    console.log('Price distribution:', priceDistribution);
-    console.log('Competitors with price levels:', competitors.filter(p => p.price_level !== undefined).length);
+    // Perform market analysis with enriched data
+    const analysis = performMarketAnalysis(enrichedCompetitors);
 
-    // Generate insights
-    const insights: string[] = [];
-    
-    if (totalCompetitors === 0) {
-      insights.push('Nenhum concorrente direto encontrado na região - oportunidade de mercado único');
-    } else if (totalCompetitors < 5) {
-      insights.push('Baixa concorrência na região - mercado com potencial de crescimento');
-    } else if (totalCompetitors > 20) {
-      insights.push('Alta concorrência na região - necessário diferenciação forte');
-    }
+    console.log(`✅ Market analysis completed successfully: {
+  execution_time_ms: ${Date.now() - startTime},
+  total_competitors: ${analysis.total_competitors},
+  average_rating: ${analysis.average_rating},
+  schools_with_pricing: ${analysis.pricing_insights.schools_with_pricing},
+  timestamp: "${new Date().toISOString()}"
+}`);
 
-    if (averageRating > 4.0) {
-      insights.push('Região com escolas bem avaliadas - padrão de qualidade elevado');
-    } else if (averageRating < 3.5) {
-      insights.push('Oportunidade de se destacar com melhor qualidade de ensino');
-    }
-
-    if (priceDistribution.budget > priceDistribution.expensive + priceDistribution.luxury) {
-      insights.push('Mercado focado em preços acessíveis');
-    } else if (priceDistribution.expensive + priceDistribution.luxury > priceDistribution.budget) {
-      insights.push('Mercado premium - clientes dispostos a pagar por qualidade');
-    }
-
-    const analysis: MarketAnalysisResponse = {
-      competitors,
-      analysis: {
-        total_competitors: totalCompetitors,
-        average_rating: Math.round(averageRating * 100) / 100,
-        price_distribution: priceDistribution,
-        insights
-      },
-      center_coordinates: {
-        lat: location.lat,
-        lng: location.lng
-      }
-    };
-
-    const executionTime = Date.now() - startTime;
-    console.log('✅ Market analysis completed successfully:', {
-      execution_time_ms: executionTime,
-      total_competitors: totalCompetitors,
-      average_rating: Math.round(averageRating * 100) / 100,
-      timestamp: new Date().toISOString()
-    });
-    
     clearTimeout(timeoutId);
     return new Response(
-      JSON.stringify(analysis),
+      JSON.stringify({
+        competitors: enrichedCompetitors,
+        analysis,
+        center_coordinates: {
+          lat: location.lat,
+          lng: location.lng
+        }
+      }),
       { 
         status: 200, 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
@@ -350,4 +558,4 @@ serve(async (req) => {
       }
     );
   }
-});
+})
