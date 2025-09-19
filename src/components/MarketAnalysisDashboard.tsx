@@ -97,7 +97,7 @@ const MarketAnalysisDashboard: React.FC<MarketAnalysisProps> = ({ onBack, school
 
   const cleanupMap = () => {
     try {
-      // Clear all markers
+      // Clear all markers first
       if (markersRef.current) {
         markersRef.current.forEach(marker => {
           if (marker && typeof marker.setMap === 'function') {
@@ -112,13 +112,9 @@ const MarketAnalysisDashboard: React.FC<MarketAnalysisProps> = ({ onBack, school
         mapInstanceRef.current = null;
       }
 
-      // Clear map container content safely
-      if (mapRef.current && mapRef.current.children.length > 0) {
-        // Only clear if the container has children and they're not being managed by React
-        while (mapRef.current.firstChild) {
-          mapRef.current.removeChild(mapRef.current.firstChild);
-        }
-      }
+      // Let React handle DOM cleanup - don't manually manipulate DOM nodes
+      // The map container will be cleaned up by React's normal lifecycle
+      
     } catch (error) {
       console.warn('⚠️ Error during map cleanup:', error);
     }
@@ -538,30 +534,35 @@ const MarketAnalysisDashboard: React.FC<MarketAnalysisProps> = ({ onBack, school
           </CardHeader>
           <CardContent>
             <div 
-              ref={mapRef} 
-              className="w-full h-[400px] rounded-lg bg-muted/50 flex items-center justify-center relative"
+              ref={mapRef}
+              key={`map-${marketData?.competitors.length || 0}`}
+              className="w-full h-[400px] rounded-lg bg-muted/50"
             >
               {mapError ? (
-                <div className="text-center text-muted-foreground">
-                  <MapPin className="h-8 w-8 mx-auto mb-2 text-destructive" />
-                  <p className="text-sm">{mapError}</p>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="mt-2"
-                    onClick={() => {
-                      setMapError(null);
-                      setMapLoading(true);
-                      initializeMap();
-                    }}
-                  >
-                    Tentar Novamente
-                  </Button>
+                <div className="flex items-center justify-center h-full text-center text-muted-foreground">
+                  <div>
+                    <MapPin className="h-8 w-8 mx-auto mb-2 text-destructive" />
+                    <p className="text-sm">{mapError}</p>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="mt-2"
+                      onClick={() => {
+                        setMapError(null);
+                        setMapLoading(true);
+                        initializeMap();
+                      }}
+                    >
+                      Tentar Novamente
+                    </Button>
+                  </div>
                 </div>
               ) : mapLoading ? (
-                <div className="text-center text-muted-foreground">
-                  <MapPin className="h-8 w-8 mx-auto mb-2 animate-pulse" />
-                  <p>Carregando mapa...</p>
+                <div className="flex items-center justify-center h-full text-center text-muted-foreground">
+                  <div>
+                    <MapPin className="h-8 w-8 mx-auto mb-2 animate-pulse" />
+                    <p>Carregando mapa...</p>
+                  </div>
                 </div>
               ) : null}
             </div>
