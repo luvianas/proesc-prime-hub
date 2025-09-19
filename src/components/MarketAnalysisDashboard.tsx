@@ -65,6 +65,7 @@ const MarketAnalysisDashboard: React.FC<MarketAnalysisProps> = ({ onBack, school
   
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);
+  const markersRef = useRef<any[]>([]);
   
   const { toast } = useToast();
 
@@ -86,6 +87,42 @@ const MarketAnalysisDashboard: React.FC<MarketAnalysisProps> = ({ onBack, school
       initializeMap();
     }
   }, [marketData]);
+
+  // Cleanup when component unmounts
+  useEffect(() => {
+    return () => {
+      cleanupMap();
+    };
+  }, []);
+
+  const cleanupMap = () => {
+    try {
+      // Clear all markers
+      if (markersRef.current) {
+        markersRef.current.forEach(marker => {
+          if (marker && typeof marker.setMap === 'function') {
+            marker.setMap(null);
+          }
+        });
+        markersRef.current = [];
+      }
+
+      // Clear map instance
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current = null;
+      }
+
+      // Clear map container content safely
+      if (mapRef.current && mapRef.current.children.length > 0) {
+        // Only clear if the container has children and they're not being managed by React
+        while (mapRef.current.firstChild) {
+          mapRef.current.removeChild(mapRef.current.firstChild);
+        }
+      }
+    } catch (error) {
+      console.warn('⚠️ Error during map cleanup:', error);
+    }
+  };
 
   const fetchSchoolData = async () => {
     try {
@@ -502,7 +539,7 @@ const MarketAnalysisDashboard: React.FC<MarketAnalysisProps> = ({ onBack, school
           <CardContent>
             <div 
               ref={mapRef} 
-              className="w-full h-[400px] rounded-lg bg-muted/50 flex items-center justify-center"
+              className="w-full h-[400px] rounded-lg bg-muted/50 flex items-center justify-center relative"
             >
               {mapError ? (
                 <div className="text-center text-muted-foreground">
@@ -514,6 +551,7 @@ const MarketAnalysisDashboard: React.FC<MarketAnalysisProps> = ({ onBack, school
                     className="mt-2"
                     onClick={() => {
                       setMapError(null);
+                      setMapLoading(true);
                       initializeMap();
                     }}
                   >
