@@ -5,20 +5,23 @@ interface GoogleMapContainerProps {
   schoolData: any;
   onMapLoad: () => void;
   onMapError: (error: string) => void;
+  enableProgressiveLoading?: boolean;
 }
 
 const GoogleMapContainer: React.FC<GoogleMapContainerProps> = ({
   marketData,
   schoolData,
   onMapLoad,
-  onMapError
+  onMapError,
+  enableProgressiveLoading = false
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<any>(null);
   const markersRef = useRef<any[]>([]);
 
   useEffect(() => {
-    if (!marketData || !containerRef.current) return;
+    if (!containerRef.current) return;
+    if (!enableProgressiveLoading && (!marketData || !schoolData)) return;
 
     let mounted = true;
 
@@ -43,9 +46,14 @@ const GoogleMapContainer: React.FC<GoogleMapContainerProps> = ({
         if (!mounted || !containerRef.current) return;
 
         // Create map directly in the container
+        const centerCoords = marketData?.center_coordinates || 
+          (schoolData?.latitude && schoolData?.longitude ? 
+            { lat: schoolData.latitude, lng: schoolData.longitude } : 
+            { lat: -14.235, lng: -51.9253 }); // Default to Brazil center
+        
         const map = new google.maps.Map(containerRef.current, {
-          zoom: 13,
-          center: marketData.center_coordinates,
+          zoom: marketData ? 13 : 6,
+          center: centerCoords,
           mapTypeId: google.maps.MapTypeId.ROADMAP,
           styles: [
             {
@@ -58,11 +66,12 @@ const GoogleMapContainer: React.FC<GoogleMapContainerProps> = ({
 
         mapRef.current = map;
 
-        // Add main school marker
-        const mainMarker = new google.maps.Marker({
-          position: marketData.center_coordinates,
-          map: map,
-          title: schoolData?.nome || 'Sua Escola',
+        // Add main school marker if we have location data
+        if (centerCoords && (marketData || schoolData)) {
+          const mainMarker = new google.maps.Marker({
+            position: centerCoords,
+            map: map,
+            title: schoolData?.school_name || schoolData?.nome || 'Sua Escola',
           icon: {
             url: 'data:image/svg+xml;base64,' + btoa(`
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="32" height="32">
@@ -75,21 +84,24 @@ const GoogleMapContainer: React.FC<GoogleMapContainerProps> = ({
 
         markersRef.current.push(mainMarker);
 
-        const mainInfoWindow = new google.maps.InfoWindow({
-          content: `
-            <div class="p-2">
-              <h3 class="font-semibold text-primary">${schoolData?.nome || 'Sua Escola'}</h3>
-              <p class="text-sm text-muted-foreground">Escola Principal</p>
-            </div>
-          `
-        });
+          const mainInfoWindow = new google.maps.InfoWindow({
+            content: `
+              <div class="p-2">
+                <h3 class="font-semibold text-primary">${schoolData?.school_name || schoolData?.nome || 'Sua Escola'}</h3>
+                <p class="text-sm text-muted-foreground">Escola Principal</p>
+                ${!marketData ? '<p class="text-xs text-muted-foreground mt-1">Analisando concorrentes...</p>' : ''}
+              </div>
+            `
+          });
 
-        mainMarker.addListener('click', () => {
-          mainInfoWindow.open(map, mainMarker);
-        });
+          mainMarker.addListener('click', () => {
+            mainInfoWindow.open(map, mainMarker);
+          });
+        }
 
-        // Add competitor markers
-        marketData.competitors.forEach((competitor: any) => {
+        // Add competitor markers only if market data is available
+        if (marketData?.competitors) {
+          marketData.competitors.forEach((competitor: any) => {
           if (!competitor.geometry?.location) return;
 
           const marker = new google.maps.Marker({
@@ -128,10 +140,11 @@ const GoogleMapContainer: React.FC<GoogleMapContainerProps> = ({
             `
           });
 
-          marker.addListener('click', () => {
-            infoWindow.open(map, marker);
+            marker.addListener('click', () => {
+              infoWindow.open(map, marker);
+            });
           });
-        });
+        }
 
         onMapLoad();
         console.log('🎯 Mapa isolado carregado com sucesso');
@@ -177,7 +190,7 @@ const GoogleMapContainer: React.FC<GoogleMapContainerProps> = ({
         mapRef.current = null;
       }
     };
-  }, [marketData, schoolData, onMapLoad, onMapError]);
+  }, [marketData, schoolData, onMapLoad, onMapError, enableProgressiveLoading]);
 
   return (
     <div 

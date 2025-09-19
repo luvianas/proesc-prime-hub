@@ -63,8 +63,18 @@ const MarketAnalysisDashboard: React.FC<MarketAnalysisProps> = ({ onBack, school
   const [mapError, setMapError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [competitorsPerPage] = useState(10);
+  const [analysisProgress, setAnalysisProgress] = useState<string>('Carregando dados da escola...');
+  const [competitorCount, setCompetitorCount] = useState(0);
+  const [analysisComplete, setAnalysisComplete] = useState(false);
   
   const { toast } = useToast();
+
+  useEffect(() => {
+    if (schoolData && schoolData.address) {
+      // Start map loading immediately even without market data
+      setMapLoading(false); // Allow map to render with school location
+    }
+  }, [schoolData]);
 
   useEffect(() => {
     fetchSchoolData();
@@ -125,13 +135,20 @@ const MarketAnalysisDashboard: React.FC<MarketAnalysisProps> = ({ onBack, school
         return;
       }
 
-      // Temporarily disabled cache to validate functionality
-      // if (school.market_analysis && Object.keys(school.market_analysis as object).length > 0) {
-      //   const cachedData = school.market_analysis as unknown as MarketData;
-      //   setMarketData(cachedData);
-      //   setLoading(false);
-      //   return;
-      // }
+      // Check for cached data (within 24 hours)
+      if (school.market_analysis && Object.keys(school.market_analysis as object).length > 0) {
+        const cachedData = school.market_analysis as unknown as MarketData;
+        setMarketData(cachedData);
+        setCompetitorCount(cachedData.competitors?.length || 0);
+        setAnalysisComplete(true);
+        setLoading(false);
+        
+        toast({
+          title: 'Dados em Cache',
+          description: 'Usando análise armazenada. Recarregue para atualizar.',
+        });
+        return;
+      }
 
       // Fetch new market analysis
       await fetchMarketAnalysis(school.address);
@@ -143,13 +160,24 @@ const MarketAnalysisDashboard: React.FC<MarketAnalysisProps> = ({ onBack, school
   };
 
   const fetchMarketAnalysis = async (address: string) => {
+    const timeoutId = setTimeout(() => {
+      setError('Tempo limite excedido. A análise está demorando mais que o esperado.');
+      setLoading(false);
+    }, 30000); // 30 second timeout
+
     try {
       console.log('🚀 Iniciando busca de análise de mercado para:', address);
+      setAnalysisProgress('Localizando endereço da escola...');
+      
+      // Update progress as we go
+      setTimeout(() => setAnalysisProgress('Buscando escolas concorrentes na região...'), 2000);
+      setTimeout(() => setAnalysisProgress('Analisando dados encontrados...'), 15000);
       
       const { data, error } = await supabase.functions.invoke('Google-Maps-10km', {
         body: { address, radius: 10000 } // 10km radius
       });
 
+      clearTimeout(timeoutId);
       console.log('📡 Resposta da função:', { data, error });
 
       if (error) {
@@ -167,12 +195,14 @@ const MarketAnalysisDashboard: React.FC<MarketAnalysisProps> = ({ onBack, school
       });
 
       setMarketData(data);
+      setCompetitorCount(data.competitors?.length || 0);
+      setAnalysisComplete(true);
       
-      // Temporarily disabled cache to validate functionality
-      // await supabase
-      //   .from('school_customizations')
-      //   .update({ market_analysis: data })
-      //   .eq('id', schoolId);
+      // Cache result for future requests
+      await supabase
+        .from('school_customizations')
+        .update({ market_analysis: data })
+        .eq('id', schoolId);
 
       setLoading(false);
       
@@ -181,13 +211,17 @@ const MarketAnalysisDashboard: React.FC<MarketAnalysisProps> = ({ onBack, school
         description: `Encontradas ${data.competitors?.length || 0} escolas na região`,
       });
       
-    } catch (err: any) {
-      console.error('❌ Erro na análise de mercado:', err);
-      
-      let errorMessage = 'Erro ao buscar análise de mercado';
-      let errorDetails = '';
-      
-      if (err.message?.includes('API key')) {
+      } catch (err: any) {
+        console.error('❌ Erro na análise de mercado:', err);
+        clearTimeout(timeoutId);
+        
+        let errorMessage = 'Erro ao buscar análise de mercado';
+        let errorDetails = '';
+        
+        if (err.message?.includes('timeout')) {
+          errorMessage = 'Tempo limite excedido';
+          errorDetails = 'A análise demorou mais que 30 segundos';
+        } else if (err.message?.includes('API key')) {
         errorMessage = 'Problema com configuração da API';
         errorDetails = 'A chave da API do Google Maps precisa ser configurada';
       } else if (err.message?.includes('geocode')) {
@@ -243,9 +277,32 @@ const MarketAnalysisDashboard: React.FC<MarketAnalysisProps> = ({ onBack, school
           <h1 className="text-2xl font-bold">Estudo de Mercado</h1>
         </div>
         <div className="flex items-center justify-center min-h-[400px]">
-          <div className="text-center space-y-4">
-            <Loader2 className="h-8 w-8 animate-spin mx-auto" />
-            <p>Analisando mercado na sua região...</p>
+          <div className="text-center space-y-4 max-w-md">
+            <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
+            <div className="space-y-2">
+              <p className="font-medium">{analysisProgress}</p>
+              {competitorCount > 0 && (
+                <p className="text-sm text-muted-foreground">
+                  {competitorCount} escolas encontradas até agora...
+                </p>
+              )}
+              <div className="bg-muted rounded-full h-2 overflow-hidden">
+                <div 
+                  className="bg-primary h-full transition-all duration-500 ease-out"
+                  style={{ width: analysisComplete ? '100%' : '70%' }}
+                />
+              </div>
+            </div>
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => {
+                setError('Análise cancelada pelo usuário');
+                setLoading(false);
+              }}
+            >
+              Cancelar
+            </Button>
           </div>
         </div>
       </div>
@@ -417,6 +474,7 @@ const MarketAnalysisDashboard: React.FC<MarketAnalysisProps> = ({ onBack, school
                   schoolData={schoolData}
                   onMapLoad={handleMapLoad}
                   onMapError={handleMapError}
+                  enableProgressiveLoading={true}
                 />
               )}
             </div>

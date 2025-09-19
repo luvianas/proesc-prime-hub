@@ -47,6 +47,10 @@ interface MarketAnalysisResponse {
 serve(async (req) => {
   const startTime = Date.now();
   console.log('🚀 Starting market analysis request at:', new Date().toISOString());
+
+  // Set timeout for the entire request
+  const timeoutController = new AbortController();
+  const timeoutId = setTimeout(() => timeoutController.abort(), 25000); // 25 second timeout
   
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -183,13 +187,13 @@ serve(async (req) => {
       has_next_page: !!nextPageToken
     });
     
-    // Get additional pages if available (up to 60 results total)
+    // Get additional pages if available (up to 30 results total for faster response)
     let pageCount = 1;
-    while (nextPageToken && allCompetitors.length < 60) {
+    while (nextPageToken && allCompetitors.length < 30 && pageCount < 3) {
       console.log(`📄 Fetching page ${pageCount + 1}...`);
       
-      // Wait 2 seconds before next request (Google requirement)
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Wait 1.5 seconds before next request (reduced for speed)
+      await new Promise(resolve => setTimeout(resolve, 1500));
       
       placesUrl = `https://maps.googleapis.com/maps/api/place/nearbysearch/json?pagetoken=${nextPageToken}&key=${apiKey}`;
       placesResponse = await fetch(placesUrl);
@@ -298,6 +302,7 @@ serve(async (req) => {
       timestamp: new Date().toISOString()
     });
     
+    clearTimeout(timeoutId);
     return new Response(
       JSON.stringify(analysis),
       { 
@@ -307,7 +312,25 @@ serve(async (req) => {
     );
 
   } catch (error) {
+    clearTimeout(timeoutId);
     const executionTime = Date.now() - startTime;
+    
+    // Handle timeout error specifically
+    if (error.name === 'AbortError') {
+      console.error('⏰ Request timeout after 25 seconds');
+      return new Response(
+        JSON.stringify({ 
+          error: 'Request timeout',
+          details: 'A análise demorou muito para completar. Tente novamente.',
+          execution_time_ms: executionTime
+        }),
+        { 
+          status: 408, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
+    }
+    
     console.error('❌ Error in market analysis:', {
       error: error.message || 'Unknown error',
       execution_time_ms: executionTime,
