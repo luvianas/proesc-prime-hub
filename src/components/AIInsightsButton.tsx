@@ -15,6 +15,9 @@ interface AIInsightsButtonProps {
 }
 
 const AIInsightsButton = ({ label = "IA: Explicar", question = "Explique os principais insights deste dashboard", cardId, dashboardUrl, dashboardType, school_id }: AIInsightsButtonProps) => {
+  // Temporariamente desabilitado
+  return null;
+
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [answer, setAnswer] = useState<string>("");
