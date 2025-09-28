@@ -46,24 +46,31 @@
     --surface-hover: 0 0% 96%;
     --surface-active: 0 0% 94%;
     
-    /* Gradients - Modernos e sofisticados */
+    /* Glassmorphism Variables */
+    --glass-bg: 0 0% 100% / 0.1;
+    --glass-border: 240 5.9% 90% / 0.3;
+    --glass-shadow-primary: 41 77% 45% / 0.4;
+    --glass-shadow-glow: 43 85% 65% / 0.3;
+    
+    /* Gradients - Glassmorphism Enhanced */
     --gradient-primary: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--primary-glow)) 100%);
     --gradient-surface: linear-gradient(145deg, hsl(var(--surface)) 0%, hsl(var(--background)) 100%);
-    --gradient-hero: linear-gradient(135deg, hsl(0 0% 100%) 0%, hsl(240 4.8% 95.9%) 50%, hsl(41 77% 45% / 0.05) 100%);
-    --gradient-card: linear-gradient(145deg, hsl(var(--card)) 0%, hsl(var(--background)) 100%);
-    --gradient-button: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--primary-glow)) 100%);
-    --gradient-elegant: linear-gradient(135deg, hsl(var(--background)) 0%, hsl(var(--muted)) 50%, hsl(var(--surface)) 100%);
-    --gradient-auth: linear-gradient(135deg, hsl(var(--background)) 0%, hsl(var(--primary) / 0.03) 50%, hsl(var(--primary-glow) / 0.05) 100%);
+    --gradient-hero: linear-gradient(135deg, hsl(0 0% 100% / 0.8) 0%, hsl(240 4.8% 95.9% / 0.6) 50%, hsl(41 77% 45% / 0.1) 100%);
+    --gradient-card: linear-gradient(145deg, hsl(var(--card) / 0.7) 0%, hsl(var(--background) / 0.4) 100%);
+    --gradient-button: linear-gradient(135deg, hsl(var(--primary) / 0.9) 0%, hsl(var(--primary-glow) / 0.8) 100%);
+    --gradient-elegant: linear-gradient(135deg, hsl(var(--background) / 0.8) 0%, hsl(var(--muted) / 0.6) 50%, hsl(var(--surface) / 0.4) 100%);
+    --gradient-auth: linear-gradient(135deg, hsl(var(--background) / 0.9) 0%, hsl(var(--primary) / 0.05) 50%, hsl(var(--primary-glow) / 0.08) 100%);
+    --gradient-glass: linear-gradient(145deg, hsl(var(--glass-bg)) 0%, hsl(0 0% 100% / 0.05) 100%);
     
-    /* Shadows - Modernos com blur suave */
-    --shadow-sm: 0 1px 3px 0 hsl(0 0% 0% / 0.1), 0 1px 2px -1px hsl(0 0% 0% / 0.06);
-    --shadow-md: 0 4px 8px -2px hsl(0 0% 0% / 0.1), 0 2px 4px -1px hsl(0 0% 0% / 0.06);
-    --shadow-lg: 0 10px 20px -4px hsl(0 0% 0% / 0.1), 0 4px 8px -2px hsl(0 0% 0% / 0.06);
-    --shadow-xl: 0 25px 50px -12px hsl(0 0% 0% / 0.12), 0 8px 16px -4px hsl(0 0% 0% / 0.06);
-    --shadow-elegant: 0 8px 32px -8px hsl(var(--primary) / 0.3), 0 4px 16px -4px hsl(var(--primary) / 0.1);
-    --shadow-glow: 0 0 24px hsl(var(--primary-glow) / 0.4), 0 0 8px hsl(var(--primary) / 0.2);
-    --shadow-interactive: 0 4px 12px -2px hsl(0 0% 0% / 0.12), 0 2px 6px -1px hsl(0 0% 0% / 0.08);
-    --shadow-floating: 0 12px 28px -8px hsl(0 0% 0% / 0.15), 0 6px 14px -4px hsl(0 0% 0% / 0.1);
+    /* Glassmorphism Shadows */
+    --shadow-sm: 0 2px 8px 0 hsl(var(--glass-shadow-primary)), 0 1px 4px -1px hsl(0 0% 0% / 0.1);
+    --shadow-md: 0 8px 24px -4px hsl(var(--glass-shadow-primary)), 0 4px 12px -2px hsl(0 0% 0% / 0.1);
+    --shadow-lg: 0 16px 40px -8px hsl(var(--glass-shadow-primary)), 0 8px 20px -4px hsl(0 0% 0% / 0.1);
+    --shadow-xl: 0 32px 64px -16px hsl(var(--glass-shadow-primary)), 0 16px 32px -8px hsl(0 0% 0% / 0.1);
+    --shadow-elegant: 0 12px 48px -12px hsl(var(--glass-shadow-primary)), 0 6px 24px -6px hsl(var(--primary) / 0.2);
+    --shadow-glow: 0 0 32px hsl(var(--glass-shadow-glow)), 0 0 16px hsl(var(--primary) / 0.3);
+    --shadow-interactive: 0 8px 24px -4px hsl(var(--glass-shadow-primary)), 0 4px 12px -2px hsl(0 0% 0% / 0.1);
+    --shadow-floating: 0 20px 48px -12px hsl(var(--glass-shadow-primary)), 0 12px 28px -8px hsl(0 0% 0% / 0.1);
     
     /* Textures and patterns */
     --texture-subtle: radial-gradient(circle at 1px 1px, hsl(var(--muted)) 1px, transparent 0);
@@ -123,23 +130,30 @@
     --surface-hover: 240 8% 15%;
     --surface-active: 240 8% 18%;
     
-    /* Dark gradients - Mais elegantes */
-    --gradient-surface: linear-gradient(145deg, hsl(var(--surface)) 0%, hsl(var(--background)) 100%);
-    --gradient-hero: linear-gradient(135deg, hsl(240 10% 6%) 0%, hsl(240 8% 12%) 50%, hsl(41 77% 45% / 0.1) 100%);
-    --gradient-card: linear-gradient(145deg, hsl(var(--card)) 0%, hsl(var(--background)) 100%);
-    --gradient-button: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--primary-glow)) 100%);
-    --gradient-elegant: linear-gradient(135deg, hsl(var(--background)) 0%, hsl(var(--muted)) 50%, hsl(var(--surface)) 100%);
-    --gradient-auth: linear-gradient(135deg, hsl(240 10% 6%) 0%, hsl(var(--primary) / 0.08) 50%, hsl(var(--primary-glow) / 0.1) 100%);
+    /* Glassmorphism Variables - Dark Mode */
+    --glass-bg: 240 10% 8% / 0.6;
+    --glass-border: 240 3.7% 15.9% / 0.4;
+    --glass-shadow-primary: 41 77% 45% / 0.6;
+    --glass-shadow-glow: 43 85% 65% / 0.4;
     
-    /* Dark shadows - Mais suaves */
-    --shadow-sm: 0 1px 3px 0 hsl(0 0% 0% / 0.4), 0 1px 2px -1px hsl(0 0% 0% / 0.3);
-    --shadow-md: 0 4px 8px -2px hsl(0 0% 0% / 0.5), 0 2px 4px -1px hsl(0 0% 0% / 0.3);
-    --shadow-lg: 0 10px 20px -4px hsl(0 0% 0% / 0.5), 0 4px 8px -2px hsl(0 0% 0% / 0.3);
-    --shadow-xl: 0 25px 50px -12px hsl(0 0% 0% / 0.6), 0 8px 16px -4px hsl(0 0% 0% / 0.4);
-    --shadow-elegant: 0 8px 32px -8px hsl(var(--primary) / 0.5), 0 4px 16px -4px hsl(var(--primary) / 0.2);
-    --shadow-glow: 0 0 24px hsl(var(--primary-glow) / 0.5), 0 0 8px hsl(var(--primary) / 0.3);
-    --shadow-interactive: 0 4px 12px -2px hsl(0 0% 0% / 0.4), 0 2px 6px -1px hsl(0 0% 0% / 0.3);
-    --shadow-floating: 0 12px 28px -8px hsl(0 0% 0% / 0.6), 0 6px 14px -4px hsl(0 0% 0% / 0.4);
+    /* Dark gradients - Glassmorphism Enhanced */
+    --gradient-surface: linear-gradient(145deg, hsl(var(--surface) / 0.8) 0%, hsl(var(--background) / 0.6) 100%);
+    --gradient-hero: linear-gradient(135deg, hsl(240 10% 6% / 0.9) 0%, hsl(240 8% 12% / 0.7) 50%, hsl(41 77% 45% / 0.15) 100%);
+    --gradient-card: linear-gradient(145deg, hsl(var(--card) / 0.6) 0%, hsl(var(--background) / 0.3) 100%);
+    --gradient-button: linear-gradient(135deg, hsl(var(--primary) / 0.9) 0%, hsl(var(--primary-glow) / 0.8) 100%);
+    --gradient-elegant: linear-gradient(135deg, hsl(var(--background) / 0.8) 0%, hsl(var(--muted) / 0.6) 50%, hsl(var(--surface) / 0.4) 100%);
+    --gradient-auth: linear-gradient(135deg, hsl(240 10% 6% / 0.9) 0%, hsl(var(--primary) / 0.1) 50%, hsl(var(--primary-glow) / 0.12) 100%);
+    --gradient-glass: linear-gradient(145deg, hsl(var(--glass-bg)) 0%, hsl(240 10% 8% / 0.1) 100%);
+    
+    /* Glassmorphism Shadows - Dark Mode */
+    --shadow-sm: 0 2px 8px 0 hsl(var(--glass-shadow-primary)), 0 1px 4px -1px hsl(0 0% 0% / 0.4);
+    --shadow-md: 0 8px 24px -4px hsl(var(--glass-shadow-primary)), 0 4px 12px -2px hsl(0 0% 0% / 0.5);
+    --shadow-lg: 0 16px 40px -8px hsl(var(--glass-shadow-primary)), 0 8px 20px -4px hsl(0 0% 0% / 0.5);
+    --shadow-xl: 0 32px 64px -16px hsl(var(--glass-shadow-primary)), 0 16px 32px -8px hsl(0 0% 0% / 0.6);
+    --shadow-elegant: 0 12px 48px -12px hsl(var(--glass-shadow-primary)), 0 6px 24px -6px hsl(var(--primary) / 0.3);
+    --shadow-glow: 0 0 32px hsl(var(--glass-shadow-glow)), 0 0 16px hsl(var(--primary) / 0.4);
+    --shadow-interactive: 0 8px 24px -4px hsl(var(--glass-shadow-primary)), 0 4px 12px -2px hsl(0 0% 0% / 0.4);
+    --shadow-floating: 0 20px 48px -12px hsl(var(--glass-shadow-primary)), 0 12px 28px -8px hsl(0 0% 0% / 0.6);
 
     /* Dark sidebar */
     --sidebar-background: 240 5.9% 10%;
@@ -246,43 +260,52 @@
     @apply overflow-x-hidden max-w-full;
   }
   
-  /* Modern card styles - Mais sofisticados */
+  /* Glassmorphism card styles */
   .card-elegant {
-    @apply bg-card/90 backdrop-blur-md border border-border/30 overflow-safe;
-    box-shadow: var(--shadow-interactive), var(--shadow-elegant);
-    background-image: var(--gradient-card);
+    @apply bg-card/30 backdrop-blur-2xl border border-border/20 overflow-safe;
+    box-shadow: var(--shadow-elegant);
+    background: var(--gradient-glass);
     position: relative;
   }
   
   .card-elegant::before {
-    @apply absolute inset-0 rounded-lg opacity-20 pointer-events-none;
+    @apply absolute inset-0 rounded-lg opacity-30 pointer-events-none;
     content: '';
-    background: linear-gradient(135deg, hsl(var(--primary) / 0.05) 0%, transparent 50%, hsl(var(--primary-glow) / 0.03) 100%);
+    background: linear-gradient(135deg, hsl(var(--primary) / 0.1) 0%, transparent 50%, hsl(var(--primary-glow) / 0.05) 100%);
+    border: 1px solid hsl(var(--glass-border));
+  }
+  
+  .card-elegant::after {
+    @apply absolute inset-0 rounded-lg opacity-10 pointer-events-none;
+    content: '';
+    background: radial-gradient(circle at 50% 0%, hsl(var(--primary) / 0.2) 0%, transparent 70%);
   }
   
   .card-interactive {
     @apply cursor-pointer transition-all duration-500 ease-out;
     @apply hover:-translate-y-2 hover:scale-[1.02];
     box-shadow: var(--shadow-md);
-    background-image: var(--gradient-card);
+    background: var(--gradient-glass);
   }
   
   .card-interactive:hover {
     box-shadow: var(--shadow-floating), var(--shadow-glow);
+    background: var(--gradient-card);
   }
   
-  /* Button enhancements - Mais modernos */
+  /* Glassmorphism button enhancements */
   .btn-elegant {
-    @apply relative overflow-hidden;
+    @apply relative overflow-hidden bg-primary/80 backdrop-blur-xl;
     transition: var(--transition-smooth);
     box-shadow: var(--shadow-sm);
-    background-image: var(--gradient-button);
+    background: var(--gradient-button);
+    border: 1px solid hsl(var(--glass-border));
   }
   
   .btn-elegant::before {
     @apply absolute inset-0 opacity-0 transition-all duration-500 pointer-events-none;
     content: '';
-    background: linear-gradient(45deg, transparent 30%, rgba(255,255,255,0.3) 50%, transparent 70%);
+    background: linear-gradient(45deg, transparent 30%, hsl(0 0% 100% / 0.4) 50%, transparent 70%);
     transform: translateX(-100%) skewX(-15deg);
   }
   
@@ -359,23 +382,25 @@
     animation: shimmer 2s linear infinite;
   }
   
-  /* Border enhancements - Mais sofisticados */
+  /* Glassmorphism border enhancements */
   .border-elegant {
-    @apply border border-border/20 relative;
-    background: linear-gradient(var(--card), var(--card)) padding-box,
-                linear-gradient(135deg, hsl(var(--primary) / 0.3), hsl(var(--primary-glow) / 0.5), hsl(var(--primary) / 0.3)) border-box;
+    @apply border border-border/10 relative backdrop-blur-md;
+    background: linear-gradient(var(--gradient-glass)) padding-box,
+                linear-gradient(135deg, hsl(var(--primary) / 0.4), hsl(var(--primary-glow) / 0.6), hsl(var(--primary) / 0.4)) border-box;
+    box-shadow: var(--shadow-elegant);
   }
   
   .border-glow {
-    @apply border border-border/30 relative;
-    box-shadow: inset 0 1px 0 hsl(var(--primary) / 0.1), 0 1px 3px hsl(var(--primary) / 0.1);
+    @apply border border-border/20 relative backdrop-blur-lg;
+    box-shadow: inset 0 1px 0 hsl(var(--primary) / 0.2), 0 2px 8px hsl(var(--glass-shadow-primary));
   }
   
-  /* Auth page specific */
+  /* Glassmorphism auth page specific */
   .auth-card {
-    @apply card-elegant backdrop-blur-xl;
-    background: var(--gradient-elegant);
-    border: 1px solid hsl(var(--border) / 0.2);
+    @apply card-elegant backdrop-blur-3xl;
+    background: var(--gradient-glass);
+    border: 1px solid hsl(var(--glass-border));
+    box-shadow: var(--shadow-floating), var(--shadow-glow);
   }
   
   .auth-background {
@@ -384,7 +409,7 @@
   }
   
   .auth-background::before {
-    @apply absolute inset-0 opacity-50 pointer-events-none;
+    @apply absolute inset-0 opacity-30 pointer-events-none;
     content: '';
     background-image: var(--texture-dots);
     background-size: 40px 40px;

@@ -9,11 +9,11 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: "bg-primary text-primary-foreground hover:bg-primary/90 transition-all duration-300 hover:scale-105 hover:-translate-y-0.5",
-        destructive: "bg-destructive text-destructive-foreground hover:bg-destructive/90 transition-all duration-300 hover:scale-105",
-        outline: "border border-input bg-background hover:bg-accent hover:text-accent-foreground transition-all duration-300 hover:shadow-md",
-        secondary: "bg-secondary text-secondary-foreground hover:bg-secondary/80 transition-all duration-300 hover:scale-105",
-        ghost: "hover:bg-accent hover:text-accent-foreground transition-all duration-300 hover:scale-105",
+        default: "btn-elegant bg-primary text-primary-foreground hover:bg-primary/90 backdrop-blur-xl border border-primary/20",
+        destructive: "bg-destructive/80 text-destructive-foreground hover:bg-destructive/90 backdrop-blur-xl border border-destructive/20 transition-all duration-300 hover:scale-105",
+        outline: "border border-input/40 bg-background/60 hover:bg-accent/80 hover:text-accent-foreground backdrop-blur-xl transition-all duration-300 hover:shadow-md",
+        secondary: "bg-secondary/70 text-secondary-foreground hover:bg-secondary/80 backdrop-blur-xl border border-secondary/30 transition-all duration-300 hover:scale-105",
+        ghost: "hover:bg-accent/60 hover:text-accent-foreground backdrop-blur-sm transition-all duration-300 hover:scale-105",
         link: "text-primary underline-offset-4 hover:underline transition-all duration-300 hover:text-primary/80",
       },
       size: {
