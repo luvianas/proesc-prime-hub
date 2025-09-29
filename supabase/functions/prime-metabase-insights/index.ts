@@ -64,16 +64,26 @@ Deno.serve(async (req) => {
 
     let columns: string[] = [];
     let sampleRows: any[] = [];
+    let dataQuality = {
+      hasMetabaseData: false,
+      dataConfidence: 0,
+      issuesFound: [] as string[],
+      metabaseStatus: 'not_attempted' as 'success' | 'failed' | 'not_attempted' | 'no_data'
+    };
 
     // Log Metabase configuration status for debugging
     console.log("=== METABASE DEBUG INFO ===");
-    console.log("METABASE_SITE_URL:", METABASE_SITE_URL ? "configured" : "not configured");
-    console.log("METABASE_TOKEN:", METABASE_TOKEN ? "configured" : "not configured");  
-    console.log("METABASE_SESSION:", METABASE_SESSION ? "configured" : "not configured");
-    console.log("cardId provided:", cardId || "none");
+    console.log("METABASE_SITE_URL:", METABASE_SITE_URL ? "✅ configured" : "❌ not configured");
+    console.log("METABASE_TOKEN:", METABASE_TOKEN ? "✅ configured" : "❌ not configured");  
+    console.log("METABASE_SESSION:", METABASE_SESSION ? "✅ configured" : "❌ not configured");
+    console.log("cardId provided:", cardId || "❌ none");
     console.log("dashboardUrl:", dashboardUrl || "none");
     console.log("dashboardType:", dashboardType || "none");
     console.log("params provided:", params ? JSON.stringify(params) : "none");
+    
+    // Validate proescId parameter for data fetching
+    const proescId = params?.proescId || params?.proesc_id;
+    console.log("proescId extracted:", proescId || "❌ MISSING");
     console.log("=============================");
 
     // Try to fetch Metabase data when cardId provided and Metabase is configured
@@ -128,26 +138,78 @@ Deno.serve(async (req) => {
           }
         } else {
           const data: MetabaseResult = await mbRes.json();
+          console.log("✅ Metabase response received successfully");
+          
           const d = data.data || (data as any);
           const cols = d?.cols || d?.columns || [];
           const rows = d?.rows || [];
           columns = cols?.map((c: any) => c.name).filter(Boolean) || [];
           sampleRows = Array.isArray(rows) ? rows.slice(0, 50) : [];
           
-          console.log("Metabase data fetched successfully:");
+          // Validate data quality
+          console.log("📊 Data validation:");
           console.log("- Columns count:", columns.length);
           console.log("- Rows count:", sampleRows.length);
           console.log("- Column names:", columns);
+          
+          if (columns.length === 0) {
+            dataQuality.issuesFound.push("Nenhuma coluna retornada");
+            dataQuality.metabaseStatus = 'no_data';
+            console.warn("⚠️ No columns in Metabase response");
+          }
+          
+          if (sampleRows.length === 0) {
+            dataQuality.issuesFound.push("Nenhuma linha de dados retornada");
+            dataQuality.metabaseStatus = 'no_data';
+            console.warn("⚠️ No rows in Metabase response");
+          }
+          
+          if (columns.length > 0 && sampleRows.length > 0) {
+            dataQuality.hasMetabaseData = true;
+            dataQuality.metabaseStatus = 'success';
+            // Calculate confidence: 100% if we have both columns and rows
+            dataQuality.dataConfidence = 100;
+            console.log("✅ High quality data received from Metabase");
+          } else if (columns.length > 0 || sampleRows.length > 0) {
+            dataQuality.hasMetabaseData = true;
+            dataQuality.metabaseStatus = 'success';
+            dataQuality.dataConfidence = 50;
+            console.warn("⚠️ Partial data received from Metabase");
+          }
         }
       } catch (e) {
-        console.error("Error querying Metabase:", e);
+        console.error("❌ Error querying Metabase:", e);
+        dataQuality.metabaseStatus = 'failed';
+        dataQuality.issuesFound.push(`Erro ao consultar Metabase: ${e.message || 'Erro desconhecido'}`);
       }
     } else {
-      console.warn("Skipping Metabase data fetch - Missing requirements:");
-      if (!cardId) console.warn("- cardId is missing");
-      if (!METABASE_SITE_URL) console.warn("- METABASE_SITE_URL secret is not configured");
-      if (!METABASE_TOKEN && !METABASE_SESSION) console.warn("- Neither METABASE_TOKEN nor METABASE_SESSION secrets are configured");
+      console.warn("⚠️ Skipping Metabase data fetch - Missing requirements:");
+      if (!cardId) {
+        console.warn("- ❌ cardId is missing");
+        dataQuality.issuesFound.push("ID do card não fornecido");
+      }
+      if (!METABASE_SITE_URL) {
+        console.warn("- ❌ METABASE_SITE_URL secret is not configured");
+        dataQuality.issuesFound.push("URL do Metabase não configurada");
+      }
+      if (!METABASE_TOKEN && !METABASE_SESSION) {
+        console.warn("- ❌ Neither METABASE_TOKEN nor METABASE_SESSION secrets are configured");
+        dataQuality.issuesFound.push("Token de autenticação do Metabase não configurado");
+      }
+      if (!proescId) {
+        console.warn("- ⚠️ proescId parameter is missing - data may be incomplete");
+        dataQuality.issuesFound.push("ID Proesc não fornecido nos parâmetros");
+      }
+      dataQuality.metabaseStatus = 'not_attempted';
     }
+    
+    // Final data quality assessment
+    console.log("\n=== DATA QUALITY ASSESSMENT ===");
+    console.log("Has Metabase Data:", dataQuality.hasMetabaseData ? "✅ YES" : "❌ NO");
+    console.log("Data Confidence:", `${dataQuality.dataConfidence}%`);
+    console.log("Metabase Status:", dataQuality.metabaseStatus);
+    console.log("Issues Found:", dataQuality.issuesFound.length > 0 ? dataQuality.issuesFound.join(", ") : "None");
+    console.log("================================\n");
 
     // Build context-specific prompts
     const getContextualPrompt = (type?: string) => {
@@ -241,13 +303,23 @@ Deno.serve(async (req) => {
     const aiJson = await aiRes.json();
     const answer: string = aiJson?.candidates?.[0]?.content?.parts?.[0]?.text || "Não foi possível gerar uma resposta.";
 
+    console.log("✅ Analysis completed successfully");
+    
     return json({
       answer,
-      used: {
+      dataQuality: {
+        hasMetabaseData: dataQuality.hasMetabaseData,
+        confidence: dataQuality.dataConfidence,
+        metabaseStatus: dataQuality.metabaseStatus,
+        issues: dataQuality.issuesFound
+      },
+      metadata: {
         columnsCount: columns.length,
         rowsCount: sampleRows.length,
         cardId: cardId || null,
         dashboardUrl: dashboardUrl || null,
+        dashboardType: dashboardType || null,
+        timestamp: new Date().toISOString()
       },
     });
   } catch (e: any) {

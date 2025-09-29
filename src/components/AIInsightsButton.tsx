@@ -15,18 +15,23 @@ interface AIInsightsButtonProps {
 }
 
 const AIInsightsButton = ({ label = "IA: Explicar", question = "Explique os principais insights deste dashboard", cardId, dashboardUrl, dashboardType, school_id }: AIInsightsButtonProps) => {
-  // Temporariamente desabilitado
-  return null;
-
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [answer, setAnswer] = useState<string>("");
   const [error, setError] = useState<string>("");
+  const [dataQuality, setDataQuality] = useState<{
+    hasMetabaseData: boolean;
+    confidence: number;
+    metabaseStatus: string;
+    issues: string[];
+  } | null>(null);
 
   const runInsights = async () => {
     setLoading(true);
     setError("");
     setAnswer("");
+    setDataQuality(null);
+    
     try {
       // Use school_id prop (admin view) or fetch from user profile (gestor view)
       let targetSchoolId = school_id;
@@ -68,11 +73,24 @@ const AIInsightsButton = ({ label = "IA: Explicar", question = "Explique os prin
           cardId, 
           dashboardUrl, 
           dashboardType,
-          proescId: schoolData.proesc_id 
+          params: {
+            proesc_id: schoolData.proesc_id,
+            proescId: schoolData.proesc_id
+          }
         },
       });
+      
       if (error) throw error;
-      setAnswer((data as any)?.answer || "Sem resposta da IA.");
+      
+      const responseData = data as any;
+      setAnswer(responseData?.answer || "Sem resposta da IA.");
+      setDataQuality(responseData?.dataQuality || null);
+      
+      console.log("AI Insights Response:", {
+        hasAnswer: !!responseData?.answer,
+        dataQuality: responseData?.dataQuality,
+        metadata: responseData?.metadata
+      });
     } catch (e: any) {
       setError(e?.message || 'Falha ao obter insights');
     } finally {
@@ -89,9 +107,39 @@ const AIInsightsButton = ({ label = "IA: Explicar", question = "Explique os prin
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-4xl max-h-[80vh]">
           <DialogHeader>
-            <DialogTitle>💡 Insights da IA</DialogTitle>
-            <DialogDescription>Análise inteligente personalizada para esta dashboard</DialogDescription>
+            <DialogTitle className="flex items-center gap-2">
+              💡 Insights da IA
+              {dataQuality && (
+                <span className={`text-xs px-2 py-1 rounded-full ${
+                  dataQuality.confidence >= 80 ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300' :
+                  dataQuality.confidence >= 50 ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300' :
+                  'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300'
+                }`}>
+                  {dataQuality.confidence}% confiança
+                </span>
+              )}
+            </DialogTitle>
+            <DialogDescription>
+              Análise inteligente personalizada para esta dashboard
+              {dataQuality && !dataQuality.hasMetabaseData && (
+                <div className="mt-2 text-xs text-amber-600 dark:text-amber-400">
+                  ⚠️ Análise baseada em conhecimento geral - dados específicos não disponíveis
+                </div>
+              )}
+            </DialogDescription>
           </DialogHeader>
+          
+          {dataQuality && dataQuality.issues && dataQuality.issues.length > 0 && (
+            <div className="mb-4 p-3 bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 rounded-lg">
+              <p className="text-xs font-semibold text-amber-800 dark:text-amber-200 mb-1">⚠️ Avisos técnicos:</p>
+              <ul className="text-xs text-amber-700 dark:text-amber-300 space-y-1">
+                {dataQuality.issues.map((issue, idx) => (
+                  <li key={idx}>• {issue}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+          
           <ScrollArea className="h-[60vh] w-full rounded-md border p-4">
             {loading && (
               <div className="flex items-center gap-2 text-muted-foreground">
