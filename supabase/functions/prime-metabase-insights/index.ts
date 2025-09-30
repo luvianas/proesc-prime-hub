@@ -1,5 +1,5 @@
 // Supabase Edge Function: prime-metabase-insights
-// Fetches data from Metabase (card query) and asks Google Gemini to explain/interpret it.
+// Fetches data from Metabase (card query) and asks OpenAI GPT-5 Mini to explain/interpret it.
 
 interface RequestPayload {
   question: string;
@@ -50,10 +50,10 @@ Deno.serve(async (req) => {
     const METABASE_SITE_URL = Deno.env.get("METABASE_SITE_URL");
     const METABASE_TOKEN = Deno.env.get("METABASE_TOKEN");
     const METABASE_SESSION = Deno.env.get("METABASE_SESSION");
-    const GEMINI_API_KEY = Deno.env.get("GEMINI_API");
+    const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
 
-    if (!GEMINI_API_KEY) {
-      return json({ error: "GEMINI_API key not configured" }, { status: 500 });
+    if (!OPENAI_API_KEY) {
+      return json({ error: "OPENAI_API_KEY not configured" }, { status: 500 });
     }
 
     let columns: string[] = [];
@@ -204,67 +204,57 @@ Deno.serve(async (req) => {
       locale ? `\n🌍 Idioma: ${locale}` : '',
     ].filter(Boolean).join("\n");
 
-    // ✅ Try multiple Gemini models with fallback
-    const geminiModels = ["gemini-1.5-pro", "gemini-2.0-flash-exp", "gemini-pro"];
-    let aiRes: Response | null = null;
-    let lastError = "";
+    // ✅ Using OpenAI GPT-5 Mini
+    const openaiEndpoint = "https://api.openai.com/v1/chat/completions";
     
-    for (const geminiModel of geminiModels) {
-      try {
-        const geminiEndpoint = `https://generativelanguage.googleapis.com/v1/models/${geminiModel}:generateContent?key=${GEMINI_API_KEY}`;
-        
-        console.log(`🤖 Trying Gemini model: ${geminiModel}`);
-        console.log("🌐 Gemini endpoint:", geminiEndpoint.replace(GEMINI_API_KEY, "***"));
-        
-        aiRes = await fetch(geminiEndpoint, {
-          method: "POST",
-          headers: {
-            "content-type": "application/json",
+    console.log("🤖 Using OpenAI GPT-5 Mini");
+    console.log("🌐 OpenAI endpoint:", openaiEndpoint);
+    
+    const aiRes = await fetch(openaiEndpoint, {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${OPENAI_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "gpt-5-mini-2025-08-07",
+        messages: [
+          {
+            role: "system",
+            content: "Você é um assistente especializado em análise de dados educacionais e dashboards do Proesc Prime."
           },
-          body: JSON.stringify({
-            contents: [{
-              parts: [{
-                text: fullPrompt
-              }]
-            }],
-            generationConfig: {
-              temperature: 0.3,
-              topK: 40,
-              topP: 0.95,
-              maxOutputTokens: 1024,
-            }
-          }),
-        });
-        
-        console.log(`🤖 Gemini response status: ${aiRes.status} for model: ${geminiModel}`);
+          {
+            role: "user",
+            content: fullPrompt
+          }
+        ],
+        max_completion_tokens: 1024,
+        // Note: GPT-5 does not support temperature parameter (always 1.0)
+      }),
+    });
+    
+    console.log("🤖 OpenAI response status:", aiRes.status);
 
-        if (aiRes.ok) {
-          console.log(`✅ Success with model: ${geminiModel}`);
-          break; // Success, exit loop
-        } else {
-          const errorText = await aiRes.text();
-          lastError = errorText;
-          console.warn(`⚠️ Model ${geminiModel} failed:`, errorText);
-          aiRes = null; // Reset for next attempt
-        }
-      } catch (e: any) {
-        console.warn(`⚠️ Error with model ${geminiModel}:`, e.message);
-        lastError = e.message;
-        aiRes = null;
-      }
-    }
-
-    if (!aiRes || !aiRes.ok) {
-      console.error("❌ All Gemini models failed. Last error:", lastError);
+    if (!aiRes.ok) {
+      const errorText = await aiRes.text();
+      console.error("❌ OpenAI API error:", aiRes.status, errorText);
       return json({ 
-        error: "Erro na API do Gemini - todos os modelos falharam", 
-        details: lastError,
-        suggestion: "Verifique se a chave GEMINI_API está correta e ativa"
+        error: "Erro na API do OpenAI", 
+        details: errorText,
+        suggestion: "Verifique se a chave OPENAI_API_KEY está correta e ativa"
       }, { status: 500 });
     }
 
     const aiJson = await aiRes.json();
-    const answer: string = aiJson?.candidates?.[0]?.content?.parts?.[0]?.text || "Não foi possível gerar uma resposta.";
+    
+    // OpenAI returns response in choices[0].message.content format
+    let answer = "";
+    if (aiJson.choices && aiJson.choices.length > 0) {
+      answer = aiJson.choices[0].message.content || "Não foi possível gerar uma resposta.";
+    } else {
+      console.error("Unexpected OpenAI response structure:", JSON.stringify(aiJson));
+      answer = "Erro ao processar resposta da IA.";
+    }
 
     console.log("✅ Analysis completed");
     
