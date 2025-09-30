@@ -76,13 +76,20 @@ Deno.serve(async (req) => {
           "content-type": "application/json",
         };
         
-        if (METABASE_TOKEN) {
-          headers["Authorization"] = `Bearer ${METABASE_TOKEN}`;
+        // ✅ CORRECT Metabase Authentication
+        // Use ONLY X-Metabase-Session OR X-Metabase-Api-Key (never Authorization: Bearer)
+        if (METABASE_SESSION) {
+          headers["X-Metabase-Session"] = METABASE_SESSION;
+          console.log("🔐 Using X-Metabase-Session authentication");
+        } else if (METABASE_TOKEN) {
           headers["X-Metabase-Api-Key"] = METABASE_TOKEN;
+          console.log("🔐 Using X-Metabase-Api-Key authentication");
+        } else {
+          console.warn("⚠️ No Metabase authentication configured");
         }
-        if (METABASE_SESSION) headers["X-Metabase-Session"] = METABASE_SESSION;
 
-        console.log("Metabase URL:", url);
+        console.log("🌐 Metabase URL:", url);
+        console.log("📋 Request params:", JSON.stringify(params || {}));
 
         const mbRes = await fetch(url, {
           method: "POST",
@@ -197,7 +204,14 @@ Deno.serve(async (req) => {
       locale ? `\n🌍 Idioma: ${locale}` : '',
     ].filter(Boolean).join("\n");
 
-    const aiRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
+    // ✅ Using v1 API endpoint (NOT v1beta) with gemini-1.5-flash
+    const geminiModel = "gemini-1.5-flash";
+    const geminiEndpoint = `https://generativelanguage.googleapis.com/v1/models/${geminiModel}:generateContent?key=${GEMINI_API_KEY}`;
+    
+    console.log("🤖 Gemini model:", geminiModel);
+    console.log("🌐 Gemini endpoint:", geminiEndpoint.replace(GEMINI_API_KEY, "***"));
+    
+    const aiRes = await fetch(geminiEndpoint, {
       method: "POST",
       headers: {
         "content-type": "application/json",
@@ -216,6 +230,8 @@ Deno.serve(async (req) => {
         }
       }),
     });
+    
+    console.log("🤖 Gemini response status:", aiRes.status);
 
     if (!aiRes.ok) {
       const errorText = await aiRes.text();
