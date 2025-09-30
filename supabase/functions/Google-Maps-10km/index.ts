@@ -116,7 +116,7 @@ async function enrichWithPricingData(competitors: PlaceResult[]): Promise<Enrich
       
       enrichedCompetitors.push({
         ...competitor,
-        pricing_data: pricingData
+        pricing_data: pricingData || undefined
       });
       
     } catch (error) {
@@ -519,9 +519,10 @@ serve(async (req) => {
       }
     );
 
-  } catch (error) {
+  } catch (e: unknown) {
     clearTimeout(timeoutId);
     const executionTime = Date.now() - startTime;
+    const error = e as Error;
     
     // Handle timeout error specifically
     if (error.name === 'AbortError') {

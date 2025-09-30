@@ -269,11 +269,12 @@ serve(async (req) => {
           }), { 
             headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
           });
-        } catch (error) {
+        } catch (e: unknown) {
+          const error = e as Error;
           console.error(`💥 Exception fetching ticket ${ticketId}:`, error);
           return new Response(JSON.stringify({ 
             error: 'Exception occurred while fetching ticket',
-            details: error.message 
+            details: error.message
           }), { 
             status: 500, 
             headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
@@ -312,7 +313,8 @@ serve(async (req) => {
               successfulStrategy = 'admin_general';
               console.log(`✅ Strategy 1 SUCCESS: Found ${tickets.length} tickets via admin listing`);
             }
-          } catch (error) {
+          } catch (e: unknown) {
+            const error = e as Error;
             console.log(`❌ Strategy 1 ERROR:`, error.message);
             allAttempts.push({
               strategy: 'admin_general',
@@ -347,7 +349,8 @@ serve(async (req) => {
             } else {
               console.log(`⚠️ Strategy 2 FAILED: ${orgResponse.status} - ${orgData.tickets?.length || 0} tickets`);
             }
-          } catch (error) {
+          } catch (e: unknown) {
+            const error = e as Error;
             console.log(`❌ Strategy 2 ERROR:`, error.message);
             allAttempts.push({
               strategy: 'organization',
@@ -382,7 +385,8 @@ serve(async (req) => {
             } else {
               console.log(`⚠️ Strategy 3 FAILED: ${entityResponse.status} - ${entityData.results?.length || 0} tickets`);
             }
-          } catch (error) {
+          } catch (e: unknown) {
+            const error = e as Error;
             console.log(`❌ Strategy 3 ERROR:`, error.message);
             allAttempts.push({
               strategy: 'entity',
@@ -417,7 +421,8 @@ serve(async (req) => {
             } else {
               console.log(`⚠️ Strategy 4 FAILED: ${domainResponse.status} - ${domainData.results?.length || 0} tickets`);
             }
-          } catch (error) {
+          } catch (e: unknown) {
+            const error = e as Error;
             console.log(`❌ Strategy 4 ERROR:`, error.message);
             allAttempts.push({
               strategy: 'domain',
@@ -452,7 +457,8 @@ serve(async (req) => {
             } else {
               console.log(`⚠️ Strategy 5 FAILED: ${schoolResponse.status} - ${schoolData.results?.length || 0} tickets`);
             }
-          } catch (error) {
+          } catch (e: unknown) {
+            const error = e as Error;
             console.log(`❌ Strategy 5 ERROR:`, error.message);
             allAttempts.push({
               strategy: 'school_name',
@@ -487,7 +493,8 @@ serve(async (req) => {
             } else {
               console.log(`⚠️ Strategy 6 FAILED: ${broadResponse.status} - ${broadData.results?.length || 0} tickets`);
             }
-          } catch (error) {
+          } catch (e: unknown) {
+            const error = e as Error;
             console.log(`❌ Strategy 6 ERROR:`, error.message);
             allAttempts.push({
               strategy: 'broad_org',
@@ -518,7 +525,7 @@ serve(async (req) => {
 
         // Log sample tickets for debugging
         if (transformedTickets.length > 0) {
-          console.log(`🔍 Sample tickets found (first 3):`, transformedTickets.slice(0, 3).map(t => ({
+          console.log(`🔍 Sample tickets found (first 3):`, transformedTickets.slice(0, 3).map((t: any) => ({
             id: t.id,
             title: t.title.substring(0, 50),
             status: t.status,
@@ -595,7 +602,8 @@ serve(async (req) => {
             organization_id: directData.ticket?.organization_id,
             tags: directData.ticket?.tags
           });
-        } catch (error) {
+        } catch (e: unknown) {
+          const error = e as Error;
           testResults.push({
             test: 'direct_ticket_access',
             url: `${zendeskUrl}/tickets/${testTicketId}.json`,
@@ -618,7 +626,8 @@ serve(async (req) => {
             results_count: searchData.results?.length || 0,
             found_ticket: searchData.results?.find((t: any) => t.id.toString() === testTicketId)
           });
-        } catch (error) {
+        } catch (e: unknown) {
+          const error = e as Error;
           testResults.push({
             test: 'search_by_id',
             status: 'error',
@@ -641,7 +650,8 @@ serve(async (req) => {
               tickets_count: orgData.tickets?.length || 0,
               has_test_ticket: orgData.tickets?.some((t: any) => t.id.toString() === testTicketId)
             });
-          } catch (error) {
+          } catch (e: unknown) {
+            const error = e as Error;
             testResults.push({
               test: 'organization_tickets',
               status: 'error',
@@ -776,7 +786,8 @@ serve(async (req) => {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
 
-  } catch (error) {
+  } catch (e: unknown) {
+    const error = e as Error;
     console.error('Error in zendesk-integration:', error);
     console.error('Error details:', {
       message: error.message,

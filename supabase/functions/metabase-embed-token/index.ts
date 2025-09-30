@@ -96,7 +96,8 @@ serve(async (req) => {
       }
     );
 
-  } catch (error) {
+  } catch (e: unknown) {
+    const error = e as Error;
     console.error('Error in metabase-embed-token function:', error);
     return new Response(
       JSON.stringify({ error: error.message }),

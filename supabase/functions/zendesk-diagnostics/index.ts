@@ -188,7 +188,8 @@ serve(async (req) => {
             details: { status: testResponse.status, error: errorData }
           });
         }
-      } catch (error) {
+      } catch (e: unknown) {
+        const error = e as Error;
         diagnostics.push({
           step: 'api_connectivity',
           status: 'error',
@@ -228,7 +229,8 @@ serve(async (req) => {
               }
             });
           }
-        } catch (error) {
+        } catch (e: unknown) {
+          const error = e as Error;
           diagnostics.push({
             step: 'organization_test',
             status: 'error',
@@ -267,7 +269,8 @@ serve(async (req) => {
               }
             });
           }
-        } catch (error) {
+        } catch (e: unknown) {
+          const error = e as Error;
           diagnostics.push({
             step: 'tickets_test',
             status: 'error',
@@ -290,7 +293,8 @@ serve(async (req) => {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
 
-  } catch (error) {
+  } catch (e: unknown) {
+    const error = e as Error;
     console.error('❌ Diagnostics error:', error);
     return new Response(JSON.stringify({ 
       overall_status: 'error',

@@ -228,15 +228,15 @@ const getTicketDetails = async (ticketId: string, subdomain: string, email: stri
 
     // Get unique user IDs from comments and audits
     const userIds = new Set();
-    comments.forEach(comment => {
+    comments.forEach((comment: any) => {
       if (comment.author_id) userIds.add(comment.author_id);
     });
-    audits.forEach(audit => {
+    audits.forEach((audit: any) => {
       if (audit.author_id) userIds.add(audit.author_id);
     });
 
     // Fetch user information
-    let usersData = {};
+    let usersData: Record<string, any> = {};
     if (userIds.size > 0) {
       console.log(`👥 Fetching user data for ${userIds.size} users`);
       const usersResponse = await fetch(`${baseUrl}/users/show_many.json?ids=${Array.from(userIds).join(',')}`, { headers });
@@ -265,7 +265,7 @@ const getTicketDetails = async (ticketId: string, subdomain: string, email: stri
       zendesk_id: ticket.id,
       requester_name: ticket.requester_id ? (usersData[ticket.requester_id]?.name || 'Usuário') : null,
       requester_email: ticket.requester_id ? (usersData[ticket.requester_id]?.email || '') : null,
-      comments: comments.map(comment => ({
+      comments: comments.map((comment: any) => ({
         id: comment.id,
         type: comment.type,
         body: comment.body,
@@ -275,7 +275,7 @@ const getTicketDetails = async (ticketId: string, subdomain: string, email: stri
         public: comment.public,
         author: usersData[comment.author_id] || null
       })),
-      audits: audits.map(audit => ({
+      audits: audits.map((audit: any) => ({
         id: audit.id,
         ticket_id: audit.ticket_id,
         created_at: audit.created_at,
@@ -291,7 +291,8 @@ const getTicketDetails = async (ticketId: string, subdomain: string, email: stri
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
 
-  } catch (error) {
+  } catch (e: unknown) {
+    const error = e as Error;
     console.error(`❌ Error fetching ticket details for ${ticketId}:`, error);
     return new Response(JSON.stringify({
       error: 'ticket_details_fetch_failed',
@@ -327,7 +328,8 @@ const testZendeskConnection = async (subdomain: string, email: string, token: st
       user: response.ok ? data.user : null,
       error: !response.ok ? data.error || data.description : null
     };
-  } catch (error) {
+  } catch (e: unknown) {
+    const error = e as Error;
     return {
       success: false,
       status: 0,
@@ -473,7 +475,8 @@ const validateZendeskUser = async (userEmail: string, subdomain: string, email: 
       return { exists: false, userId: null, error: 'User not found' };
     }
     
-  } catch (error) {
+  } catch (e: unknown) {
+    const error = e as Error;
     console.error(`❌ Error validating Zendesk user:`, error);
     return { exists: false, userId: null, error: error.message };
   }
@@ -516,7 +519,7 @@ serve(async (req) => {
           files: formData.getAll('files')
         };
         
-        action = requestBody.action;
+        action = requestBody.action as string | null;
       } else {
         console.log('📄 Processing JSON request');
         requestBody = await req.json();
@@ -1108,7 +1111,8 @@ serve(async (req) => {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         });
 
-      } catch (error) {
+      } catch (e: unknown) {
+        const error = e as Error;
         console.error('❌ Error creating ticket:', error);
         return new Response(JSON.stringify({
           error: 'create_ticket_failed',
@@ -1250,7 +1254,8 @@ serve(async (req) => {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         });
 
-      } catch (error) {
+      } catch (e: unknown) {
+        const error = e as Error;
         console.error('❌ Error adding comment:', error);
         return new Response(JSON.stringify({
           error: 'add_comment_failed',
@@ -1373,13 +1378,14 @@ serve(async (req) => {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
         });
 
-      } catch (error) {
+      } catch (e: unknown) {
+        const error = e as Error;
         console.error('❌ Error fetching ticket details:', error);
         return new Response(JSON.stringify({ 
           error: 'ticket_details_failed',
           message: 'Erro ao carregar detalhes do ticket',
           details: error.message
-        }), { 
+        }), {
           status: 500, 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
         });
@@ -1413,7 +1419,8 @@ serve(async (req) => {
         id: orgTestData.organization?.id,
         name: orgTestData.organization?.name
       });
-    } catch (orgError) {
+    } catch (e: unknown) {
+      const orgError = e as Error;
       console.error('❌ Error validating organization:', orgError);
       return new Response(JSON.stringify({ 
         error: 'organization_validation_failed',
@@ -1531,7 +1538,8 @@ serve(async (req) => {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
       });
 
-    } catch (error) {
+    } catch (e: unknown) {
+      const error = e as Error;
       console.error('❌ Zendesk-tickets: Fetch error:', error);
       console.error('❌ Fetch error details:', {
         name: error.name,
@@ -1553,7 +1561,8 @@ serve(async (req) => {
       });
     }
 
-  } catch (error) {
+  } catch (e: unknown) {
+    const error = e as Error;
     console.error('💥 Zendesk-tickets: Unexpected error:', error);
     console.error('💥 Error details:', {
       name: error.name,
