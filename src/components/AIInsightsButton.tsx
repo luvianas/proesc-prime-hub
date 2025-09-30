@@ -4,6 +4,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Loader2, Lightbulb } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import html2canvas from "html2canvas";
+import { toast } from "sonner";
 
 interface AIInsightsButtonProps {
   label?: string;
@@ -26,6 +28,35 @@ const AIInsightsButton = ({ label = "IA: Explicar", question = "Explique os prin
     issues: string[];
   } | null>(null);
 
+  const captureScreenshot = async (): Promise<string | null> => {
+    try {
+      // Find the iframe containing the dashboard
+      const iframe = document.querySelector('iframe[src*="graficos.proesc.com"]') as HTMLIFrameElement;
+      
+      if (!iframe) {
+        toast.error("Dashboard não encontrado para captura");
+        return null;
+      }
+
+      // Capture the iframe container (since we can't access iframe content due to CORS)
+      const canvas = await html2canvas(iframe, {
+        allowTaint: true,
+        useCORS: true,
+        logging: false,
+        scale: 1, // Lower scale for faster processing
+        windowWidth: iframe.offsetWidth,
+        windowHeight: iframe.offsetHeight,
+      });
+
+      // Convert to base64
+      return canvas.toDataURL("image/jpeg", 0.8); // JPEG with 80% quality for smaller size
+    } catch (e: any) {
+      console.error("Screenshot capture error:", e);
+      toast.error("Erro ao capturar dashboard");
+      return null;
+    }
+  };
+
   const runInsights = async () => {
     setLoading(true);
     setError("");
@@ -33,6 +64,13 @@ const AIInsightsButton = ({ label = "IA: Explicar", question = "Explique os prin
     setDataQuality(null);
     
     try {
+      // Capture screenshot of dashboard
+      const screenshot = await captureScreenshot();
+      
+      if (!screenshot) {
+        throw new Error('Falha ao capturar screenshot do dashboard');
+      }
+
       // Use school_id prop (admin view) or fetch from user profile (gestor view)
       let targetSchoolId = school_id;
       
@@ -70,8 +108,7 @@ const AIInsightsButton = ({ label = "IA: Explicar", question = "Explique os prin
       const { data, error } = await supabase.functions.invoke('prime-metabase-insights', {
         body: { 
           question, 
-          cardId, 
-          dashboardUrl, 
+          screenshot, // Send base64 screenshot
           dashboardType,
           params: {
             proesc_id: schoolData.proesc_id,

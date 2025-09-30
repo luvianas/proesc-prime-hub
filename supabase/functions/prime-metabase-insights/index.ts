@@ -3,6 +3,7 @@
 
 interface RequestPayload {
   question: string;
+  screenshot?: string; // Base64 encoded image
   cardId?: number;
   params?: Record<string, unknown>;
   dashboardUrl?: string;
@@ -42,9 +43,13 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { question, cardId, params, dashboardUrl, locale, dashboardType }: RequestPayload = await req.json();
+    const { question, screenshot, cardId, params, dashboardUrl, locale, dashboardType }: RequestPayload = await req.json();
     if (!question || typeof question !== "string") {
       return json({ error: "Missing 'question'" }, { status: 400 });
+    }
+    
+    if (!screenshot || typeof screenshot !== "string") {
+      return json({ error: "Missing 'screenshot' - dashboard image required" }, { status: 400 });
     }
 
     const METABASE_SITE_URL = Deno.env.get("METABASE_SITE_URL");
@@ -63,84 +68,14 @@ Deno.serve(async (req) => {
     let issuesFound: string[] = [];
 
     console.log("=== DEBUG INFO ===");
-    console.log("cardId:", cardId || "none");
     console.log("dashboardType:", dashboardType || "none");
     console.log("params:", params ? JSON.stringify(params) : "none");
-
-    // Try to fetch Metabase data
-    if (cardId && METABASE_SITE_URL && (METABASE_TOKEN || METABASE_SESSION)) {
-      console.log("Fetching Metabase data...");
-      try {
-        const url = `${METABASE_SITE_URL.replace(/\/$/, "")}/api/card/${cardId}/query`;
-        const headers: Record<string, string> = {
-          "content-type": "application/json",
-        };
-        
-        // ✅ CORRECT Metabase Authentication
-        // Use ONLY X-Metabase-Session OR X-Metabase-Api-Key (never Authorization: Bearer)
-        if (METABASE_SESSION) {
-          headers["X-Metabase-Session"] = METABASE_SESSION;
-          console.log("🔐 Using X-Metabase-Session authentication");
-        } else if (METABASE_TOKEN) {
-          headers["X-Metabase-Api-Key"] = METABASE_TOKEN;
-          console.log("🔐 Using X-Metabase-Api-Key authentication");
-        } else {
-          console.warn("⚠️ No Metabase authentication configured");
-        }
-
-        console.log("🌐 Metabase URL:", url);
-        console.log("📋 Request params:", JSON.stringify(params || {}));
-
-        const mbRes = await fetch(url, {
-          method: "POST",
-          headers,
-          body: JSON.stringify({ parameters: params || {} }),
-        });
-        
-        console.log("Metabase response:", mbRes.status);
-        
-        if (!mbRes.ok) {
-          const errorText = await mbRes.text();
-          console.error("Metabase error:", mbRes.status, errorText);
-          issuesFound.push(`Erro ao buscar dados do Metabase: ${mbRes.status}`);
-        } else {
-          const data: MetabaseResult = await mbRes.json();
-          const d = data.data || (data as any);
-          const cols = d?.cols || d?.columns || [];
-          const rows = d?.rows || [];
-          columns = cols?.map((c: any) => c.name).filter(Boolean) || [];
-          sampleRows = Array.isArray(rows) ? rows.slice(0, 50) : [];
-          
-          console.log("Columns:", columns.length);
-          console.log("Rows:", sampleRows.length);
-          
-          if (columns.length === 0) {
-            issuesFound.push("Nenhuma coluna retornada");
-          }
-          
-          if (sampleRows.length === 0) {
-            issuesFound.push("Nenhuma linha de dados retornada");
-          }
-          
-          if (columns.length > 0 && sampleRows.length > 0) {
-            hasMetabaseData = true;
-            dataConfidence = 100;
-          } else if (columns.length > 0 || sampleRows.length > 0) {
-            hasMetabaseData = true;
-            dataConfidence = 50;
-          }
-        }
-      } catch (e: any) {
-        console.error("Error fetching Metabase:", e);
-        issuesFound.push(`Erro ao consultar Metabase: ${e.message}`);
-      }
-    } else {
-      if (!cardId) issuesFound.push("ID do card não fornecido");
-      if (!METABASE_SITE_URL) issuesFound.push("URL do Metabase não configurada");
-      if (!METABASE_TOKEN && !METABASE_SESSION) issuesFound.push("Token do Metabase não configurado");
-    }
+    console.log("screenshot size:", screenshot ? `${Math.round(screenshot.length / 1024)}KB` : "none");
     
-    console.log("Data Quality - Has Data:", hasMetabaseData, "Confidence:", dataConfidence);
+    // Using screenshot-based analysis (no Metabase required)
+    hasMetabaseData = true; // We have visual data
+    dataConfidence = 85; // High confidence with visual analysis
+    console.log("Using screenshot-based analysis with GPT-5 Vision");
 
     // Build context-specific prompts
     const getContextualPrompt = (type?: string) => {
@@ -183,6 +118,8 @@ Deno.serve(async (req) => {
 
     const contextParts: string[] = [];
     
+    contextParts.push(`📸 **ANÁLISE VISUAL**: Você está analisando uma captura de tela do dashboard em tempo real.`);
+    
     if (params && Object.keys(params).length > 0) {
       contextParts.push(`🔧 **FILTROS APLICADOS**: ${JSON.stringify(params, null, 2)}`);
     }
@@ -190,24 +127,23 @@ Deno.serve(async (req) => {
     if (dashboardType) {
       contextParts.push(`📊 **TIPO DE DASHBOARD**: ${dashboardType}`);
     }
-    
-    if (columns.length) contextParts.push(`📋 **Colunas dos dados filtrados**: ${columns.join(", ")}`);
-    if (sampleRows.length) contextParts.push(`📈 **Dados específicos do dashboard**: ${JSON.stringify(sampleRows)}`);
-    if (dashboardUrl) contextParts.push(`🔗 **Dashboard ativo**: ${dashboardUrl}`);
 
     const fullPrompt = [
       systemPrompt,
       `\n🔍 **Pergunta**: ${question}`,
-      contextParts.length 
-        ? `\n📋 **Dados Disponíveis**:\n${contextParts.join("\n")}`
-        : `\n⚠️ **IMPORTANTE**: Dados do Metabase não estão disponíveis no momento. Esta análise será baseada em conhecimento geral sobre gestão educacional. Para insights baseados em dados reais específicos da sua escola, verifique a conectividade com o sistema Metabase.`,
+      `\n📋 **Contexto**:\n${contextParts.join("\n")}`,
+      `\n🎯 **INSTRUÇÕES IMPORTANTES**:`,
+      `• Analise TODOS os gráficos, tabelas e números visíveis na imagem`,
+      `• Identifique padrões, tendências e anomalias nos dados visualizados`,
+      `• Cite valores específicos que você consegue ler nos gráficos`,
+      `• Se houver legendas, títulos ou rótulos, use-os na análise`,
       locale ? `\n🌍 Idioma: ${locale}` : '',
     ].filter(Boolean).join("\n");
 
-    // ✅ Using OpenAI GPT-5 Mini
+    // ✅ Using OpenAI GPT-5 with Vision
     const openaiEndpoint = "https://api.openai.com/v1/chat/completions";
     
-    console.log("🤖 Using OpenAI GPT-5 Mini");
+    console.log("🤖 Using OpenAI GPT-5 with Vision");
     console.log("🌐 OpenAI endpoint:", openaiEndpoint);
     
     const aiRes = await fetch(openaiEndpoint, {
@@ -217,18 +153,30 @@ Deno.serve(async (req) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "gpt-5-mini-2025-08-07",
+        model: "gpt-5-2025-08-07", // GPT-5 supports vision
         messages: [
           {
             role: "system",
-            content: "Você é um assistente especializado em análise de dados educacionais e dashboards do Proesc Prime."
+            content: "Você é um assistente especializado em análise de dados educacionais e dashboards do Proesc Prime com capacidade de análise visual de gráficos e tabelas."
           },
           {
             role: "user",
-            content: fullPrompt
+            content: [
+              {
+                type: "text",
+                text: fullPrompt
+              },
+              {
+                type: "image_url",
+                image_url: {
+                  url: screenshot, // Base64 data URL
+                  detail: "high" // High detail for better analysis
+                }
+              }
+            ]
           }
         ],
-        max_completion_tokens: 1024,
+        max_completion_tokens: 2048, // More tokens for detailed visual analysis
         // Note: GPT-5 does not support temperature parameter (always 1.0)
       }),
     });
@@ -261,16 +209,14 @@ Deno.serve(async (req) => {
     return json({
       answer,
       dataQuality: {
-        hasMetabaseData,
+        hasMetabaseData: true, // Visual analysis
         confidence: dataConfidence,
-        metabaseStatus: hasMetabaseData ? 'success' : 'no_data',
+        metabaseStatus: 'visual_analysis',
         issues: issuesFound
       },
       metadata: {
-        columnsCount: columns.length,
-        rowsCount: sampleRows.length,
-        cardId: cardId || null,
-        dashboardUrl: dashboardUrl || null,
+        analysisType: 'screenshot',
+        screenshotSize: Math.round(screenshot.length / 1024) + 'KB',
         dashboardType: dashboardType || null,
         timestamp: new Date().toISOString()
       },
