@@ -204,39 +204,63 @@ Deno.serve(async (req) => {
       locale ? `\n🌍 Idioma: ${locale}` : '',
     ].filter(Boolean).join("\n");
 
-    // ✅ Using v1 API endpoint (NOT v1beta) with gemini-1.5-flash
-    const geminiModel = "gemini-1.5-flash";
-    const geminiEndpoint = `https://generativelanguage.googleapis.com/v1/models/${geminiModel}:generateContent?key=${GEMINI_API_KEY}`;
+    // ✅ Try multiple Gemini models with fallback
+    const geminiModels = ["gemini-1.5-pro", "gemini-2.0-flash-exp", "gemini-pro"];
+    let aiRes: Response | null = null;
+    let lastError = "";
     
-    console.log("🤖 Gemini model:", geminiModel);
-    console.log("🌐 Gemini endpoint:", geminiEndpoint.replace(GEMINI_API_KEY, "***"));
-    
-    const aiRes = await fetch(geminiEndpoint, {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-      },
-      body: JSON.stringify({
-        contents: [{
-          parts: [{
-            text: fullPrompt
-          }]
-        }],
-        generationConfig: {
-          temperature: 0.3,
-          topK: 40,
-          topP: 0.95,
-          maxOutputTokens: 1024,
-        }
-      }),
-    });
-    
-    console.log("🤖 Gemini response status:", aiRes.status);
+    for (const geminiModel of geminiModels) {
+      try {
+        const geminiEndpoint = `https://generativelanguage.googleapis.com/v1/models/${geminiModel}:generateContent?key=${GEMINI_API_KEY}`;
+        
+        console.log(`🤖 Trying Gemini model: ${geminiModel}`);
+        console.log("🌐 Gemini endpoint:", geminiEndpoint.replace(GEMINI_API_KEY, "***"));
+        
+        aiRes = await fetch(geminiEndpoint, {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+          },
+          body: JSON.stringify({
+            contents: [{
+              parts: [{
+                text: fullPrompt
+              }]
+            }],
+            generationConfig: {
+              temperature: 0.3,
+              topK: 40,
+              topP: 0.95,
+              maxOutputTokens: 1024,
+            }
+          }),
+        });
+        
+        console.log(`🤖 Gemini response status: ${aiRes.status} for model: ${geminiModel}`);
 
-    if (!aiRes.ok) {
-      const errorText = await aiRes.text();
-      console.error("Gemini API error:", errorText);
-      return json({ error: "Erro na API do Gemini", details: errorText }, { status: 500 });
+        if (aiRes.ok) {
+          console.log(`✅ Success with model: ${geminiModel}`);
+          break; // Success, exit loop
+        } else {
+          const errorText = await aiRes.text();
+          lastError = errorText;
+          console.warn(`⚠️ Model ${geminiModel} failed:`, errorText);
+          aiRes = null; // Reset for next attempt
+        }
+      } catch (e: any) {
+        console.warn(`⚠️ Error with model ${geminiModel}:`, e.message);
+        lastError = e.message;
+        aiRes = null;
+      }
+    }
+
+    if (!aiRes || !aiRes.ok) {
+      console.error("❌ All Gemini models failed. Last error:", lastError);
+      return json({ 
+        error: "Erro na API do Gemini - todos os modelos falharam", 
+        details: lastError,
+        suggestion: "Verifique se a chave GEMINI_API está correta e ativa"
+      }, { status: 500 });
     }
 
     const aiJson = await aiRes.json();
