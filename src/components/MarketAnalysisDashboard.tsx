@@ -70,6 +70,19 @@ interface MarketData {
     lat: number;
     lng: number;
   };
+  metadata?: {
+    search_location: {
+      address: string;
+      coordinates: { lat: number; lng: number };
+    };
+    filtering_stats: {
+      total_schools_found: number;
+      private_schools_kept: number;
+      confidence_level: 'high' | 'medium' | 'low';
+      filters_applied: string[];
+      phases_implemented: string[];
+    };
+  };
 }
 
 const MarketAnalysisDashboard: React.FC<MarketAnalysisProps> = ({ onBack, schoolId }) => {
@@ -458,6 +471,59 @@ const MarketAnalysisDashboard: React.FC<MarketAnalysisProps> = ({ onBack, school
           </CardContent>
         </Card>
       </div>
+
+      {/* Filtering Stats - FASE 5 */}
+      {marketData.metadata?.filtering_stats && (
+        <Card className="border-primary/20 bg-primary/5">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <TrendingUp className="h-5 w-5 text-primary" />
+              Métricas de Filtragem de Dados
+            </CardTitle>
+            <CardDescription>
+              Estatísticas sobre a precisão da filtragem de escolas particulares
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="space-y-1">
+                <p className="text-sm text-muted-foreground">Total Encontrado</p>
+                <p className="text-2xl font-bold">{marketData.metadata.filtering_stats.total_schools_found}</p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-sm text-muted-foreground">Escolas Particulares</p>
+                <p className="text-2xl font-bold text-primary">{marketData.metadata.filtering_stats.private_schools_kept}</p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-sm text-muted-foreground">Taxa de Filtragem</p>
+                <p className="text-2xl font-bold text-green-600">
+                  {Math.round((marketData.metadata.filtering_stats.private_schools_kept / marketData.metadata.filtering_stats.total_schools_found) * 100)}%
+                </p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-sm text-muted-foreground">Nível de Confiança</p>
+                <Badge 
+                  variant={marketData.metadata.filtering_stats.confidence_level === 'high' ? 'default' : 'secondary'}
+                  className="text-sm"
+                >
+                  {marketData.metadata.filtering_stats.confidence_level === 'high' ? 'Alto' : 'Médio'}
+                </Badge>
+              </div>
+            </div>
+            <div className="mt-4 pt-4 border-t">
+              <p className="text-sm text-muted-foreground mb-2">Filtros Aplicados:</p>
+              <div className="flex flex-wrap gap-2">
+                {marketData.metadata.filtering_stats.phases_implemented.map((phase, index) => (
+                  <Badge key={index} variant="outline" className="text-xs">
+                    {phase.replace(/_/g, ' ').replace(/phase \d /i, 'Fase ')}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Map */}
