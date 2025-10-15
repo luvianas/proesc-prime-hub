@@ -11,6 +11,29 @@ import { ArrowLeft, MapPin, TrendingUp, Users, Star, DollarSign, Loader2, Edit }
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import GoogleMapContainer from './GoogleMapContainer';
+import { z } from 'zod';
+
+// Schema de validação para reportar preços
+const priceReportSchema = z.object({
+  monthly_fee: z.string().min(1, "Mensalidade é obrigatória").transform(val => {
+    const num = parseInt(val);
+    if (isNaN(num) || num <= 0 || num > 100000) throw new Error("Valor inválido");
+    return num;
+  }),
+  enrollment_fee: z.string().optional().transform(val => {
+    if (!val) return null;
+    const num = parseInt(val);
+    if (isNaN(num) || num < 0 || num > 100000) throw new Error("Valor inválido");
+    return num;
+  }),
+  annual_fee: z.string().optional().transform(val => {
+    if (!val) return null;
+    const num = parseInt(val);
+    if (isNaN(num) || num < 0 || num > 1000000) throw new Error("Valor inválido");
+    return num;
+  }),
+  notes: z.string().max(500, "Observações devem ter no máximo 500 caracteres").optional()
+});
 
 declare global {
   interface Window {
@@ -189,16 +212,12 @@ const MarketAnalysisDashboard: React.FC<MarketAnalysisProps> = ({ onBack, school
   const memoizedSchoolData = useMemo(() => schoolData, [schoolData?.id]);
 
   const handleReportPrice = async () => {
-    if (!selectedSchool || !reportForm.monthly_fee) {
-      toast({
-        title: "Erro",
-        description: "Por favor, preencha pelo menos o valor da mensalidade",
-        variant: "destructive"
-      });
-      return;
-    }
+    if (!selectedSchool) return;
 
     try {
+      // Validate input using zod schema
+      const validatedData = priceReportSchema.parse(reportForm);
+      
       const { data: { user } } = await supabase.auth.getUser();
       
       if (!user) {
@@ -215,10 +234,10 @@ const MarketAnalysisDashboard: React.FC<MarketAnalysisProps> = ({ onBack, school
         .insert({
           school_place_id: selectedSchool.place_id,
           school_name: selectedSchool.name,
-          monthly_fee: parseInt(reportForm.monthly_fee),
-          enrollment_fee: reportForm.enrollment_fee ? parseInt(reportForm.enrollment_fee) : null,
-          annual_fee: reportForm.annual_fee ? parseInt(reportForm.annual_fee) : null,
-          notes: reportForm.notes,
+          monthly_fee: validatedData.monthly_fee,
+          enrollment_fee: validatedData.enrollment_fee,
+          annual_fee: validatedData.annual_fee,
+          notes: validatedData.notes || null,
           reported_by: user.id
         });
 
@@ -236,12 +255,20 @@ const MarketAnalysisDashboard: React.FC<MarketAnalysisProps> = ({ onBack, school
       // Reload market data
       fetchSchoolData();
     } catch (error) {
-      console.error('Error reporting price:', error);
-      toast({
-        title: "Erro",
-        description: "Erro ao reportar preço. Tente novamente.",
-        variant: "destructive"
-      });
+      if (error instanceof z.ZodError) {
+        toast({
+          title: "Erro de Validação",
+          description: error.issues[0]?.message || "Dados inválidos",
+          variant: "destructive"
+        });
+      } else {
+        console.error('Error reporting price:', error);
+        toast({
+          title: "Erro",
+          description: "Erro ao reportar preço. Tente novamente.",
+          variant: "destructive"
+        });
+      }
     }
   };
 
@@ -399,29 +426,6 @@ const MarketAnalysisDashboard: React.FC<MarketAnalysisProps> = ({ onBack, school
         description: errorMessage,
         variant: 'destructive'
       });
-    }
-  };
-
-
-  const getPriceLevelText = (level?: number) => {
-    switch (level) {
-      case 0: return 'Gratuito';
-      case 1: return 'Baixo custo';
-      case 2: return 'Moderado';
-      case 3: return 'Alto custo';
-      case 4: return 'Premium';
-      default: return 'Não informado';
-    }
-  };
-
-  const getPriceLevelColor = (level?: number) => {
-    switch (level) {
-      case 0: return 'bg-green-100 text-green-800';
-      case 1: return 'bg-blue-100 text-blue-800';
-      case 2: return 'bg-yellow-100 text-yellow-800';
-      case 3: return 'bg-orange-100 text-orange-800';
-      case 4: return 'bg-purple-100 text-purple-800';
-      default: return 'bg-gray-100 text-gray-800';
     }
   };
 
