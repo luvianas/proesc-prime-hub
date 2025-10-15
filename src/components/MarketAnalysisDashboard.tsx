@@ -141,6 +141,10 @@ const MarketAnalysisDashboard: React.FC<MarketAnalysisProps> = ({ onBack, school
     });
   }, [toast]);
 
+  // Memoize data to prevent unnecessary re-renders (MUST be before any returns)
+  const memoizedMarketData = useMemo(() => marketData, [marketData?.competitors?.length]);
+  const memoizedSchoolData = useMemo(() => schoolData, [schoolData?.id]);
+
   const fetchSchoolData = async () => {
     try {
       const { data: school, error } = await supabase
@@ -379,10 +383,6 @@ const MarketAnalysisDashboard: React.FC<MarketAnalysisProps> = ({ onBack, school
       </div>
     );
   }
-
-  // Memoize data to prevent unnecessary re-renders
-  const memoizedMarketData = useMemo(() => marketData, [marketData?.competitors.length]);
-  const memoizedSchoolData = useMemo(() => schoolData, [schoolData?.id]);
 
   // Pagination logic
   const indexOfLastCompetitor = currentPage * competitorsPerPage;
