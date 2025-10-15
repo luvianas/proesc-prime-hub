@@ -81,6 +81,23 @@ interface MarketData {
       confidence_level: 'high' | 'medium' | 'low';
       filters_applied: string[];
       phases_implemented: string[];
+      validation_layers?: {
+        keyword_filter: number;
+        score_validation: number;
+        network_whitelist: number;
+        ambiguous_found: number;
+        confidence_breakdown: {
+          high: number;
+          medium: number;
+          low: number;
+        };
+      };
+      ambiguous_schools_found?: number;
+      confidence_breakdown?: {
+        high: number;
+        medium: number;
+        low: number;
+      };
     };
   };
 }
@@ -520,6 +537,87 @@ const MarketAnalysisDashboard: React.FC<MarketAnalysisProps> = ({ onBack, school
                 ))}
               </div>
             </div>
+            
+            {/* Camadas de Validação - Multi-Layer */}
+            {marketData.metadata.filtering_stats.validation_layers && (
+              <div className="mt-4 pt-4 border-t">
+                <p className="text-sm font-semibold mb-3">Validação Multi-Camadas</p>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="bg-background/50 p-3 rounded-lg">
+                    <div className="flex items-center justify-between mb-1">
+                      <p className="text-xs text-muted-foreground">Filtro de Palavras-Chave</p>
+                      <Badge variant="outline" className="text-xs">Camada 1</Badge>
+                    </div>
+                    <p className="text-xl font-bold text-primary">
+                      {marketData.metadata.filtering_stats.validation_layers.keyword_filter}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Identificadas por palavras privadas
+                    </p>
+                  </div>
+                  
+                  <div className="bg-background/50 p-3 rounded-lg">
+                    <div className="flex items-center justify-between mb-1">
+                      <p className="text-xs text-muted-foreground">Score Composto</p>
+                      <Badge variant="outline" className="text-xs">Camada 2</Badge>
+                    </div>
+                    <p className="text-xl font-bold text-blue-600">
+                      {marketData.metadata.filtering_stats.validation_layers.score_validation}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Validadas por análise inteligente
+                    </p>
+                  </div>
+                  
+                  <div className="bg-background/50 p-3 rounded-lg">
+                    <div className="flex items-center justify-between mb-1">
+                      <p className="text-xs text-muted-foreground">Redes Conhecidas</p>
+                      <Badge variant="outline" className="text-xs">Camada 3</Badge>
+                    </div>
+                    <p className="text-xl font-bold text-green-600">
+                      {marketData.metadata.filtering_stats.validation_layers.network_whitelist}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Redes privadas confirmadas
+                    </p>
+                  </div>
+                </div>
+                
+                {/* Breakdown de Confiança */}
+                <div className="mt-4 bg-background/50 p-3 rounded-lg">
+                  <p className="text-xs text-muted-foreground mb-2">Distribuição de Confiança</p>
+                  <div className="flex gap-2">
+                    <div className="flex-1 text-center">
+                      <p className="text-lg font-bold text-green-600">
+                        {marketData.metadata.filtering_stats.validation_layers.confidence_breakdown.high}
+                      </p>
+                      <Badge variant="default" className="text-xs mt-1">Alta</Badge>
+                    </div>
+                    <div className="flex-1 text-center">
+                      <p className="text-lg font-bold text-yellow-600">
+                        {marketData.metadata.filtering_stats.validation_layers.confidence_breakdown.medium}
+                      </p>
+                      <Badge variant="secondary" className="text-xs mt-1">Média</Badge>
+                    </div>
+                    <div className="flex-1 text-center">
+                      <p className="text-lg font-bold text-gray-500">
+                        {marketData.metadata.filtering_stats.validation_layers.confidence_breakdown.low}
+                      </p>
+                      <Badge variant="outline" className="text-xs mt-1">Baixa</Badge>
+                    </div>
+                  </div>
+                  
+                  {marketData.metadata.filtering_stats.validation_layers.ambiguous_found > 0 && (
+                    <div className="mt-3 p-2 bg-yellow-50 dark:bg-yellow-900/10 rounded border border-yellow-200 dark:border-yellow-800">
+                      <p className="text-xs text-yellow-800 dark:text-yellow-200">
+                        <strong>{marketData.metadata.filtering_stats.validation_layers.ambiguous_found}</strong> escolas ambíguas 
+                        foram analisadas com score composto para garantir precisão
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
       )}

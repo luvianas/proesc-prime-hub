@@ -18,6 +18,8 @@ interface PlaceResult {
     }
   };
   price_level?: number;
+  validation_score?: number;
+  confidence_level?: 'high' | 'medium' | 'low';
 }
 
 interface EnrichedPlaceResult extends PlaceResult {
@@ -63,6 +65,154 @@ interface MarketAnalysisResponse {
     lat: number;
     lng: number;
   };
+  metadata: {
+    search_location: {
+      address: string;
+      coordinates: { lat: number; lng: number };
+    };
+    filtering_stats: {
+      total_schools_found: number;
+      private_schools_kept: number;
+      confidence_level: 'high' | 'medium' | 'low';
+      filters_applied: string[];
+      phases_implemented: string[];
+      validation_layers: {
+        keyword_filter: number;
+        score_validation: number;
+        network_whitelist: number;
+      };
+      ambiguous_schools_found: number;
+      confidence_breakdown: {
+        high: number;
+        medium: number;
+        low: number;
+      };
+    };
+  };
+}
+
+// ============= CAMADA 3: Lista Branca de Redes Privadas Conhecidas =============
+function isKnownPrivateNetwork(name: string): boolean {
+  const normalizedName = name.toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+  
+  const knownNetworks = [
+    // Grandes Redes Nacionais
+    'objetivo', 'anglo', 'etapa', 'pensi', 'bandeirantes', 'santo américo',
+    'dante alighieri', 'porto seguro', 'nossa senhora', 'santa maria',
+    'mackenzie', 'adventista', 'marista', 'franciscano', 'dominicano',
+    'salesiano', 'santa cruz', 'são luís', 'são francisco', 'são bento',
+    
+    // Redes Religiosas
+    'santa teresinha', 'santo antonio', 'imaculada conceicao', 'sagrado coracao',
+    'metodista', 'batista', 'presbiteriana', 'luterano', 'anglicana',
+    
+    // Metodologias Específicas (sempre particulares)
+    'waldorf', 'montessori', 'steiner', 'maple bear', 'red balloon',
+    'pueri domus', 'stance dual', 'concept', 'vértice',
+    
+    // Sistemas de Ensino (franchising)
+    'ph', 'poliedro', 'bernoulli', 'farias brito', 'ari de sá',
+    'elite rede', 'cognitivo', 'darwin', 'kumon'
+  ];
+  
+  return knownNetworks.some(network => normalizedName.includes(network));
+}
+
+// ============= CAMADA 2: Score Composto de Validação =============
+function getPrivateSchoolConfidence(place: PlaceResult): {
+  total: number;
+  confidence: 'high' | 'medium' | 'low';
+  breakdown: {
+    ratings_score: number;
+    name_score: number;
+    methodology_score: number;
+    location_score: number;
+  };
+} {
+  let score = 0;
+  const breakdown = {
+    ratings_score: 0,
+    name_score: 0,
+    methodology_score: 0,
+    location_score: 0
+  };
+  
+  // 1. Análise de Padrões de Rating (0-25 pontos)
+  if (place.user_ratings_total) {
+    if (place.user_ratings_total >= 100) {
+      breakdown.ratings_score = 25; // Muitas avaliações = escola grande = provavelmente particular
+    } else if (place.user_ratings_total >= 50) {
+      breakdown.ratings_score = 15;
+    } else if (place.user_ratings_total >= 20) {
+      breakdown.ratings_score = 10;
+    } else if (place.user_ratings_total < 10) {
+      breakdown.ratings_score = -10; // Muito poucas avaliações pode ser escola pública pequena
+    }
+  }
+  
+  // 2. Análise de Nome (0-30 pontos)
+  const name = place.name.toLowerCase();
+  const normalizedName = name
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+  
+  // Nome longo com palavras formais = mais provável ser particular
+  const wordCount = name.split(' ').filter(w => w.length > 2).length;
+  if (wordCount >= 4) {
+    breakdown.name_score += 15;
+  } else if (wordCount >= 3) {
+    breakdown.name_score += 10;
+  }
+  
+  // Presença de "colégio" aumenta chance
+  if (normalizedName.includes('colegio')) {
+    breakdown.name_score += 15;
+  }
+  
+  // 3. Metodologias/Sistemas Pedagógicos (0-30 pontos)
+  const methodologyKeywords = [
+    'bilingue', 'bilingual', 'internacional', 'montessori', 'waldorf',
+    'integral', 'periodo integral', 'sistema', 'rede',
+    'educacao infantil', 'ensino fundamental', 'ensino medio'
+  ];
+  
+  const hasMethodology = methodologyKeywords.some(keyword => 
+    normalizedName.includes(keyword.toLowerCase())
+  );
+  
+  if (hasMethodology) {
+    breakdown.methodology_score = 30;
+  }
+  
+  // 4. Análise de Endereço/Localização (0-15 pontos)
+  const vicinity = (place.vicinity || '').toLowerCase();
+  const affluent Keywords = [
+    'jardim', 'jardins', 'alphaville', 'granja viana', 'morumbi',
+    'higienopolis', 'vila', 'alto', 'leblon', 'ipanema', 'lagoa'
+  ];
+  
+  const isAffluentArea = affluentKeywords.some(keyword => vicinity.includes(keyword));
+  if (isAffluentArea) {
+    breakdown.location_score = 15;
+  }
+  
+  // Calcular score total
+  score = breakdown.ratings_score + breakdown.name_score + 
+          breakdown.methodology_score + breakdown.location_score;
+  
+  // Determinar nível de confiança
+  let confidence: 'high' | 'medium' | 'low';
+  if (score >= 60) {
+    confidence = 'high';
+  } else if (score >= 40) {
+    confidence = 'medium';
+  } else {
+    confidence = 'low';
+  }
+  
+  return { total: score, confidence, breakdown };
 }
 
 async function enrichWithPricingData(competitors: PlaceResult[]): Promise<EnrichedPlaceResult[]> {
@@ -507,8 +657,99 @@ serve(async (req) => {
       exemplos_removidos: filteredOut.slice(0, 3).map((p: PlaceResult) => p.name)
     });
     
-    allCompetitors = [...filteredResults];
+    // ============= CAMADA 2+3: Processar Escolas Ambíguas com Score + Whitelist =============
+    const ambiguousSchools = filteredResults.filter(place => {
+      const name = place.name.toLowerCase();
+      const normalizedName = name
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase();
+      
+      const hasPrivateIndicator = privateSchoolIndicators.some(k => normalizedName.includes(k));
+      const hasPublicKeyword = publicSchoolKeywords.some(k => normalizedName.includes(k.toLowerCase()));
+      
+      return !hasPrivateIndicator && !hasPublicKeyword;
+    });
+    
+    console.log('🎯 Escolas ambíguas encontradas:', {
+      total: ambiguousSchools.length,
+      exemplos: ambiguousSchools.slice(0, 3).map(p => p.name)
+    });
+    
+    // Aplicar score composto para escolas ambíguas
+    const validatedAmbiguousSchools = ambiguousSchools.map(place => {
+      const validation = getPrivateSchoolConfidence(place);
+      return {
+        ...place,
+        validation_score: validation.total,
+        confidence_level: validation.confidence
+      };
+    }).filter(school => school.validation_score >= 40); // Score mínimo de 40
+    
+    console.log('✅ Escolas ambíguas validadas por score:', {
+      validadas: validatedAmbiguousSchools.length,
+      high_confidence: validatedAmbiguousSchools.filter(s => s.confidence_level === 'high').length,
+      medium_confidence: validatedAmbiguousSchools.filter(s => s.confidence_level === 'medium').length
+    });
+    
+    // Aplicar whitelist de redes conhecidas
+    const networkSchools = placesData.results.filter(place => 
+      isKnownPrivateNetwork(place.name)
+    ).map(place => ({
+      ...place,
+      validation_score: 100,
+      confidence_level: 'high' as const
+    }));
+    
+    console.log('🏫 Escolas de redes conhecidas:', {
+      total: networkSchools.length,
+      exemplos: networkSchools.slice(0, 3).map(p => p.name)
+    });
+    
+    // Combinar: filtradas + validadas por score + redes conhecidas
+    const clearlyPrivate = filteredResults.filter(place => {
+      const name = place.name.toLowerCase();
+      const normalizedName = name
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase();
+      
+      const hasPrivateIndicator = privateSchoolIndicators.some(k => normalizedName.includes(k));
+      return hasPrivateIndicator;
+    }).map(place => ({
+      ...place,
+      validation_score: 80,
+      confidence_level: 'high' as const
+    }));
+    
+    // Remover duplicatas usando place_id
+    const allValidated = [
+      ...clearlyPrivate,
+      ...validatedAmbiguousSchools,
+      ...networkSchools
+    ];
+    
+    const uniqueSchools = Array.from(
+      new Map(allValidated.map(school => [school.place_id, school])).values()
+    );
+    
+    allCompetitors = uniqueSchools;
     nextPageToken = placesData.next_page_token;
+    
+    // Estatísticas de validação multi-camadas
+    const validationStats = {
+      keyword_filter: clearlyPrivate.length,
+      score_validation: validatedAmbiguousSchools.length,
+      network_whitelist: networkSchools.length,
+      ambiguous_found: ambiguousSchools.length,
+      confidence_breakdown: {
+        high: uniqueSchools.filter(s => s.confidence_level === 'high').length,
+        medium: uniqueSchools.filter(s => s.confidence_level === 'medium').length,
+        low: uniqueSchools.filter(s => s.confidence_level === 'low').length
+      }
+    };
+    
+    console.log('📊 Validação Multi-Camadas completa:', validationStats);
     console.log('🔄 First page results:', {
       total_found: placesData.results?.length || 0,
       filtered_count: filteredResults.length,
@@ -640,8 +881,23 @@ serve(async (req) => {
             total_schools_found: placesData.results.length,
             private_schools_kept: allCompetitors.length,
             confidence_level: allCompetitors.length > 10 ? 'high' : 'medium',
-            filters_applied: ['enhanced_keyword_matching', 'name_normalization', 'private_school_heuristics'],
-            phases_implemented: ['phase_1_expanded_keywords', 'phase_2_private_indicators', 'phase_3_optimized_api_keywords']
+            filters_applied: [
+              'enhanced_keyword_matching',
+              'name_normalization',
+              'private_school_heuristics',
+              'composite_score_validation',
+              'known_network_whitelist'
+            ],
+            phases_implemented: [
+              'phase_1_expanded_keywords',
+              'phase_2_private_indicators',
+              'phase_3_optimized_api_keywords',
+              'phase_4_composite_score',
+              'phase_5_network_whitelist'
+            ],
+            validation_layers: validationStats,
+            ambiguous_schools_found: validationStats.ambiguous_found,
+            confidence_breakdown: validationStats.confidence_breakdown
           }
         }
       }),
