@@ -188,7 +188,7 @@ function getPrivateSchoolConfidence(place: PlaceResult): {
   
   // 4. Análise de Endereço/Localização (0-15 pontos)
   const vicinity = (place.vicinity || '').toLowerCase();
-  const affluent Keywords = [
+  const affluentKeywords = [
     'jardim', 'jardins', 'alphaville', 'granja viana', 'morumbi',
     'higienopolis', 'vila', 'alto', 'leblon', 'ipanema', 'lagoa'
   ];
