@@ -2,7 +2,12 @@ import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, MapPin, TrendingUp, Users, Star, DollarSign, Loader2 } from 'lucide-react';
+import { Progress } from '@/components/ui/progress';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { ArrowLeft, MapPin, TrendingUp, Users, Star, DollarSign, Loader2, Edit } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import GoogleMapContainer from './GoogleMapContainer';
@@ -114,6 +119,14 @@ const MarketAnalysisDashboard: React.FC<MarketAnalysisProps> = ({ onBack, school
   const [analysisProgress, setAnalysisProgress] = useState<string>('Carregando dados da escola...');
   const [competitorCount, setCompetitorCount] = useState(0);
   const [analysisComplete, setAnalysisComplete] = useState(false);
+  const [reportDialogOpen, setReportDialogOpen] = useState(false);
+  const [selectedSchool, setSelectedSchool] = useState<CompetitorData | null>(null);
+  const [reportForm, setReportForm] = useState({
+    monthly_fee: '',
+    enrollment_fee: '',
+    annual_fee: '',
+    notes: ''
+  });
   
   const { toast } = useToast();
   
@@ -174,6 +187,94 @@ const MarketAnalysisDashboard: React.FC<MarketAnalysisProps> = ({ onBack, school
   // Memoize data to prevent unnecessary re-renders (MUST be before any returns)
   const memoizedMarketData = useMemo(() => marketData, [marketData?.competitors?.length]);
   const memoizedSchoolData = useMemo(() => schoolData, [schoolData?.id]);
+
+  const handleReportPrice = async () => {
+    if (!selectedSchool || !reportForm.monthly_fee) {
+      toast({
+        title: "Erro",
+        description: "Por favor, preencha pelo menos o valor da mensalidade",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        toast({
+          title: "Erro",
+          description: "Você precisa estar logado para reportar preços",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      const { error } = await supabase
+        .from('user_reported_prices')
+        .insert({
+          school_place_id: selectedSchool.place_id,
+          school_name: selectedSchool.name,
+          monthly_fee: parseInt(reportForm.monthly_fee),
+          enrollment_fee: reportForm.enrollment_fee ? parseInt(reportForm.enrollment_fee) : null,
+          annual_fee: reportForm.annual_fee ? parseInt(reportForm.annual_fee) : null,
+          notes: reportForm.notes,
+          reported_by: user.id
+        });
+
+      if (error) throw error;
+
+      toast({
+        title: "Sucesso! 🎉",
+        description: "Preço reportado com sucesso. Obrigado pela contribuição!"
+      });
+
+      setReportDialogOpen(false);
+      setReportForm({ monthly_fee: '', enrollment_fee: '', annual_fee: '', notes: '' });
+      setSelectedSchool(null);
+
+      // Reload market data
+      fetchSchoolData();
+    } catch (error) {
+      console.error('Error reporting price:', error);
+      toast({
+        title: "Erro",
+        description: "Erro ao reportar preço. Tente novamente.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const getDataSourceBadge = (source: string) => {
+    const badges: Record<string, { label: string; variant: any }> = {
+      'openai_scraped': { label: '🤖 IA', variant: 'default' },
+      'crowdsourced_verified': { label: '👥 Verificado', variant: 'default' },
+      'scraped': { label: '🔍 Web', variant: 'secondary' },
+      'estimated': { label: '📊 Estimado', variant: 'outline' }
+    };
+    const badge = badges[source] || { label: '📊 Estimado', variant: 'outline' };
+    return <Badge variant={badge.variant as any}>{badge.label}</Badge>;
+  };
+
+  const getPriceLevelText = (level: number) => {
+    const levels: Record<number, string> = {
+      1: 'Baixo custo',
+      2: 'Moderado',
+      3: 'Alto custo',
+      4: 'Premium'
+    };
+    return levels[level] || 'Não disponível';
+  };
+
+  const getPriceLevelColor = (level: number) => {
+    const colors: Record<number, string> = {
+      1: 'bg-green-100 text-green-800',
+      2: 'bg-blue-100 text-blue-800',
+      3: 'bg-orange-100 text-orange-800',
+      4: 'bg-purple-100 text-purple-800'
+    };
+    return colors[level] || 'bg-gray-100 text-gray-800';
+  };
 
   const fetchSchoolData = async () => {
     try {
@@ -738,8 +839,29 @@ const MarketAnalysisDashboard: React.FC<MarketAnalysisProps> = ({ onBack, school
                       <span className="text-sm">{competitor.rating} ({competitor.user_ratings_total || 0} avaliações)</span>
                     </div>
                   )}
+                  
+                  {/* Pricing Information */}
+                  {competitor.pricing_data && (
+                    <div className="mt-2 space-y-1">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium">
+                          {competitor.pricing_data.monthly_fee 
+                            ? `R$ ${competitor.pricing_data.monthly_fee.toLocaleString('pt-BR')}/mês`
+                            : 'Preço não disponível'}
+                        </span>
+                        {competitor.pricing_data.data_source && getDataSourceBadge(competitor.pricing_data.data_source)}
+                      </div>
+                      {competitor.pricing_data.confidence_score && (
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-muted-foreground">Confiança:</span>
+                          <Progress value={competitor.pricing_data.confidence_score} className="h-1 w-20" />
+                          <span className="text-xs">{competitor.pricing_data.confidence_score}%</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
-                <div className="text-right space-y-1">
+                <div className="flex flex-col items-end gap-2">
                   {competitor.price_level !== undefined ? (
                     <Badge className={getPriceLevelColor(competitor.price_level)}>
                       {getPriceLevelText(competitor.price_level)}
@@ -749,6 +871,79 @@ const MarketAnalysisDashboard: React.FC<MarketAnalysisProps> = ({ onBack, school
                       Sem informação de preço
                     </Badge>
                   )}
+                  
+                  <Dialog open={reportDialogOpen && selectedSchool?.place_id === competitor.place_id} onOpenChange={(open) => {
+                    setReportDialogOpen(open);
+                    if (!open) {
+                      setSelectedSchool(null);
+                      setReportForm({ monthly_fee: '', enrollment_fee: '', annual_fee: '', notes: '' });
+                    }
+                  }}>
+                    <DialogTrigger asChild>
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        onClick={() => setSelectedSchool(competitor)}
+                      >
+                        <Edit className="h-3 w-3 mr-1" />
+                        Reportar Preço
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Reportar Preço</DialogTitle>
+                        <DialogDescription>
+                          Contribua com informações de preço para {competitor.name}
+                        </DialogDescription>
+                      </DialogHeader>
+                      <div className="space-y-4 py-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="monthly_fee">Mensalidade (R$) *</Label>
+                          <Input
+                            id="monthly_fee"
+                            type="number"
+                            placeholder="Ex: 2500"
+                            value={reportForm.monthly_fee}
+                            onChange={(e) => setReportForm({ ...reportForm, monthly_fee: e.target.value })}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="enrollment_fee">Taxa de Matrícula (R$)</Label>
+                          <Input
+                            id="enrollment_fee"
+                            type="number"
+                            placeholder="Ex: 1000"
+                            value={reportForm.enrollment_fee}
+                            onChange={(e) => setReportForm({ ...reportForm, enrollment_fee: e.target.value })}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="annual_fee">Anuidade (R$)</Label>
+                          <Input
+                            id="annual_fee"
+                            type="number"
+                            placeholder="Ex: 30000"
+                            value={reportForm.annual_fee}
+                            onChange={(e) => setReportForm({ ...reportForm, annual_fee: e.target.value })}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="notes">Observações</Label>
+                          <Textarea
+                            id="notes"
+                            placeholder="Informações adicionais sobre os valores..."
+                            value={reportForm.notes}
+                            onChange={(e) => setReportForm({ ...reportForm, notes: e.target.value })}
+                          />
+                        </div>
+                      </div>
+                      <DialogFooter>
+                        <Button onClick={handleReportPrice}>
+                          Enviar Contribuição
+                        </Button>
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
                 </div>
               </div>
             ))}

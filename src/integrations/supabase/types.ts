@@ -349,6 +349,51 @@ export type Database = {
         }
         Relationships: []
       }
+      user_reported_prices: {
+        Row: {
+          annual_fee: number | null
+          confidence_votes: number | null
+          created_at: string | null
+          enrollment_fee: number | null
+          id: string
+          monthly_fee: number
+          notes: string | null
+          reported_by: string | null
+          school_name: string
+          school_place_id: string
+          updated_at: string | null
+          verified: boolean | null
+        }
+        Insert: {
+          annual_fee?: number | null
+          confidence_votes?: number | null
+          created_at?: string | null
+          enrollment_fee?: number | null
+          id?: string
+          monthly_fee: number
+          notes?: string | null
+          reported_by?: string | null
+          school_name: string
+          school_place_id: string
+          updated_at?: string | null
+          verified?: boolean | null
+        }
+        Update: {
+          annual_fee?: number | null
+          confidence_votes?: number | null
+          created_at?: string | null
+          enrollment_fee?: number | null
+          id?: string
+          monthly_fee?: number
+          notes?: string | null
+          reported_by?: string | null
+          school_name?: string
+          school_place_id?: string
+          updated_at?: string | null
+          verified?: boolean | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

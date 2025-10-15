@@ -232,7 +232,7 @@ async function enrichWithPricingData(competitors: PlaceResult[]): Promise<Enrich
       
       console.log(`🔍 Enriching ${competitor.name} in ${city}, ${state}`);
       
-      // Call our pricing enrichment function
+      // Call our pricing enrichment function with website if available
       const pricingResponse = await fetch(`${supabaseUrl}/functions/v1/school-pricing-enrichment`, {
         method: 'POST',
         headers: {
@@ -243,7 +243,8 @@ async function enrichWithPricingData(competitors: PlaceResult[]): Promise<Enrich
           schoolName: competitor.name,
           city: city,
           state: state,
-          placeId: competitor.place_id
+          placeId: competitor.place_id,
+          website: (competitor as any).website || null
         })
       });
       
@@ -258,7 +259,13 @@ async function enrichWithPricingData(competitors: PlaceResult[]): Promise<Enrich
             confidence_score: pricingResult.data.confidence_score,
             data_source: pricingResult.data.data_source
           };
-          console.log(`✅ Got pricing data for ${competitor.name}: R$ ${pricingData.monthly_fee}/month`);
+          
+          const source = pricingResult.data.data_source || 'unknown';
+          const emoji = source === 'openai_scraped' ? '🤖' : 
+                       source === 'crowdsourced_verified' ? '👥' :
+                       source === 'scraped' ? '🔍' : '📊';
+          
+          console.log(`${emoji} Pricing for ${competitor.name}: R$ ${pricingData.monthly_fee || 'N/A'} (${source})`);
         }
       } else {
         console.log(`❌ Failed to get pricing data for ${competitor.name}`);

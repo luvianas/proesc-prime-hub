@@ -15,16 +15,110 @@ interface SchoolPricingRequest {
   city: string;
   state: string;
   placeId?: string;
+  website?: string;
 }
 
 interface PricingData {
   monthly_fee?: number;
   annual_fee?: number;
   enrollment_fee?: number;
-  price_range: 'budget' | 'moderate' | 'expensive' | 'luxury';
+  price_range?: 'budget' | 'moderate' | 'expensive' | 'luxury' | null;
   confidence_score: number;
   data_source: string;
   raw_data: Record<string, any>;
+}
+
+// Function to scrape pricing using OpenAI
+async function scrapeWithOpenAI(websiteUrl: string, schoolName: string): Promise<PricingData | null> {
+  const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
+  
+  if (!openaiApiKey) {
+    console.error('❌ OPENAI_API_KEY not configured');
+    return null;
+  }
+
+  try {
+    console.log(`🤖 Starting OpenAI scraping for ${schoolName} at ${websiteUrl}`);
+    
+    // Fetch website HTML
+    const websiteResponse = await fetch(websiteUrl, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+      }
+    });
+
+    if (!websiteResponse.ok) {
+      console.error(`❌ Failed to fetch website: ${websiteResponse.status}`);
+      return null;
+    }
+
+    const html = await websiteResponse.text();
+    
+    // Limit HTML size to avoid token limits
+    const truncatedHtml = html.substring(0, 15000);
+
+    // Call OpenAI to extract pricing
+    const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${openaiApiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o-mini',
+        messages: [
+          {
+            role: 'system',
+            content: 'You are a data extraction assistant. Extract school pricing information from HTML. Return ONLY a JSON object with this exact structure: {"monthly_fee": number or null, "enrollment_fee": number or null, "annual_fee": number or null, "confidence_score": number 0-100}. If no prices found, return null values with confidence_score 0.'
+          },
+          {
+            role: 'user',
+            content: `Extract pricing information for "${schoolName}" from this HTML:\n\n${truncatedHtml}\n\nLook for: mensalidade, matrícula, anuidade, valores, preços. Return only the JSON.`
+          }
+        ],
+        temperature: 0.2,
+        max_tokens: 500
+      }),
+    });
+
+    if (!openaiResponse.ok) {
+      const errorText = await openaiResponse.text();
+      console.error(`❌ OpenAI API error: ${openaiResponse.status} - ${errorText}`);
+      return null;
+    }
+
+    const openaiData = await openaiResponse.json();
+    const content = openaiData.choices[0]?.message?.content;
+
+    if (!content) {
+      console.log('⚠️ No content returned from OpenAI');
+      return null;
+    }
+
+    // Parse JSON response
+    const pricingInfo = JSON.parse(content.trim());
+
+    if (!pricingInfo.monthly_fee && !pricingInfo.enrollment_fee && !pricingInfo.annual_fee) {
+      console.log(`ℹ️ No pricing found for ${schoolName}`);
+      return null;
+    }
+
+    console.log(`✅ OpenAI extracted pricing: monthly=${pricingInfo.monthly_fee}, confidence=${pricingInfo.confidence_score}`);
+
+    return {
+      monthly_fee: pricingInfo.monthly_fee,
+      enrollment_fee: pricingInfo.enrollment_fee,
+      annual_fee: pricingInfo.annual_fee,
+      price_range: pricingInfo.monthly_fee ? getPriceRange(pricingInfo.monthly_fee) : null,
+      confidence_score: pricingInfo.confidence_score || 60,
+      data_source: 'openai_scraped',
+      raw_data: pricingInfo
+    };
+
+  } catch (error) {
+    console.error(`❌ Error in OpenAI scraping: ${error.message}`);
+    return null;
+  }
 }
 
 async function scrapeSchoolPricing(schoolName: string, city: string, state: string): Promise<PricingData | null> {
@@ -258,7 +352,7 @@ const handler = async (req: Request): Promise<Response> => {
   try {
     console.log(`🚀 Starting school pricing enrichment request at: ${new Date().toISOString()}`);
 
-    const { schoolName, city, state, placeId }: SchoolPricingRequest = await req.json();
+    const { schoolName, city, state, placeId, website }: SchoolPricingRequest = await req.json();
 
     if (!schoolName || !city || !state) {
       console.log('❌ Missing required parameters');
@@ -280,7 +374,7 @@ const handler = async (req: Request): Promise<Response> => {
       .eq('school_name', schoolName)
       .eq('city', city)
       .eq('state', state)
-      .gte('last_updated', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()) // Last 7 days
+      .gte('last_updated', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()) // Last 30 days
       .single();
 
     if (existingData) {
@@ -295,8 +389,51 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    // Scrape new pricing data
-    const pricingData = await scrapeSchoolPricing(schoolName, city, state);
+    let pricingData: PricingData | null = null;
+
+    // Try OpenAI scraping if website is provided
+    if (website) {
+      console.log(`🤖 Attempting OpenAI scraping for website: ${website}`);
+      pricingData = await scrapeWithOpenAI(website, schoolName);
+    }
+
+    // Fallback to MelhorEscola scraping
+    if (!pricingData) {
+      console.log('🔍 Attempting MelhorEscola scraping');
+      pricingData = await scrapeSchoolPricing(schoolName, city, state);
+    }
+
+    // Check crowdsourced data
+    if (!pricingData && placeId) {
+      console.log('👥 Checking crowdsourced pricing data');
+      const { data: crowdsourcedData } = await supabase
+        .from('user_reported_prices')
+        .select('*')
+        .eq('school_place_id', placeId)
+        .eq('verified', true)
+        .order('confidence_votes', { ascending: false })
+        .limit(1)
+        .single();
+
+      if (crowdsourcedData) {
+        console.log('✅ Using verified crowdsourced data');
+        pricingData = {
+          monthly_fee: crowdsourcedData.monthly_fee,
+          enrollment_fee: crowdsourcedData.enrollment_fee,
+          annual_fee: crowdsourcedData.annual_fee,
+          price_range: crowdsourcedData.monthly_fee ? getPriceRange(crowdsourcedData.monthly_fee) : null,
+          confidence_score: Math.min(crowdsourcedData.confidence_votes * 15, 85),
+          data_source: 'crowdsourced_verified',
+          raw_data: crowdsourcedData
+        };
+      }
+    }
+
+    // Final fallback to estimation
+    if (!pricingData) {
+      console.log('⚠️ All methods failed, using estimation');
+      pricingData = await estimatePricing(city, state);
+    }
     
     if (pricingData) {
       await savePricingData(schoolName, city, state, pricingData, placeId);
