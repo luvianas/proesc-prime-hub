@@ -72,15 +72,15 @@ const GoogleMapContainer: React.FC<GoogleMapContainerProps> = ({
             position: centerCoords,
             map: map,
             title: schoolData?.school_name || schoolData?.nome || 'Sua Escola',
-          icon: {
-            url: 'data:image/svg+xml;base64,' + btoa(`
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="32" height="32">
-                <circle cx="12" cy="12" r="8" fill="#3B82F6" stroke="#FFFFFF" stroke-width="2"/>
-                <text x="12" y="16" text-anchor="middle" fill="white" font-size="12" font-weight="bold">★</text>
-              </svg>
-            `),
-          }
-        });
+            icon: {
+              path: google.maps.SymbolPath.CIRCLE,
+              scale: 12,
+              fillColor: '#3B82F6',
+              fillOpacity: 1,
+              strokeColor: '#FFFFFF',
+              strokeWeight: 3,
+            }
+          });
 
         markersRef.current.push(mainMarker);
 
@@ -112,11 +112,12 @@ const GoogleMapContainer: React.FC<GoogleMapContainerProps> = ({
             map: map,
             title: competitor.name,
             icon: {
-              url: 'data:image/svg+xml;base64,' + btoa(`
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
-                  <circle cx="12" cy="12" r="6" fill="#EF4444" stroke="#FFFFFF" stroke-width="2"/>
-                </svg>
-              `),
+              path: google.maps.SymbolPath.CIRCLE,
+              scale: 8,
+              fillColor: '#EF4444',
+              fillOpacity: 0.9,
+              strokeColor: '#FFFFFF',
+              strokeWeight: 2,
             }
           });
 
