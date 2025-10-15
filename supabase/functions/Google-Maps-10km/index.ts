@@ -389,8 +389,8 @@ serve(async (req) => {
     let allCompetitors: PlaceResult[] = [];
     let nextPageToken = null;
     
-    // First search - using keyword "escola particular" to focus on private schools
-    let placesUrl = `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${location.lat},${location.lng}&radius=${radius}&keyword=escola%20particular&type=school&key=${apiKey}`;
+    // First search - using optimized keywords to focus on private schools (FASE 3)
+    let placesUrl = `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${location.lat},${location.lng}&radius=${radius}&keyword=colégio+particular+privado&type=school&key=${apiKey}`;
     console.log('📡 Making Places API request with radius:', radius / 1000, 'km');
     
     let placesResponse = await fetch(placesUrl);
@@ -416,17 +416,95 @@ serve(async (req) => {
       );
     }
     
-    // Filter out public schools based on name patterns
+    // FASE 1+2: Enhanced filtering for private schools only
+    const publicSchoolKeywords = [
+      // Já existentes
+      'emef', 'emei', 'emeif', 'cemei', 'municipal', 'estadual', 'federal',
+      'pública', 'publica', 'governo', 'prefeitura', 'sec.', 'secretaria',
+      'colégio estadual', 'escola estadual', 'escola municipal', 'creche municipal',
+      
+      // FASE 1: Abreviações comuns
+      'e.m.', 'e.e.', 'e.m.e.f', 'e.m.e.i', 'e.e.e.i', 'e.e.e.f',
+      'c.e.', 'c.e.m.', // Centro Educacional Municipal
+      
+      // FASE 1: Modelos específicos de escolas públicas
+      'ciep', 'caic', 'ceu', // CIEP (RJ), CAIC, CEU (SP)
+      'cem ', 'cme ', // Centro Municipal de Educação
+      
+      // FASE 1: Sistema S
+      'sesi', 'senai', 'senac', 'sesc',
+      
+      // FASE 1: Escolas técnicas estaduais
+      'etec', 'fatec', 'e.t.e.c', 'f.a.t.e.c',
+      
+      // FASE 1: Institutos Federais
+      'ifsp', 'if-', 'instituto federal', 'i.f.', 'cefet',
+      
+      // FASE 1: Educação infantil pública
+      'creche conveniada', 'pré-escola municipal', 'berçário municipal',
+      
+      // FASE 1: Outras nomenclaturas públicas
+      'centro de educação', 'núcleo de ensino', 'polo educacional',
+      'casa da criança', 'lar infantil',
+      'unidade escolar', 'ue ', 'u.e.',
+      'delegacia de ensino', 'diretoria de ensino'
+    ];
+    
+    // FASE 2: Indicadores de escolas particulares
+    const privateSchoolIndicators = [
+      'colégio', 'colegio',
+      'instituto educacional', 'centro educacional particular',
+      'escola particular', 'escola privada',
+      'liceu', 'ginásio', 'internato',
+      'berçário particular', 'creche particular',
+      'anglo', 'objetivo', 'etapa', 'pensi', 'bandeirantes',
+      'adventista', 'luterano', 'metodista', 'batista',
+      'waldorf', 'montessori', 'steiner'
+    ];
+    
     const filteredResults = placesData.results.filter((place: PlaceResult) => {
       const name = place.name.toLowerCase();
-      // Filter out public schools keywords
-      const publicSchoolKeywords = [
-        'emef', 'emei', 'emeif', 'cemei', 'municipal', 'estadual', 'federal',
-        'pública', 'publica', 'governo', 'prefeitura', 'sec.', 'secretaria',
-        'colégio estadual', 'escola estadual', 'escola municipal', 'creche municipal'
-      ];
       
-      return !publicSchoolKeywords.some(keyword => name.includes(keyword));
+      // FASE 1: Normalizar texto (remover acentos e pontos)
+      const normalizedName = name
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/\./g, ' ')
+        .toLowerCase();
+      
+      // FASE 2: Se tiver indicador de escola particular, mantém (exceto se tiver palavra pública óbvia)
+      const hasPrivateIndicator = privateSchoolIndicators.some(indicator => 
+        normalizedName.includes(indicator)
+      );
+      
+      const hasPublicKeyword = publicSchoolKeywords.some(keyword => 
+        normalizedName.includes(keyword.toLowerCase())
+      );
+      
+      // Mantém se for claramente particular, remove se for pública
+      if (hasPrivateIndicator && !hasPublicKeyword) {
+        return true;
+      }
+      
+      return !hasPublicKeyword;
+    });
+    
+    // FASE 5: Logging de filtragem
+    const filteredOut = placesData.results.filter((place: PlaceResult) => {
+      const name = place.name.toLowerCase();
+      const normalizedName = name
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/\./g, ' ')
+        .toLowerCase();
+      return publicSchoolKeywords.some(keyword => normalizedName.includes(keyword.toLowerCase()));
+    });
+    
+    console.log('🔍 Filtragem de escolas públicas:', {
+      total_encontradas: placesData.results.length,
+      publicas_removidas: filteredOut.length,
+      particulares_mantidas: filteredResults.length,
+      exemplos_removidos: filteredOut.slice(0, 3).map((p: PlaceResult) => p.name)
     });
     
     allCompetitors = [...filteredResults];
@@ -455,16 +533,57 @@ serve(async (req) => {
       });
       
       if (placesData.status === 'OK' && placesData.results) {
-        // Filter out public schools from additional pages too
+        // Apply same enhanced filtering logic to additional pages
         const filteredResults = placesData.results.filter((place: PlaceResult) => {
           const name = place.name.toLowerCase();
+          
+          // Use same keywords as first page
           const publicSchoolKeywords = [
             'emef', 'emei', 'emeif', 'cemei', 'municipal', 'estadual', 'federal',
             'pública', 'publica', 'governo', 'prefeitura', 'sec.', 'secretaria',
-            'colégio estadual', 'escola estadual', 'escola municipal', 'creche municipal'
+            'colégio estadual', 'escola estadual', 'escola municipal', 'creche municipal',
+            'e.m.', 'e.e.', 'e.m.e.f', 'e.m.e.i', 'e.e.e.i', 'e.e.e.f',
+            'c.e.', 'c.e.m.', 'ciep', 'caic', 'ceu', 'cem ', 'cme ',
+            'sesi', 'senai', 'senac', 'sesc',
+            'etec', 'fatec', 'e.t.e.c', 'f.a.t.e.c',
+            'ifsp', 'if-', 'instituto federal', 'i.f.', 'cefet',
+            'creche conveniada', 'pré-escola municipal', 'berçário municipal',
+            'centro de educação', 'núcleo de ensino', 'polo educacional',
+            'casa da criança', 'lar infantil',
+            'unidade escolar', 'ue ', 'u.e.',
+            'delegacia de ensino', 'diretoria de ensino'
           ];
           
-          return !publicSchoolKeywords.some(keyword => name.includes(keyword));
+          const privateSchoolIndicators = [
+            'colégio', 'colegio',
+            'instituto educacional', 'centro educacional particular',
+            'escola particular', 'escola privada',
+            'liceu', 'ginásio', 'internato',
+            'berçário particular', 'creche particular',
+            'anglo', 'objetivo', 'etapa', 'pensi', 'bandeirantes',
+            'adventista', 'luterano', 'metodista', 'batista',
+            'waldorf', 'montessori', 'steiner'
+          ];
+          
+          const normalizedName = name
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .replace(/\./g, ' ')
+            .toLowerCase();
+          
+          const hasPrivateIndicator = privateSchoolIndicators.some(indicator => 
+            normalizedName.includes(indicator)
+          );
+          
+          const hasPublicKeyword = publicSchoolKeywords.some(keyword => 
+            normalizedName.includes(keyword.toLowerCase())
+          );
+          
+          if (hasPrivateIndicator && !hasPublicKeyword) {
+            return true;
+          }
+          
+          return !hasPublicKeyword;
         });
         
         allCompetitors = [...allCompetitors, ...filteredResults];
@@ -511,6 +630,19 @@ serve(async (req) => {
         center_coordinates: {
           lat: location.lat,
           lng: location.lng
+        },
+        metadata: {
+          search_location: {
+            address: geocodeData.results[0].formatted_address,
+            coordinates: { lat: location.lat, lng: location.lng }
+          },
+          filtering_stats: {
+            total_schools_found: placesData.results.length,
+            private_schools_kept: allCompetitors.length,
+            confidence_level: allCompetitors.length > 10 ? 'high' : 'medium',
+            filters_applied: ['enhanced_keyword_matching', 'name_normalization', 'private_school_heuristics'],
+            phases_implemented: ['phase_1_expanded_keywords', 'phase_2_private_indicators', 'phase_3_optimized_api_keywords']
+          }
         }
       }),
       { 
