@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -86,29 +86,31 @@ const MarketAnalysisDashboard: React.FC<MarketAnalysisProps> = ({ onBack, school
   const [analysisComplete, setAnalysisComplete] = useState(false);
   
   const { toast } = useToast();
-
-  useEffect(() => {
-    if (schoolData && schoolData.address) {
-      // Start map loading immediately even without market data
-      setMapLoading(false); // Allow map to render with school location
-    }
-  }, [schoolData]);
+  
+  // Refs to control map initialization and prevent re-renders
+  const mapInitializedRef = useRef(false);
+  const apiKeyValidatedRef = useRef(false);
 
   useEffect(() => {
     fetchSchoolData();
   }, [schoolId]);
 
+  // Validate API key only once
   useEffect(() => {
-    if (marketData && !mapError) {
-      const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
-      
-      if (!validateApiKey(apiKey)) {
-        setMapError('Chave da API do Google Maps inválida ou não configurada');
-        setMapLoading(false);
-        console.error('❌ Google Maps API key inválida:', apiKey);
-      }
+    if (apiKeyValidatedRef.current) return;
+    
+    const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+    
+    if (!validateApiKey(apiKey)) {
+      setMapError('Chave da API do Google Maps inválida ou não configurada');
+      setMapLoading(false);
+      console.error('❌ Google Maps API key inválida:', apiKey);
+    } else {
+      setMapLoading(false);
     }
-  }, [marketData]);
+    
+    apiKeyValidatedRef.current = true;
+  }, []);
 
   const validateApiKey = (apiKey: string | undefined): boolean => {
     if (!apiKey) return false;
@@ -121,11 +123,15 @@ const MarketAnalysisDashboard: React.FC<MarketAnalysisProps> = ({ onBack, school
     return googleMapsKeyPattern.test(cleanKey);
   };
 
-  const handleMapLoad = () => {
+  const handleMapLoad = useCallback(() => {
+    if (!mapInitializedRef.current) {
+      console.log('🎯 Mapa carregado pela primeira vez');
+      mapInitializedRef.current = true;
+    }
     setMapLoading(false);
-  };
+  }, []);
 
-  const handleMapError = (errorMessage: string) => {
+  const handleMapError = useCallback((errorMessage: string) => {
     setMapError(errorMessage);
     setMapLoading(false);
     toast({
@@ -133,7 +139,7 @@ const MarketAnalysisDashboard: React.FC<MarketAnalysisProps> = ({ onBack, school
       description: errorMessage,
       variant: "destructive"
     });
-  };
+  }, [toast]);
 
   const fetchSchoolData = async () => {
     try {
@@ -374,6 +380,10 @@ const MarketAnalysisDashboard: React.FC<MarketAnalysisProps> = ({ onBack, school
     );
   }
 
+  // Memoize data to prevent unnecessary re-renders
+  const memoizedMarketData = useMemo(() => marketData, [marketData?.competitors.length]);
+  const memoizedSchoolData = useMemo(() => schoolData, [schoolData?.id]);
+
   // Pagination logic
   const indexOfLastCompetitor = currentPage * competitorsPerPage;
   const indexOfFirstCompetitor = indexOfLastCompetitor - competitorsPerPage;
@@ -488,8 +498,9 @@ const MarketAnalysisDashboard: React.FC<MarketAnalysisProps> = ({ onBack, school
                 </div>
               ) : (
                 <GoogleMapContainer
-                  marketData={marketData}
-                  schoolData={schoolData}
+                  key={`map-${memoizedSchoolData?.id}`}
+                  marketData={memoizedMarketData}
+                  schoolData={memoizedSchoolData}
                   onMapLoad={handleMapLoad}
                   onMapError={handleMapError}
                   enableProgressiveLoading={true}

@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, memo } from 'react';
 
 interface GoogleMapContainerProps {
   marketData: any;
@@ -8,20 +8,32 @@ interface GoogleMapContainerProps {
   enableProgressiveLoading?: boolean;
 }
 
-const GoogleMapContainer: React.FC<GoogleMapContainerProps> = ({
+const GoogleMapContainer: React.FC<GoogleMapContainerProps> = memo(({
   marketData,
   schoolData,
   onMapLoad,
   onMapError,
   enableProgressiveLoading = false
 }) => {
+  console.log('🔄 GoogleMapContainer: Renderizando', {
+    hasMarketData: !!marketData,
+    competitorsCount: marketData?.competitors?.length || 0,
+    schoolId: schoolData?.id,
+    timestamp: new Date().toISOString()
+  });
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<any>(null);
   const markersRef = useRef<any[]>([]);
 
   useEffect(() => {
-    if (!containerRef.current) return;
-    if (!enableProgressiveLoading && (!marketData || !schoolData)) return;
+    if (!containerRef.current) {
+      console.log('⚠️ Container ref não disponível');
+      return;
+    }
+    if (!enableProgressiveLoading && (!marketData || !schoolData)) {
+      console.log('⚠️ Aguardando dados:', { enableProgressiveLoading, hasMarketData: !!marketData, hasSchoolData: !!schoolData });
+      return;
+    }
 
     let mounted = true;
 
@@ -200,6 +212,31 @@ const GoogleMapContainer: React.FC<GoogleMapContainerProps> = ({
       style={{ minHeight: '400px' }}
     />
   );
-};
+}, (prevProps, nextProps) => {
+  // Custom comparison to prevent unnecessary re-renders
+  const prevCompetitorsLength = prevProps.marketData?.competitors?.length || 0;
+  const nextCompetitorsLength = nextProps.marketData?.competitors?.length || 0;
+  const prevSchoolId = prevProps.schoolData?.id;
+  const nextSchoolId = nextProps.schoolData?.id;
+  
+  const shouldNotUpdate = (
+    prevCompetitorsLength === nextCompetitorsLength &&
+    prevSchoolId === nextSchoolId &&
+    prevProps.enableProgressiveLoading === nextProps.enableProgressiveLoading
+  );
+  
+  if (!shouldNotUpdate) {
+    console.log('🔄 GoogleMapContainer: Props mudaram, re-renderizando', {
+      prevCompetitors: prevCompetitorsLength,
+      nextCompetitors: nextCompetitorsLength,
+      prevSchoolId,
+      nextSchoolId
+    });
+  }
+  
+  return shouldNotUpdate;
+});
+
+GoogleMapContainer.displayName = 'GoogleMapContainer';
 
 export default GoogleMapContainer;
