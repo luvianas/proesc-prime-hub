@@ -10,7 +10,7 @@ const corsHeaders = {
 const METABASE_DASHBOARDS = {
   financeiro: 52,
   pedagogico: 131,
-  agenda: 12278,
+  agenda: 211,
   secretaria: 43
 } as const;
 
