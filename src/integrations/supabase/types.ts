@@ -400,17 +400,11 @@ export type Database = {
     }
     Functions: {
       get_current_user_role: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: Database["public"]["Enums"]["user_role"]
       }
-      get_current_user_school_id: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
-      is_admin: {
-        Args: Record<PropertyKey, never>
-        Returns: boolean
-      }
+      get_current_user_school_id: { Args: never; Returns: string }
+      is_admin: { Args: never; Returns: boolean }
       promote_user_to_admin: {
         Args: { user_email: string }
         Returns: undefined
