@@ -53,6 +53,48 @@ export type Database = {
         }
         Relationships: []
       }
+      prime_leads: {
+        Row: {
+          city: string | null
+          contact_name: string
+          created_at: string | null
+          email: string
+          id: string
+          message: string | null
+          phone: string | null
+          school_name: string
+          state: string | null
+          status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          city?: string | null
+          contact_name: string
+          created_at?: string | null
+          email: string
+          id?: string
+          message?: string | null
+          phone?: string | null
+          school_name: string
+          state?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          city?: string | null
+          contact_name?: string
+          created_at?: string | null
+          email?: string
+          id?: string
+          message?: string | null
+          phone?: string | null
+          school_name?: string
+          state?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
